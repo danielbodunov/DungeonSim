@@ -69,9 +69,6 @@ public class TilePainter : MonoBehaviour{
 		pal.transform.parent = this.gameObject.transform;
 		pal.transform.localPosition = new Vector3(0f, -gridsize*2, 0f);
 		pal.transform.rotation = transform.rotation;
-
-
-		
 		int palette_folder = -1;
 
 		for (int i = 0; i < palette.Count; i++){
@@ -83,7 +80,9 @@ public class TilePainter : MonoBehaviour{
 				if (o != null){
 					GameObject g = CreatePrefab(o, new Vector3() , transform.rotation);
 					g.transform.parent = pal.transform;
-					g.transform.localPosition = new Vector3(i*gridsize, 0f, 0f);
+					int margin = 0;
+					if(i%2 == 1){margin = 1;}else{margin = 0;}	
+					g.transform.localPosition = new Vector3(i+margin*gridsize, 0f, 0f);
 				}
 			}
 		}
@@ -126,6 +125,11 @@ public class TilePainter : MonoBehaviour{
 				color = palette[0];
 			}
 		}
+	}
+
+	public void CreatePallette()
+	{
+		
 	}
 
 	public void Resize(){

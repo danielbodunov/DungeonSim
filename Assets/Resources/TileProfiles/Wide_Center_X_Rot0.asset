@@ -1,0 +1,41 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d3cb726cbd9fa8e4d8fabbba5854d153, type: 3}
+  m_Name: Wide_Center_X_Rot0
+  m_EditorClassIdentifier: Assembly-CSharp::TileSocketProfile
+  sourcePrefab: {fileID: 5313218770808383742, guid: 43a75a320e3aa4340ad021cf063f514c, type: 3}
+  resolution: 8
+  rotation: 0
+  baseTileName: Wide_Center_X
+  northHash: 11111111
+  southHash: 11111111
+  westHash: 11111111
+  eastHash: 11111111
+  northMatches:
+  - Wide_Center_X_R0
+  - Wide_Corner_02_L_R2
+  - Wide_Corner_02_L_R3
+  southMatches:
+  - Wide_Center_X_R0
+  - Wide_Corner_02_L_R0
+  - Wide_Corner_02_L_R1
+  eastMatches:
+  - Wide_Center_X_R0
+  - Wide_Corner_02_L_R1
+  - Wide_Corner_02_L_R2
+  - Wide_Opening_X_R0
+  - Wide_Side_T_R2
+  westMatches:
+  - Wide_Center_X_R0
+  - Wide_Corner_02_L_R0
+  - Wide_Corner_02_L_R3
+  - Wide_Side_T_R0

@@ -2,6 +2,7 @@ using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEditor;
+using Unity.VisualScripting;
 
 public class TilePlacement : MonoBehaviour
 {
@@ -16,6 +17,9 @@ public class TilePlacement : MonoBehaviour
     private Grid grid;
 
     [SerializeField]
+    private TileGridGenerator tileGridGenerator;
+
+    [SerializeField]
     private ObjectsDatabaseSO database;
     private int selectedObjectIndex = -1;
 
@@ -25,8 +29,15 @@ public class TilePlacement : MonoBehaviour
     [SerializeField]
     private GameObject tiles;
 
+    [SerializeField]
+    private TileAdjacencyDatabase tileDatabase;
     private void Start()
     {
+        if(tileGridGenerator == null)
+        {
+            tileGridGenerator = this.GetComponent<TileGridGenerator>()
+                ?? throw new System.Exception("TileGridGenerator component not found on the same GameObject.");
+        }
         StopPlacement();
         CreateGroundTiles();
     }
@@ -57,8 +68,9 @@ public class TilePlacement : MonoBehaviour
 
         Vector3 mousePosition = inputManager.GetSelectedMapPosition();
         Vector3Int gridPosition = grid.WorldToCell(mousePosition);
-        GameObject newObject = Instantiate(database.objectsData[selectedObjectIndex].Prefab);
-        newObject.transform.position = grid.CellToWorld(gridPosition);
+        //GameObject newObject = Instantiate(database.objectsData[selectedObjectIndex].Prefab);
+        //newObject.transform.position = grid.CellToWorld(gridPosition);
+        tileGridGenerator.ClickCell(gridPosition.x, gridPosition.y);
         
     }
     
@@ -91,14 +103,13 @@ public class TilePlacement : MonoBehaviour
     {
         Debug.Log("Creating ground tiles...");
         grid.CellToWorld(new Vector3Int(0, 0, 0));
-        for (int y = 0; y <= -50; y++)        {
-            for (int x = 0; x <= 50; x++)
+        for (int y = 0; y < 50; y++)        {
+            for (int x = 0; x >= -50; x--)
             {
                 Vector3Int cellPosition = new Vector3Int(x, 0, y);
                 Vector3 worldPosition = grid.CellToWorld(cellPosition);
                 GameObject tile = Instantiate(database.objectsData[0].Prefab, worldPosition, Quaternion.identity);
                 tile.transform.SetParent(tiles.transform);
-                //tile.GetComponent<Renderer>().material.color = Color.green;
             }
         }
     }

@@ -66,12 +66,15 @@ public class SimpleTiledWFC : MonoBehaviour{
 		if (output == null){
 			Transform ot = transform.Find("output-tiled");
 			if (ot != null){output = ot.gameObject;}}
+		
+		//if output doesn't exist, create it
 		if (output == null){
 			output = new GameObject("output-tiled");
 			output.transform.parent = transform;
 			output.transform.position = this.gameObject.transform.position;
 			output.transform.rotation = this.gameObject.transform.rotation;}
-
+		
+		// Clear previous output
 		for (int i = 0; i < output.transform.childCount; i++){
 			GameObject go = output.transform.GetChild(i).gameObject;
 			if (Application.isPlaying){Destroy(go);} else {DestroyImmediate(go);}
@@ -108,6 +111,7 @@ public class SimpleTiledWFC : MonoBehaviour{
 						if (fab == null){
 							continue;}
 						Vector3 pos = new Vector3(x*gridsize, y*gridsize, 0f);
+						Debug.Log("Instantiating "+v+" at "+pos+" with rotation "+rot*90);	
 						GameObject tile = (GameObject)Instantiate(fab, new Vector3() , Quaternion.identity);
 						Vector3 fscale = tile.transform.localScale;
 						tile.transform.parent = group;

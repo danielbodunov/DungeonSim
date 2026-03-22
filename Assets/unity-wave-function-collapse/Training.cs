@@ -30,13 +30,14 @@ class Training : MonoBehaviour{
 		for (int y = 0; y < depth; y++){
 			for (int x = 0; x < width; x++){
 				for (int r = 0; r < 2; r++){
-					int idx = (int)sample[x, y];
+					//Added to matrix of sampled tiles 
+					int idx = sample[x, y];
 					int rot = Card(RS[idx] + r);
                     int rx = x + 1 - r;
                     int ry = y + r;
                     if (rx < width && ry < depth)
                     {
-                        int ridx = (int)sample[rx, ry];
+                        int ridx = sample[rx, ry];
                         int rrot = Card(RS[ridx] + r);
                         string key = "" + idx + "." + rot + "|" + ridx + "." + rrot;
                         if (!neighbors.ContainsKey(key) && tiles[idx] && tiles[ridx])
@@ -62,6 +63,7 @@ class Training : MonoBehaviour{
 	}
 
 	public string NeighborXML(){
+		Debug.Log("Exporting "+neighbors.Count+" neighbors...");
 		Dictionary<UnityEngine.Object,int> counts = new Dictionary<UnityEngine.Object,int>();
 		string res = "<set>\n  <tiles>\n";
 		for (int i = 0; i < tiles.Length; i++){
@@ -83,6 +85,7 @@ class Training : MonoBehaviour{
 	    	res += "  <neighbor left=\""+AssetPath(tiles[link[0]])+" "+link[1]+
 	    				   "\" right=\""+AssetPath(tiles[link[2]])+" "+link[3]+"\"/>\n";
 		}
+		Debug.Log("Exported "+neighbors.Count+" neighbors.");
 		return res + "	</neighbors>\n</set>";
 	}
 

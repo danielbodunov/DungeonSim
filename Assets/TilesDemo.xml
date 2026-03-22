@@ -1,0 +1,39 @@
+<set>
+  <tiles>
+<tile name="Dungeon/Starter" symmetry="X" weight="1.0"/>
+<tile name="Dungeon/Ground_Full" symmetry="X" weight="1.0"/>
+<tile name="Dungeon/Wide_Corner_01_L" symmetry="L" weight="1.0"/>
+<tile name="Dungeon/Wide_Corner_03_L" symmetry="L" weight="1.0"/>
+	</tiles>
+<neighbors>  <neighbor left="Dungeon/Ground_Full 0" right="Dungeon/Ground_Full 0"/>
+  <neighbor left="Dungeon/Ground_Full 1" right="Dungeon/Ground_Full 1"/>
+  <neighbor left="Dungeon/Ground_Full 1" right="Dungeon/Wide_Corner_01_L 0"/>
+  <neighbor left="Dungeon/Ground_Full 1" right="Dungeon/Wide_Corner_01_L 3"/>
+  <neighbor left="Dungeon/Ground_Full 1" right="Dungeon/Starter 1"/>
+  <neighbor left="Dungeon/Ground_Full 0" right="Dungeon/Wide_Corner_01_L 3"/>
+  <neighbor left="Dungeon/Wide_Corner_01_L 3" right="Dungeon/Wide_Corner_01_L 2"/>
+  <neighbor left="Dungeon/Wide_Corner_01_L 0" right="Dungeon/Wide_Corner_01_L 1"/>
+  <neighbor left="Dungeon/Wide_Corner_01_L 2" right="Dungeon/Ground_Full 0"/>
+  <neighbor left="Dungeon/Wide_Corner_01_L 3" right="Dungeon/Wide_Corner_01_L 2"/>
+  <neighbor left="Dungeon/Ground_Full 0" right="Dungeon/Starter 0"/>
+  <neighbor left="Dungeon/Starter 0" right="Dungeon/Ground_Full 0"/>
+  <neighbor left="Dungeon/Starter 1" right="Dungeon/Ground_Full 1"/>
+  <neighbor left="Dungeon/Ground_Full 0" right="Dungeon/Wide_Corner_01_L 0"/>
+  <neighbor left="Dungeon/Wide_Corner_01_L 0" right="Dungeon/Wide_Corner_01_L 1"/>
+  <neighbor left="Dungeon/Wide_Corner_01_L 1" right="Dungeon/Ground_Full 1"/>
+  <neighbor left="Dungeon/Wide_Corner_01_L 1" right="Dungeon/Ground_Full 0"/>
+  <neighbor left="Dungeon/Wide_Corner_01_L 2" right="Dungeon/Ground_Full 1"/>
+  <neighbor left="Dungeon/Ground_Full 1" right="Dungeon/Wide_Corner_03_L 0"/>
+  <neighbor left="Dungeon/Ground_Full 1" right="Dungeon/Wide_Corner_03_L 3"/>
+  <neighbor left="Dungeon/Ground_Full 0" right="Dungeon/Wide_Corner_03_L 3"/>
+  <neighbor left="Dungeon/Wide_Corner_03_L 3" right="Dungeon/Wide_Corner_03_L 2"/>
+  <neighbor left="Dungeon/Wide_Corner_03_L 0" right="Dungeon/Wide_Corner_03_L 1"/>
+  <neighbor left="Dungeon/Wide_Corner_03_L 2" right="Dungeon/Ground_Full 0"/>
+  <neighbor left="Dungeon/Wide_Corner_03_L 3" right="Dungeon/Wide_Corner_03_L 2"/>
+  <neighbor left="Dungeon/Ground_Full 0" right="Dungeon/Wide_Corner_03_L 0"/>
+  <neighbor left="Dungeon/Wide_Corner_03_L 0" right="Dungeon/Wide_Corner_03_L 1"/>
+  <neighbor left="Dungeon/Wide_Corner_03_L 1" right="Dungeon/Ground_Full 1"/>
+  <neighbor left="Dungeon/Wide_Corner_03_L 1" right="Dungeon/Ground_Full 0"/>
+  <neighbor left="Dungeon/Wide_Corner_03_L 2" right="Dungeon/Ground_Full 1"/>
+	</neighbors>
+</set>

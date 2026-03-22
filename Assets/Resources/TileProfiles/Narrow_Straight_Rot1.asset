@@ -1,0 +1,65 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d3cb726cbd9fa8e4d8fabbba5854d153, type: 3}
+  m_Name: Narrow_Straight_Rot1
+  m_EditorClassIdentifier: Assembly-CSharp::TileSocketProfile
+  sourcePrefab: {fileID: 8466038456287927488, guid: 52ba759808b889e42b4baa9bb726e6f8, type: 3}
+  resolution: 8
+  rotation: 1
+  baseTileName: Narrow_Straight
+  northHash: 00111100
+  southHash: 00000000
+  westHash: 00000000
+  eastHash: 00111100
+  northMatches:
+  - Narrow_Corner_R2
+  - Narrow_Corner_R3
+  - Narrow_Junction_X_R0
+  - Narrow_T_R0
+  - Narrow_T_R2
+  southMatches:
+  - Ground_Full_X_R0
+  - Narrow_Cap_R0
+  - Narrow_Cap_R1
+  - Narrow_Cap_R2
+  - Narrow_Corner_R2
+  - Narrow_Corner_R3
+  - Narrow_Straight_R0
+  - Narrow_Straight_R2
+  - Starter_X_R0
+  - Wide_Corner_01_L_R0
+  - Wide_Corner_01_L_R1
+  - Wide_Corner_03_L_R0
+  - Wide_Corner_03_L_R1
+  - Wide_Floor_Opening_R2
+  eastMatches:
+  - Narrow_Cap_R0
+  - Narrow_Corner_R1
+  - Narrow_Corner_R2
+  - Narrow_Junction_X_R0
+  - Narrow_Straight_R0
+  - Narrow_Straight_R2
+  - Narrow_T_R2
+  - Wide_Floor_Opening_R0
+  westMatches:
+  - Ground_Full_X_R0
+  - Narrow_Cap_R0
+  - Narrow_Cap_R3
+  - Narrow_Corner_R1
+  - Narrow_Corner_R2
+  - Narrow_T_R2
+  - Starter_X_R0
+  - Wide_Corner_01_L_R0
+  - Wide_Corner_01_L_R3
+  - Wide_Corner_03_L_R0
+  - Wide_Corner_03_L_R3
+  - Wide_Side_T_R2
