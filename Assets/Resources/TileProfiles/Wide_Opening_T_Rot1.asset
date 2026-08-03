@@ -12,23 +12,28 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d3cb726cbd9fa8e4d8fabbba5854d153, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TileSocketProfile
-  sourcePrefab: {fileID: 841458722058369353, guid: 34610e1956bd77241a3273527c2b0d56, type: 3}
+  sourcePrefab: {fileID: 8102282791824883359, guid: bc43ba1fa2974e943b70316cc7e008f0, type: 3}
   resolution: 4
-  rotation: 2
-  baseTileName: Wide_Corner_02_L
+  rotation: 1
+  baseTileName: Wide_Opening_T
   category: 3
-  northHash: 0111
+  northHash: 0110
   southHash: 1111
   westHash: 1110
-  eastHash: 1111
+  eastHash: 1110
   northMatches:
-  - Wide_Corner_01_L_R0
-  - Wide_Corner_02_L_R1
-  - Wide_Corner_03_L_R0
-  - Wide_Floor_Opening_L_R2
-  - Wide_Floor_Opening_Reversed_L_R1
-  - Wide_Opening_T_R0
-  - Wide_Side_T_R2
+  - Narrow_Cap_R1
+  - Narrow_Corner_L_R2
+  - Narrow_Corner_L_R3
+  - Narrow_Junction_X_R0
+  - Narrow_Straight_R1
+  - Narrow_Straight_R3
+  - Narrow_T_R0
+  - Narrow_T_R2
+  - Narrow_T_R3
+  - Wide_Floor_Opening_L_R1
+  - Wide_Floor_Opening_Reversed_L_R3
+  - Wide_Opening_T_R3
   southMatches:
   - Wide_Center_X_R0
   - Wide_Corner_02_L_R0
@@ -36,11 +41,13 @@ MonoBehaviour:
   - Wide_Opening_T_R3
   - Wide_Side_T_R1
   eastMatches:
-  - Wide_Center_X_R0
-  - Wide_Corner_02_L_R0
-  - Wide_Corner_02_L_R3
-  - Wide_Opening_T_R2
-  - Wide_Side_T_R0
+  - Wide_Corner_01_L_R1
+  - Wide_Corner_02_L_R2
+  - Wide_Corner_03_L_R1
+  - Wide_Floor_Opening_L_R3
+  - Wide_Floor_Opening_Reversed_L_R2
+  - Wide_Opening_T_R1
+  - Wide_Side_T_R3
   westMatches:
   - Wide_Corner_01_L_R0
   - Wide_Corner_02_L_R3

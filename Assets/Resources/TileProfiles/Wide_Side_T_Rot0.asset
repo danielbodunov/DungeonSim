@@ -10,44 +10,54 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: d3cb726cbd9fa8e4d8fabbba5854d153, type: 3}
-  m_Name: Wide_Side_T_Rot0
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TileSocketProfile
   sourcePrefab: {fileID: 1948813269938946616, guid: 903368fd44fddb34d81b169f164f32e8, type: 3}
-  resolution: 8
+  resolution: 4
   rotation: 0
   baseTileName: Wide_Side_T
-  northHash: 11111100
-  southHash: 11111100
-  westHash: 00000000
-  eastHash: 11111111
+  category: 3
+  northHash: 1110
+  southHash: 1110
+  westHash: 1111
+  eastHash: 0000
   northMatches:
-  - Wide_Corner_01_L_R0
-  - Wide_Corner_02_L_R1
-  - Wide_Corner_03_L_R0
-  - Wide_Floor_Opening_R3
-  - Wide_Opening_X_R0
+  - Wide_Corner_01_L_R1
+  - Wide_Corner_02_L_R0
+  - Wide_Corner_03_L_R1
+  - Wide_Floor_Opening_L_R3
+  - Wide_Floor_Opening_Reversed_L_R2
+  - Wide_Opening_T_R2
+  - Wide_Side_T_R0
   southMatches:
   - Wide_Corner_01_L_R2
-  - Wide_Corner_01_L_R3
+  - Wide_Corner_02_L_R3
   - Wide_Corner_03_L_R2
-  - Wide_Corner_03_L_R3
-  - Wide_Opening_X_R0
+  - Wide_Floor_Opening_L_R0
+  - Wide_Floor_Opening_Reversed_L_R3
+  - Wide_Opening_T_R2
+  - Wide_Side_T_R0
   eastMatches:
-  - Wide_Center_X_R0
-  - Wide_Corner_02_L_R1
-  - Wide_Corner_02_L_R2
-  - Wide_Opening_X_R0
-  - Wide_Side_T_R2
-  westMatches:
   - Ground_Full_X_R0
   - Narrow_Cap_R0
+  - Narrow_Cap_R1
   - Narrow_Cap_R3
-  - Narrow_Corner_R1
-  - Narrow_Corner_R2
+  - Narrow_Corner_L_R1
+  - Narrow_Corner_L_R2
+  - Narrow_Straight_R1
+  - Narrow_Straight_R3
   - Narrow_T_R2
   - Starter_X_R0
   - Wide_Corner_01_L_R0
   - Wide_Corner_01_L_R3
   - Wide_Corner_03_L_R0
   - Wide_Corner_03_L_R3
+  - Wide_Floor_Opening_L_R1
+  - Wide_Floor_Opening_Reversed_L_R1
+  - Wide_Side_T_R2
+  westMatches:
+  - Wide_Center_X_R0
+  - Wide_Corner_02_L_R1
+  - Wide_Corner_02_L_R2
+  - Wide_Opening_T_R0
   - Wide_Side_T_R2

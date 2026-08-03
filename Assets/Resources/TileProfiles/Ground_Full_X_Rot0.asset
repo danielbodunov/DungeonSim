@@ -10,57 +10,78 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: d3cb726cbd9fa8e4d8fabbba5854d153, type: 3}
-  m_Name: Ground_Full_X_Rot0
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TileSocketProfile
   sourcePrefab: {fileID: 175052975836350859, guid: 7bd5947bc781b64459fbd3bfb956b422, type: 3}
-  resolution: 8
+  resolution: 4
   rotation: 0
   baseTileName: Ground_Full_X
-  northHash: 00000000
-  southHash: 00000000
-  westHash: 00000000
-  eastHash: 00000000
+  category: 1
+  northHash: 0000
+  southHash: 0000
+  westHash: 0000
+  eastHash: 0000
   northMatches:
   - Ground_Full_X_R0
   - Narrow_Cap_R0
-  - Narrow_Cap_R1
   - Narrow_Cap_R2
   - Narrow_Cap_R3
-  - Narrow_Corner_R0
-  - Narrow_Corner_R1
+  - Narrow_Corner_L_R0
+  - Narrow_Corner_L_R1
   - Narrow_Straight_R0
-  - Narrow_Straight_R1
   - Narrow_Straight_R2
-  - Narrow_Straight_R3
+  - Narrow_T_R1
   - Starter_X_R0
   - Wide_Corner_01_L_R2
   - Wide_Corner_01_L_R3
   - Wide_Corner_03_L_R2
   - Wide_Corner_03_L_R3
-  - Wide_Floor_Opening_R0
-  - Wide_Floor_Opening_R1
+  - Wide_Floor_Opening_L_R0
+  - Wide_Floor_Opening_Reversed_L_R0
+  - Wide_Side_T_R1
   southMatches:
   - Ground_Full_X_R0
   - Narrow_Cap_R0
   - Narrow_Cap_R1
   - Narrow_Cap_R2
-  - Narrow_Corner_R2
-  - Narrow_Corner_R3
+  - Narrow_Corner_L_R2
+  - Narrow_Corner_L_R3
   - Narrow_Straight_R0
   - Narrow_Straight_R2
+  - Narrow_T_R3
   - Starter_X_R0
   - Wide_Corner_01_L_R0
   - Wide_Corner_01_L_R1
   - Wide_Corner_03_L_R0
   - Wide_Corner_03_L_R1
-  - Wide_Floor_Opening_R2
+  - Wide_Floor_Opening_L_R2
+  - Wide_Floor_Opening_Reversed_L_R2
+  - Wide_Side_T_R3
   eastMatches:
+  - Ground_Full_X_R0
+  - Narrow_Cap_R0
+  - Narrow_Cap_R1
+  - Narrow_Cap_R3
+  - Narrow_Corner_L_R1
+  - Narrow_Corner_L_R2
+  - Narrow_Straight_R1
+  - Narrow_Straight_R3
+  - Narrow_T_R2
+  - Starter_X_R0
+  - Wide_Corner_01_L_R0
+  - Wide_Corner_01_L_R3
+  - Wide_Corner_03_L_R0
+  - Wide_Corner_03_L_R3
+  - Wide_Floor_Opening_L_R1
+  - Wide_Floor_Opening_Reversed_L_R1
+  - Wide_Side_T_R2
+  westMatches:
   - Ground_Full_X_R0
   - Narrow_Cap_R1
   - Narrow_Cap_R2
   - Narrow_Cap_R3
-  - Narrow_Corner_R0
-  - Narrow_Corner_R3
+  - Narrow_Corner_L_R0
+  - Narrow_Corner_L_R3
   - Narrow_Straight_R1
   - Narrow_Straight_R3
   - Narrow_T_R0
@@ -69,18 +90,6 @@ MonoBehaviour:
   - Wide_Corner_01_L_R2
   - Wide_Corner_03_L_R1
   - Wide_Corner_03_L_R2
-  - Wide_Floor_Opening_R3
+  - Wide_Floor_Opening_L_R3
+  - Wide_Floor_Opening_Reversed_L_R3
   - Wide_Side_T_R0
-  westMatches:
-  - Ground_Full_X_R0
-  - Narrow_Cap_R0
-  - Narrow_Cap_R3
-  - Narrow_Corner_R1
-  - Narrow_Corner_R2
-  - Narrow_T_R2
-  - Starter_X_R0
-  - Wide_Corner_01_L_R0
-  - Wide_Corner_01_L_R3
-  - Wide_Corner_03_L_R0
-  - Wide_Corner_03_L_R3
-  - Wide_Side_T_R2
