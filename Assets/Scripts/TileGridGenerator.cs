@@ -3,12 +3,18 @@ using System.Collections.Generic;
 
 public class TileGridGenerator : MonoBehaviour
 {
+    const string GroundTileName = "Ground_Full_X";
+
     [SerializeField] TileAdjacencyDatabase database;
     [SerializeField] GameObject placeholderPrefab;
     [SerializeField] int width = 32;
     [SerializeField] int height = 32;
+    [SerializeField] Vector2 origin = Vector2.zero;
+    [SerializeField] Vector2 generationDirection = new Vector2(-1, -1);
+    [SerializeField, Min(1000)] int localSearchNodeLimit = 25000;
 
     List<GameObject> prefabs;
+    int groundTileIndex = -1;
 
     Dictionary<int, HashSet<int>> north;
     Dictionary<int, HashSet<int>> south;
@@ -18,6 +24,8 @@ public class TileGridGenerator : MonoBehaviour
     List<int>[,] cells;
 
     GameObject[,] instantiated;
+    bool[,] placed;
+    bool[,] fixedGround;
 
     void Start()
     {
@@ -39,6 +47,8 @@ public class TileGridGenerator : MonoBehaviour
         for (int i = 0; i < database.tiles.Count; i++)
             prefabs.Add(database.tiles[i].sourcePrefab);
 
+        groundTileIndex = FindTileIndex(GroundTileName);
+
         for (int i = 0; i < database.tiles.Count; i++)
         {
             north[i] = BuildSet(database.tiles[i].northMatches, "north", i );
@@ -49,23 +59,23 @@ public class TileGridGenerator : MonoBehaviour
         Debug.Log($"Runtime database built with {prefabs.Count} tiles.");
     }
 
+    int FindTileIndex(string baseTileName)
+    {
+        for (int i = 0; i < database.tiles.Count; i++)
+            if (database.tiles[i].baseTileName == baseTileName)
+                return i;
+
+        Debug.LogError($"Tile database does not contain required tile '{baseTileName}'.");
+        return -1;
+    }
+
     //build a set of tile indices that match the given list of side matches
     HashSet<int> BuildSet(List<string> names, string direction = "", int tileIndex = -1)
     {
         var set = new HashSet<int>();
 
-        //strip rotation from names to match against base tile names in database
-        List<string> namesStripped = new();
-        foreach (var n in names)
-        {
-            string stripped = n.Split("_R")[0];
-            namesStripped.Add(stripped);
-        }
-
-
         for (int i = 0; i < database.tiles.Count; i++)
-
-            if (namesStripped.Contains(database.tiles[i].sourcePrefab.name))
+            if (names.Contains(GetProfileId(database.tiles[i])))
             {
                 set.Add(i);
             }
@@ -77,25 +87,65 @@ public class TileGridGenerator : MonoBehaviour
         return set;
     }
 
+    static string GetProfileId(TileSocketProfile profile)
+    {
+        return $"{profile.baseTileName}_R{profile.rotation}";
+    }
+
+    Quaternion GetTileRotation(int tileIndex)
+    {
+        // Baked rotation indices progress clockwise when viewed from +Z.
+        float gridOrientation = generationDirection.x < 0f && generationDirection.y < 0f
+            ? 180f
+            : 0f;
+        return Quaternion.Euler(
+            0f,
+            0f,
+            database.tiles[tileIndex].rotation * -90f + gridOrientation);
+    }
+
     // ---- 2. Grid ----
 
     void InitializeGrid()
     {
         cells = new List<int>[width, height];
         instantiated = new GameObject[width, height];
+        placed = new bool[width, height];
+        fixedGround = new bool[width, height];
 
         for (int x = 0; x < width; x++)
         for (int y = 0; y < height; y++)
         {
+            //Get world position cell with respective origin and generation direction
+            // Vector3 coord = GetWorldPosition(x, y);
+            // int wX = (int)coord.x;
+            // int wY = (int)coord.y;
             cells[x, y] = new List<int>();
             if(x == 0 || y == 0 || x == width - 1 || y == height - 1)
                 {
-                    cells[x, y].Add(0); //TODO: replace with actual edge tiles
+                    cells[x, y].Add(groundTileIndex);
+                    fixedGround[x, y] = true;
                     continue;
                 }
 
             for (int i = 0; i < prefabs.Count; i++)
                 cells[x, y].Add(i);
+        }
+
+        // The border cells are pre-collapsed to the ground tile. Their
+        // constraints must be applied before the player can collapse a cell.
+        for (int x = 0; x < width; x++)
+        {
+            Propagate(x, 0);
+            if (height > 1)
+                Propagate(x, height - 1);
+        }
+
+        for (int y = 1; y < height - 1; y++)
+        {
+            Propagate(0, y);
+            if (width > 1)
+                Propagate(width - 1, y);
         }
     }
 
@@ -213,6 +263,22 @@ public class TileGridGenerator : MonoBehaviour
         return best;
     }
 
+    Vector3 GetWorldPosition(int x, int y)
+    {
+        return new Vector3(
+            origin.x-.5f + x * generationDirection.x,
+            origin.y-.5f + y * generationDirection.y,
+            0
+        );
+    }
+
+    Vector2Int GetGridCoordinates(Vector3 worldPosition)
+    {
+        float x = (worldPosition.x - origin.x + 0.5f) / generationDirection.x;
+        float y = (worldPosition.y - origin.y + 0.5f) / generationDirection.y;
+        return new Vector2Int(Mathf.RoundToInt(x), Mathf.RoundToInt(y));
+    }
+
     void InstantiateGrid()
     {
         for (int x = 0; x < width; x++)
@@ -220,18 +286,18 @@ public class TileGridGenerator : MonoBehaviour
         {
             if (cells[x, y].Count == 0)
             {
-                InstantiateCell(x, y, 0);
+                InstantiateCell(x, y, groundTileIndex);
                 Debug.LogError("Contradiction detected.");
                 continue;
             }
             if (cells[x, y].Count == 1)
             {
                 int tileIndex = cells[x, y][0];
-                instantiated[x, y] = Instantiate(prefabs[tileIndex], new Vector3(x, y, 0), Quaternion.identity, transform);
+                instantiated[x, y] = Instantiate(prefabs[tileIndex], GetWorldPosition(x, y), GetTileRotation(tileIndex), transform);
             }
             else
             {
-                instantiated[x, y] = Instantiate(placeholderPrefab, new Vector3(x, y, 0), Quaternion.identity, transform);
+                instantiated[x, y] = Instantiate(placeholderPrefab, GetWorldPosition(x, y), Quaternion.identity, transform);
                 var comp = instantiated[x, y].AddComponent<TilePlaceholder>();
                 comp.x = x;
                 comp.y = y;
@@ -247,18 +313,459 @@ public class TileGridGenerator : MonoBehaviour
         if (instantiated[x, y] != null) Destroy(instantiated[x, y]);
         instantiated[x, y] = Instantiate(
             prefabs[tileIndex],
-            new Vector3(x, y, 0),
-            Quaternion.identity,
+            GetWorldPosition(x, y),
+            GetTileRotation(tileIndex),
             transform
         );
     }
     
-    public void ClickCell(int x, int y)
+    public void ClickWorldPosition(Vector3 worldPosition)
     {
-        if (cells[x, y].Count > 1)
+        Vector2Int gridCoordinates = GetGridCoordinates(worldPosition);
+        ClickCell(gridCoordinates.x, gridCoordinates.y);
+    }
+
+    public void PlaceGroundWorldPosition(Vector3 worldPosition)
+    {
+        Vector2Int gridCoordinates = GetGridCoordinates(worldPosition);
+        PlaceGroundCell(gridCoordinates.x, gridCoordinates.y);
+    }
+
+    public void PlaceGroundCell(int x, int y)
+    {
+        if (x < 0 || x >= width || y < 0 || y >= height || fixedGround[x, y])
+            return;
+
+        List<int>[,] previousCells = CopyCells();
+        bool wasPlaced = placed[x, y];
+        var region = new List<Vector2Int>();
+        for (int dx = -1; dx <= 1; dx++)
+        for (int dy = -1; dy <= 1; dy++)
         {
-            int pick = cells[x, y][Random.Range(0, cells[x, y].Count)];
-            Collapse(x, y, pick);
+            if (dx == 0 && dy == 0)
+                continue;
+            int nx = x + dx;
+            int ny = y + dy;
+            if (nx > 0 && ny > 0 && nx < width - 1 && ny < height - 1 && placed[nx, ny])
+                region.Add(new Vector2Int(nx, ny));
+        }
+
+        cells[x, y].Clear();
+        cells[x, y].Add(groundTileIndex);
+        placed[x, y] = false;
+        InstantiateCell(x, y, groundTileIndex);
+
+        if (region.Count > 0)
+        {
+            var regionSet = new HashSet<Vector2Int>(region);
+            if (!FindBestLocalAssignment(region, regionSet, out var assignments))
+            {
+                cells = previousCells;
+                placed[x, y] = wasPlaced;
+                InstantiateCurrentCell(x, y);
+                foreach (var position in region)
+                    InstantiateCurrentCell(position.x, position.y);
+                Debug.LogWarning($"Ground cannot be placed at ({x},{y}) without disconnecting the surrounding layout.");
+                return;
+            }
+
+            foreach (var assignment in assignments)
+            {
+                Vector2Int position = assignment.Key;
+                cells[position.x, position.y].Clear();
+                cells[position.x, position.y].Add(assignment.Value);
+                InstantiateCell(position.x, position.y, assignment.Value);
+            }
+        }
+
+        Propagate(x, y);
+        if (HasContradiction())
+        {
+            cells = previousCells;
+            placed[x, y] = wasPlaced;
+            InstantiateCurrentCell(x, y);
+            foreach (var position in region)
+                InstantiateCurrentCell(position.x, position.y);
+            Debug.LogWarning($"Ground placement at ({x},{y}) caused a contradiction and was reverted.");
         }
     }
+
+    public void ClickCell(int x, int y)
+    {
+        if (x < 0 || x >= width || y < 0 || y >= height)
+        {
+            Debug.LogWarning($"Cell ({x},{y}) is outside the grid bounds [0-{width - 1}, 0-{height - 1}].");
+            return;
+        }
+
+        if (fixedGround[x, y])
+        {
+            Debug.LogWarning($"Cell ({x},{y}) is fixed ground and cannot be replaced.");
+            return;
+        }
+
+        if (!TryResolveLocalPlacement(x, y))
+        {
+            Debug.LogWarning($"No local tile combination can connect at ({x},{y}) without changing tiles farther away.");
+        }
+    }
+
+    bool TryResolveLocalPlacement(int x, int y)
+    {
+        List<int>[,] previousCells = CopyCells();
+        var center = new Vector2Int(x, y);
+        var region = new List<Vector2Int> { center };
+        AddCollapsedNeighbor(region, x, y + 1);
+        AddCollapsedNeighbor(region, x, y - 1);
+        AddCollapsedNeighbor(region, x + 1, y);
+        AddCollapsedNeighbor(region, x - 1, y);
+        // Include diagonals in the joint solve so patterns such as a 2x2 room
+        // can replace all four corners together. Socket checks remain cardinal.
+        AddCollapsedNeighbor(region, x + 1, y + 1);
+        AddCollapsedNeighbor(region, x + 1, y - 1);
+        AddCollapsedNeighbor(region, x - 1, y + 1);
+        AddCollapsedNeighbor(region, x - 1, y - 1);
+
+        var regionSet = new HashSet<Vector2Int>(region);
+        if (!FindBestLocalAssignment(region, regionSet, out var assignments))
+            return false;
+
+        foreach (var assignment in assignments)
+        {
+            Vector2Int position = assignment.Key;
+            cells[position.x, position.y].Clear();
+            cells[position.x, position.y].Add(assignment.Value);
+            InstantiateCell(position.x, position.y, assignment.Value);
+        }
+
+        foreach (var position in region)
+            Propagate(position.x, position.y);
+
+        if (HasContradiction())
+        {
+            cells = previousCells;
+            foreach (var position in region)
+                InstantiateCurrentCell(position.x, position.y);
+            return false;
+        }
+
+        placed[x, y] = true;
+        return true;
+    }
+
+    List<int>[,] CopyCells()
+    {
+        var copy = new List<int>[width, height];
+        for (int x = 0; x < width; x++)
+        for (int y = 0; y < height; y++)
+            copy[x, y] = new List<int>(cells[x, y]);
+        return copy;
+    }
+
+    bool HasContradiction()
+    {
+        for (int x = 0; x < width; x++)
+        for (int y = 0; y < height; y++)
+            if (cells[x, y].Count == 0)
+                return true;
+        return false;
+    }
+
+    void InstantiateCurrentCell(int x, int y)
+    {
+        if (instantiated[x, y] != null)
+            Destroy(instantiated[x, y]);
+
+        if (placed[x, y] && cells[x, y].Count == 1)
+        {
+            int tileIndex = cells[x, y][0];
+            instantiated[x, y] = Instantiate(
+                prefabs[tileIndex], GetWorldPosition(x, y), GetTileRotation(tileIndex), transform);
+            return;
+        }
+
+        instantiated[x, y] = Instantiate(
+            placeholderPrefab, GetWorldPosition(x, y), Quaternion.identity, transform);
+        var placeholder = instantiated[x, y].AddComponent<TilePlaceholder>();
+        placeholder.x = x;
+        placeholder.y = y;
+        placeholder.generator = this;
+    }
+
+    void AddCollapsedNeighbor(List<Vector2Int> region, int x, int y)
+    {
+        if (x <= 0 || y <= 0 || x >= width - 1 || y >= height - 1)
+            return;
+
+        if (placed[x, y])
+            region.Add(new Vector2Int(x, y));
+    }
+
+    bool FindBestLocalAssignment(
+        List<Vector2Int> region,
+        HashSet<Vector2Int> regionSet,
+        out Dictionary<Vector2Int, int> bestAssignments)
+    {
+        var assignments = new Dictionary<Vector2Int, int>();
+        bestAssignments = null;
+        int bestScore = int.MinValue;
+        int visitedNodes = 0;
+        SearchLocalAssignments(region, regionSet, assignments, 0,
+            ref bestAssignments, ref bestScore, ref visitedNodes);
+        if (bestAssignments != null)
+        {
+            int wideTiles = 0;
+            foreach (int tileIndex in bestAssignments.Values)
+                if (GetTileCategory(database.tiles[tileIndex]) == TileCategory.Wide)
+                    wideTiles++;
+            Debug.Log($"Local layout search visited {visitedNodes} nodes; score {bestScore}; wide tiles {wideTiles}/{region.Count}.");
+        }
+        return bestAssignments != null;
+    }
+
+    void SearchLocalAssignments(
+        List<Vector2Int> region,
+        HashSet<Vector2Int> regionSet,
+        Dictionary<Vector2Int, int> assignments,
+        int score,
+        ref Dictionary<Vector2Int, int> bestAssignments,
+        ref int bestScore,
+        ref int visitedNodes)
+    {
+        if (visitedNodes++ >= localSearchNodeLimit)
+            return;
+
+        if (assignments.Count >= region.Count)
+        {
+            if (score > bestScore)
+            {
+                bestScore = score;
+                bestAssignments = new Dictionary<Vector2Int, int>(assignments);
+            }
+            return;
+        }
+
+        Vector2Int position = default;
+        List<int> candidates = null;
+        foreach (Vector2Int possiblePosition in region)
+        {
+            if (assignments.ContainsKey(possiblePosition))
+                continue;
+
+            var validCandidates = GetOrderedValidCandidates(
+                possiblePosition, regionSet, assignments);
+            if (candidates == null || validCandidates.Count < candidates.Count)
+            {
+                position = possiblePosition;
+                candidates = validCandidates;
+                if (candidates.Count == 0)
+                    break;
+            }
+        }
+
+        foreach (int candidate in candidates)
+        {
+            assignments[position] = candidate;
+            SearchLocalAssignments(region, regionSet, assignments,
+                score + GetCandidateScore(position, candidate, regionSet),
+                ref bestAssignments, ref bestScore, ref visitedNodes);
+            assignments.Remove(position);
+
+            if (visitedNodes >= localSearchNodeLimit)
+                break;
+        }
+    }
+
+    List<int> GetOrderedValidCandidates(
+        Vector2Int position,
+        HashSet<Vector2Int> region,
+        Dictionary<Vector2Int, int> assignments)
+    {
+        var candidates = new List<int>();
+        for (int i = 0; i < prefabs.Count; i++)
+        {
+            if (i == groundTileIndex)
+                continue;
+            if (IsRoomContext(position, region)
+                && GetTileCategory(database.tiles[i]) == TileCategory.Starter)
+                continue;
+            if (FitsLocalNeighbors(position, i, region, assignments))
+                candidates.Add(i);
+        }
+
+        var ordered = new List<int>();
+        AppendCandidatesByScore(ordered, candidates, position, region);
+        return ordered;
+    }
+
+    void AppendCandidatesByScore(
+        List<int> destination,
+        List<int> candidates,
+        Vector2Int position,
+        HashSet<Vector2Int> region)
+    {
+        while (candidates.Count > 0)
+        {
+            int bestCandidateScore = int.MinValue;
+            var tiedCandidates = new List<int>();
+            foreach (int candidate in candidates)
+            {
+                int candidateScore = GetCandidateScore(position, candidate, region);
+                if (candidateScore > bestCandidateScore)
+                {
+                    bestCandidateScore = candidateScore;
+                    tiedCandidates.Clear();
+                    tiedCandidates.Add(candidate);
+                }
+                else if (candidateScore == bestCandidateScore)
+                {
+                    tiedCandidates.Add(candidate);
+                }
+            }
+
+            int selected = tiedCandidates[Random.Range(0, tiedCandidates.Count)];
+            destination.Add(selected);
+            candidates.Remove(selected);
+        }
+    }
+
+    int GetCandidateScore(Vector2Int position, int tileIndex, HashSet<Vector2Int> region)
+    {
+        int cardinalNeighbors = CountOccupiedNeighbors(position, region, false);
+        int diagonalNeighbors = CountOccupiedNeighbors(position, region, true);
+        bool roomContext = cardinalNeighbors >= 2 && diagonalNeighbors > 0;
+        TileCategory category = GetTileCategory(database.tiles[tileIndex]);
+
+        int score = GetOpeningCount(tileIndex);
+        if (roomContext)
+        {
+            if (category == TileCategory.Wide) score += 1000;
+            if (category == TileCategory.Narrow) score -= 1000;
+            if (cardinalNeighbors + diagonalNeighbors == 8 && category == TileCategory.Wide)
+                score += 1000;
+        }
+        else
+        {
+            if (category == TileCategory.Narrow) score += 200;
+            if (category == TileCategory.Wide) score -= 200;
+            if (category == TileCategory.Starter) score += 100;
+        }
+        return score;
+    }
+
+    bool IsRoomContext(Vector2Int position, HashSet<Vector2Int> region)
+    {
+        return CountOccupiedNeighbors(position, region, false) >= 2
+            && CountOccupiedNeighbors(position, region, true) > 0;
+    }
+
+    int CountOccupiedNeighbors(Vector2Int position, HashSet<Vector2Int> region, bool diagonal)
+    {
+        int count = 0;
+        for (int dx = -1; dx <= 1; dx++)
+        for (int dy = -1; dy <= 1; dy++)
+        {
+            if (dx == 0 && dy == 0)
+                continue;
+            bool isDiagonal = dx != 0 && dy != 0;
+            if (isDiagonal != diagonal)
+                continue;
+
+            var neighbor = position + new Vector2Int(dx, dy);
+            if (neighbor.x < 0 || neighbor.y < 0 || neighbor.x >= width || neighbor.y >= height)
+                continue;
+            if (region.Contains(neighbor) || placed[neighbor.x, neighbor.y])
+                count++;
+        }
+        return count;
+    }
+
+    static TileCategory GetTileCategory(TileSocketProfile profile)
+    {
+        if (profile.category != TileCategory.Unspecified)
+            return profile.category;
+        if (profile.baseTileName.StartsWith("Wide_")) return TileCategory.Wide;
+        if (profile.baseTileName.StartsWith("Narrow_")) return TileCategory.Narrow;
+        if (profile.baseTileName.StartsWith("Transition_")) return TileCategory.Transition;
+        if (profile.baseTileName.StartsWith("Starter_")) return TileCategory.Starter;
+        if (profile.baseTileName.StartsWith("Ground_")) return TileCategory.Ground;
+        return TileCategory.Unspecified;
+    }
+
+    int GetOpeningCount(int tileIndex)
+    {
+        TileSocketProfile profile = database.tiles[tileIndex];
+        return CountOpenings(profile.northHash)
+            + CountOpenings(profile.southHash)
+            + CountOpenings(profile.eastHash)
+            + CountOpenings(profile.westHash);
+    }
+
+    static int CountOpenings(string hash)
+    {
+        if (string.IsNullOrEmpty(hash))
+            return 0;
+
+        int count = 0;
+        foreach (char value in hash)
+            if (value == '1')
+                count++;
+        return count;
+    }
+
+    bool FitsLocalNeighbors(
+        Vector2Int position,
+        int candidate,
+        HashSet<Vector2Int> region,
+        Dictionary<Vector2Int, int> assignments)
+    {
+        return FitsNeighbor(position, candidate, new Vector2Int(0, 1), north, south, region, assignments)
+            && FitsNeighbor(position, candidate, new Vector2Int(0, -1), south, north, region, assignments)
+            && FitsNeighbor(position, candidate, new Vector2Int(1, 0), east, west, region, assignments)
+            && FitsNeighbor(position, candidate, new Vector2Int(-1, 0), west, east, region, assignments);
+    }
+
+    bool FitsNeighbor(
+        Vector2Int position,
+        int candidate,
+        Vector2Int offset,
+        Dictionary<int, HashSet<int>> rule,
+        Dictionary<int, HashSet<int>> oppositeRule,
+        HashSet<Vector2Int> region,
+        Dictionary<Vector2Int, int> assignments)
+    {
+        Vector2Int neighborPosition = position + offset;
+        if (neighborPosition.x < 0 || neighborPosition.y < 0
+            || neighborPosition.x >= width || neighborPosition.y >= height)
+            return true;
+
+        if (assignments.TryGetValue(neighborPosition, out int assignedTile))
+            return rule[candidate].Contains(assignedTile)
+                && oppositeRule[assignedTile].Contains(candidate);
+
+        if (region.Contains(neighborPosition))
+            return true;
+
+        // The pre-placed border is permanent ground, not an expandable
+        // frontier. Validate it explicitly against the all-zero ground tile.
+        if (fixedGround[neighborPosition.x, neighborPosition.y])
+            return rule[candidate].Contains(groundTileIndex)
+                && oppositeRule[groundTileIndex].Contains(candidate);
+
+        // Unplaced interior cells are rendered and evaluated as ground. Only
+        // already placed cells may satisfy a nonzero/open socket.
+        if (!placed[neighborPosition.x, neighborPosition.y])
+            return rule[candidate].Contains(groundTileIndex)
+                && oppositeRule[groundTileIndex].Contains(candidate);
+
+        foreach (int neighborTile in cells[neighborPosition.x, neighborPosition.y])
+        {
+            if (rule[candidate].Contains(neighborTile)
+                && oppositeRule[neighborTile].Contains(candidate))
+                return true;
+        }
+
+        return false;
+    }
+
 }

@@ -80,8 +80,8 @@ public class TilePortalGizmo : MonoBehaviour
                 {
                     TileSide.North => new Vector3(Mathf.Lerp(b.min.x, b.max.x, t), b.max.y, b.center.z),
                     TileSide.South => new Vector3(Mathf.Lerp(b.min.x, b.max.x, t), b.min.y, b.center.z),
-                    TileSide.East  => new Vector3(b.min.x, Mathf.Lerp(b.min.y, b.max.y, t), b.center.z),
-                    TileSide.West  => new Vector3(b.max.x, Mathf.Lerp(b.min.y, b.max.y, t), b.center.z),
+                    TileSide.East  => new Vector3(b.max.x, Mathf.Lerp(b.min.y, b.max.y, t), b.center.z),
+                    TileSide.West  => new Vector3(b.min.x, Mathf.Lerp(b.min.y, b.max.y, t), b.center.z),
                     _ => Vector3.zero
                 };
             } else {
@@ -113,13 +113,13 @@ public class TilePortalGizmo : MonoBehaviour
                                 ),
             // -X
             TileSide.West => new Vector3(
-                                b.max.x,
+                                b.min.x,
                                 Mathf.Lerp(b.min.y + offset, b.max.y - offset, t),
                                 0.5f
                                 ),
             // +X
             TileSide.East => new Vector3(
-                                b.min.x,
+                                b.max.x,
                                 Mathf.Lerp(b.min.y + offset, b.max.y - offset, t),
                                 0.5f
                                 ),
@@ -132,8 +132,8 @@ public class TilePortalGizmo : MonoBehaviour
         {
             TileSide.North => Vector3.down,
             TileSide.South => Vector3.up,
-            TileSide.East  => Vector3.right,
-            TileSide.West  => Vector3.left,
+            TileSide.East  => Vector3.left,
+            TileSide.West  => Vector3.right,
             _ => Vector3.zero
         };
     }

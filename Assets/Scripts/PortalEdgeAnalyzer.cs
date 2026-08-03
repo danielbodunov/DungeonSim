@@ -14,6 +14,12 @@ public static class PortalEdgeAnalyzer
         )
     {
         prefab.transform.position = Vector3.zero;
+
+        // Editor-time instantiation and rotation do not necessarily update the
+        // physics scene before the raycasts below. Without this, every rotated
+        // profile can sample the collider at its original orientation.
+        Physics.SyncTransforms();
+
         Debug.Log($"Instance position and rotation for {prefab.name}:{prefab.transform.position},{prefab.transform.rotation.eulerAngles}");
 
         var bounds = CalculateBounds(prefab);
@@ -81,13 +87,13 @@ public static class PortalEdgeAnalyzer
                                 ),
             // -X
             TileSide.West => new Vector3(
-                                b.max.x,
+                                b.min.x,
                                 Mathf.Lerp(b.min.y + offset, b.max.y - offset, t),
                                 0.5f
                                 ),
             // +X
             TileSide.East => new Vector3(
-                                b.min.x,
+                                b.max.x,
                                 Mathf.Lerp(b.min.y + offset, b.max.y - offset, t),
                                 0.5f
                                 ),
@@ -101,8 +107,8 @@ public static class PortalEdgeAnalyzer
         {
             TileSide.North => Vector3.down,
             TileSide.South => Vector3.up,
-            TileSide.East  => Vector3.right,
-            TileSide.West  => Vector3.left,
+            TileSide.East  => Vector3.left,
+            TileSide.West  => Vector3.right,
             _ => Vector3.zero
         };
     }

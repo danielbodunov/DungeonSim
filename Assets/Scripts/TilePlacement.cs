@@ -31,6 +31,8 @@ public class TilePlacement : MonoBehaviour
 
     [SerializeField]
     private TileAdjacencyDatabase tileDatabase;
+
+    private Vector3Int? lastDragCell;
     private void Start()
     {
         if(tileGridGenerator == null)
@@ -39,7 +41,7 @@ public class TilePlacement : MonoBehaviour
                 ?? throw new System.Exception("TileGridGenerator component not found on the same GameObject.");
         }
         StopPlacement();
-        CreateGroundTiles();
+        //CreateGroundTiles();
     }
 
     public void StartPlacement(int ID)
@@ -54,6 +56,7 @@ public class TilePlacement : MonoBehaviour
         gridVisualization.SetActive(true);
         cellIndicator.SetActive(true);
         inputManager.OnClicked += PlaceStructure;
+        inputManager.OnRightClicked += PlaceGround;
         inputManager.OnExit += StopPlacement;
 
     }
@@ -68,10 +71,28 @@ public class TilePlacement : MonoBehaviour
 
         Vector3 mousePosition = inputManager.GetSelectedMapPosition();
         Vector3Int gridPosition = grid.WorldToCell(mousePosition);
-        //GameObject newObject = Instantiate(database.objectsData[selectedObjectIndex].Prefab);
-        //newObject.transform.position = grid.CellToWorld(gridPosition);
-        tileGridGenerator.ClickCell(gridPosition.x, gridPosition.y);
-        
+        PlaceAtCell(gridPosition);
+    }
+
+    private void PlaceGround()
+    {
+        if (inputManager.IsPointerOverUI())
+            return;
+
+        Vector3 mousePosition = inputManager.GetSelectedMapPosition();
+        Vector3Int gridPosition = grid.WorldToCell(mousePosition);
+        tileGridGenerator.PlaceGroundWorldPosition(grid.GetCellCenterWorld(gridPosition));
+    }
+
+    private void PlaceAtCell(Vector3Int gridPosition)
+    {
+        if (lastDragCell.HasValue && lastDragCell.Value == gridPosition)
+            return;
+
+        Vector3 cellCenter = grid.GetCellCenterWorld(gridPosition);
+        Debug.Log($"Placing object ID {database.objectsData[selectedObjectIndex].ID} at grid position ({gridPosition.x}, {gridPosition.y})");
+        tileGridGenerator.ClickWorldPosition(cellCenter);
+        lastDragCell = gridPosition;
     }
     
     private void StopPlacement()
@@ -80,7 +101,9 @@ public class TilePlacement : MonoBehaviour
         gridVisualization.SetActive(false);
         cellIndicator.SetActive(false);
         inputManager.OnClicked -= PlaceStructure;
+        inputManager.OnRightClicked -= PlaceGround;
         inputManager.OnExit -= StopPlacement;
+        lastDragCell = null;
     }
 
 
@@ -95,24 +118,33 @@ public class TilePlacement : MonoBehaviour
         Vector3 mousePosition = inputManager.GetSelectedMapPosition();
         Vector3Int gridPosition = grid.WorldToCell(mousePosition);
         mouseIndicator.transform.position = mousePosition;
-        cellIndicator.transform.position = grid.CellToWorld(gridPosition);
+        cellIndicator.transform.position = grid.GetCellCenterWorld(gridPosition);
 
-    }
-
-    private void CreateGroundTiles()
-    {
-        Debug.Log("Creating ground tiles...");
-        grid.CellToWorld(new Vector3Int(0, 0, 0));
-        for (int y = 0; y < 50; y++)        {
-            for (int x = 0; x >= -50; x--)
-            {
-                Vector3Int cellPosition = new Vector3Int(x, 0, y);
-                Vector3 worldPosition = grid.CellToWorld(cellPosition);
-                GameObject tile = Instantiate(database.objectsData[0].Prefab, worldPosition, Quaternion.identity);
-                tile.transform.SetParent(tiles.transform);
-            }
+        if (!inputManager.LeftClick)
+        {
+            lastDragCell = null;
+            return;
         }
+
+        if (!inputManager.IsPointerOverUI())
+            PlaceAtCell(gridPosition);
+
     }
+
+    // private void CreateGroundTiles()
+    // {
+    //     Debug.Log("Creating ground tiles...");
+    //     grid.CellToWorld(new Vector3Int(0, 0, 0));
+    //     for (int y = 0; y < 50; y++)        {
+    //         for (int x = 0; x >= -50; x--)
+    //         {
+    //             Vector3Int cellPosition = new Vector3Int(x, 0, y);
+    //             Vector3 worldPosition = grid.CellToWorld(cellPosition);
+    //             GameObject tile = Instantiate(database.objectsData[0].Prefab, worldPosition, Quaternion.identity);
+    //             tile.transform.SetParent(tiles.transform);
+    //         }
+    //     }
+    // }
 
 
 }

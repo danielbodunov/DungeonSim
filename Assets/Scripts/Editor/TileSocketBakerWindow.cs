@@ -46,31 +46,37 @@ void Bake()
         var symmetry = GetSymmetry(prefab.name);
         var allowedRotations = GetAllowedRotations(symmetry);
 
-        // Generate base hashes for rotation 0
-        var baseInstance = InstantiateRotated(prefab, 0);
-        string baseWest = PortalEdgeAnalyzer.GeneratePortalMask(baseInstance, TileSide.West, resolution, 6, 0.02f);
-        string baseNorth = PortalEdgeAnalyzer.GeneratePortalMask(baseInstance, TileSide.North, resolution, 6, 0.02f);
-        string baseSouth = PortalEdgeAnalyzer.GeneratePortalMask(baseInstance, TileSide.South, resolution, 6, 0.02f);
-        string baseEast = PortalEdgeAnalyzer.GeneratePortalMask(baseInstance, TileSide.East, resolution, 6, 0.02f);
-        GameObject.DestroyImmediate(baseInstance);
-
         foreach (int r in allowedRotations)
         {
             var profile = ScriptableObject.CreateInstance<TileSocketProfile>();
             profile.baseTileName = prefab.name;
+            profile.category = GetCategory(prefab.name);
             profile.rotation = r;
             profile.sourcePrefab = prefab;
             profile.resolution = resolution;
 
-            // Rotate hashes based on r
-            var rotatedHashes = RotateHashes(baseWest, baseNorth, baseSouth, baseEast, r);
-            profile.westHash = rotatedHashes.west;
-            profile.northHash = rotatedHashes.north;
-            profile.southHash = rotatedHashes.south;
-            profile.eastHash = rotatedHashes.east;
+            // Sample the exact physical rotation used at runtime instead of
+            // trying to permute and reverse the unrotated edge masks.
+            var rotatedInstance = InstantiateRotated(prefab, r);
+            profile.westHash = PortalEdgeAnalyzer.GeneratePortalMask(rotatedInstance, TileSide.West, resolution, 6, 0.02f);
+            profile.northHash = PortalEdgeAnalyzer.GeneratePortalMask(rotatedInstance, TileSide.North, resolution, 6, 0.02f);
+            profile.southHash = PortalEdgeAnalyzer.GeneratePortalMask(rotatedInstance, TileSide.South, resolution, 6, 0.02f);
+            profile.eastHash = PortalEdgeAnalyzer.GeneratePortalMask(rotatedInstance, TileSide.East, resolution, 6, 0.02f);
+            GameObject.DestroyImmediate(rotatedInstance);
 
             string path = $"{folder}/{prefab.name}_Rot{r}.asset";
-            AssetDatabase.CreateAsset(profile, path);
+            var existingProfile = AssetDatabase.LoadAssetAtPath<TileSocketProfile>(path);
+            if (existingProfile != null)
+            {
+                EditorUtility.CopySerialized(profile, existingProfile);
+                DestroyImmediate(profile);
+                profile = existingProfile;
+                EditorUtility.SetDirty(profile);
+            }
+            else
+            {
+                AssetDatabase.CreateAsset(profile, path);
+            }
 
             db.tiles.Add(profile);
         }
@@ -78,7 +84,18 @@ void Bake()
 
     BuildAdjacency(db);
 
-    AssetDatabase.CreateAsset(db, "Assets/TileAdjacencyDatabase.asset");
+    const string databasePath = "Assets/TileAdjacencyDatabase.asset";
+    var existingDatabase = AssetDatabase.LoadAssetAtPath<TileAdjacencyDatabase>(databasePath);
+    if (existingDatabase != null)
+    {
+        EditorUtility.CopySerialized(db, existingDatabase);
+        DestroyImmediate(db);
+        EditorUtility.SetDirty(existingDatabase);
+    }
+    else
+    {
+        AssetDatabase.CreateAsset(db, databasePath);
+    }
     AssetDatabase.SaveAssets();
     Debug.Log("Baking complete!");
 }
@@ -86,7 +103,8 @@ void Bake()
 static GameObject InstantiateRotated(GameObject prefab, int rotationIndex)
 {
     var instance = GameObject.Instantiate(prefab);
-    instance.transform.rotation = Quaternion.Euler(0, 0, rotationIndex * 90f);
+    // Rotation indices progress clockwise when viewed from +Z.
+    instance.transform.rotation = Quaternion.Euler(0, 0, rotationIndex * -90f);
     return instance;
 }
 
@@ -98,7 +116,7 @@ void TestRotationInstantiatedPrefabs()
         for (int r = 0; r < 4; r++)
         {
             var instance = InstantiateRotated(prefab, r);
-            Debug.Log($"Instantiated {prefab.name} with rotation {r * 90} degrees. Position: {instance.transform.position}, Rotation: {instance.transform.rotation.eulerAngles}");
+            Debug.Log($"Instantiated {prefab.name} with clockwise rotation {r * 90} degrees. Position: {instance.transform.position}, Rotation: {instance.transform.rotation.eulerAngles}");
         }
     }
 }
@@ -110,16 +128,18 @@ void BuildAdjacency(TileAdjacencyDatabase db)
     {
         foreach (var b in db.tiles)
         {
-            if (a.northHash == Reverse(b.southHash))
+            // Opposing edges are sampled in the same world-axis direction:
+            // north/south left-to-right and east/west bottom-to-top.
+            if (a.northHash == b.southHash)
                 a.northMatches.Add(ProfileID(b));
 
-            if (a.southHash == Reverse(b.northHash))
+            if (a.southHash == b.northHash)
                 a.southMatches.Add(ProfileID(b));
 
-            if (a.eastHash == Reverse(b.westHash))
+            if (a.eastHash == b.westHash)
                 a.eastMatches.Add(ProfileID(b));    
 
-            if (a.westHash == Reverse(b.eastHash))
+            if (a.westHash == b.eastHash)
                 a.westMatches.Add(ProfileID(b)); 
         }
         EditorUtility.SetDirty(a);
@@ -165,12 +185,22 @@ char GetSymmetry(string prefabName)
     return 'L'; // Default to L (no symmetry, all rotations)
 }
 
+TileCategory GetCategory(string prefabName)
+{
+    if (prefabName.StartsWith("Wide_")) return TileCategory.Wide;
+    if (prefabName.StartsWith("Narrow_")) return TileCategory.Narrow;
+    if (prefabName.StartsWith("Transition_")) return TileCategory.Transition;
+    if (prefabName.StartsWith("Starter_")) return TileCategory.Starter;
+    if (prefabName.StartsWith("Ground_")) return TileCategory.Ground;
+    return TileCategory.Unspecified;
+}
+
 List<int> GetAllowedRotations(char symmetry)
 {
     switch (symmetry)
     {
         case 'X': return new List<int> { 0 }; // Only one orientation
-        case 'T':
+        case 'T': return new List<int> { 0, 1, 2, 3 };
         case 'I':
         case 'D': return new List<int> { 0, 2 }; // 0° and 180°
         case 'L': return new List<int> { 0, 1, 2, 3 }; // All rotations

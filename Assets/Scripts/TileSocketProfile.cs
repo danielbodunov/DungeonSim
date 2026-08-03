@@ -2,6 +2,7 @@ using UnityEngine;
 using System.Collections.Generic;
 
 public enum TileSide { North, South, East, West }
+public enum TileCategory { Unspecified, Ground, Narrow, Wide, Transition, Starter }
 
 [CreateAssetMenu(menuName = "Tiles/Tile Socket Profile")]
 public class TileSocketProfile : ScriptableObject
@@ -12,6 +13,7 @@ public class TileSocketProfile : ScriptableObject
     public int rotation; //0, 1, 2, 3 (90 degree steps)
 
     public string baseTileName;
+    public TileCategory category;
     public string northHash;
     public string southHash;
     public string westHash;

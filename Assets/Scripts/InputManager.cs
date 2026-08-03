@@ -12,7 +12,7 @@ public class InputManager : MonoBehaviour
     [SerializeField]
     private LayerMask placementLayerMask;
 
-    public event Action OnClicked, OnExit;
+    public event Action OnClicked, OnRightClicked, OnExit;
     public static InputManager Instance { get; private set; }
 
     public float Scroll { get; private set; }
@@ -23,6 +23,7 @@ public class InputManager : MonoBehaviour
     public bool EscapePressed { get; private set; }
 
     private InputAction clickLeftAction;
+    private InputAction clickRightAction;
     private InputAction moveAction;
     private InputAction zoomAction;
     private InputAction mouseDeltaAction;
@@ -55,6 +56,9 @@ public class InputManager : MonoBehaviour
         clickLeftAction = new InputAction("Click", InputActionType.Button);
         clickLeftAction.AddBinding("<Mouse>/leftButton");
 
+        clickRightAction = new InputAction("RightClick", InputActionType.Button);
+        clickRightAction.AddBinding("<Mouse>/rightButton");
+
         zoomAction = new InputAction("Zoom", InputActionType.Value);
         zoomAction.AddBinding("<Mouse>/scroll/y");
 
@@ -71,6 +75,7 @@ public class InputManager : MonoBehaviour
     void OnEnable()
     {
         clickLeftAction?.Enable();  
+        clickRightAction?.Enable();
         moveAction?.Enable();
         zoomAction?.Enable();
         mouseDeltaAction?.Enable();
@@ -78,12 +83,14 @@ public class InputManager : MonoBehaviour
         escapeAction?.Enable();
 
         clickLeftAction.performed += OnClickPerformed;
+        clickRightAction.performed += OnRightClickPerformed;
         escapeAction.performed += OnEscapePerformed;
     }
 
     void OnDisable()
     {
         clickLeftAction?.Disable();
+        clickRightAction?.Disable();
         moveAction?.Disable();
         zoomAction?.Disable();
         mouseDeltaAction?.Disable();
@@ -91,6 +98,7 @@ public class InputManager : MonoBehaviour
         escapeAction?.Disable();
 
         clickLeftAction.performed -= OnClickPerformed;
+        clickRightAction.performed -= OnRightClickPerformed;
         escapeAction.performed -= OnEscapePerformed;
     }
 
@@ -108,6 +116,7 @@ public class InputManager : MonoBehaviour
     void OnDestroy()
     {
         clickLeftAction?.Dispose();
+        clickRightAction?.Dispose();
         moveAction?.Dispose();
         zoomAction?.Dispose();
         mouseDeltaAction?.Dispose();
@@ -136,6 +145,11 @@ public class InputManager : MonoBehaviour
     private void OnClickPerformed(InputAction.CallbackContext ctx)
     {
         OnClicked?.Invoke();
+    }
+
+    private void OnRightClickPerformed(InputAction.CallbackContext ctx)
+    {
+        OnRightClicked?.Invoke();
     }
 
     private void OnEscapePerformed(InputAction.CallbackContext ctx)
