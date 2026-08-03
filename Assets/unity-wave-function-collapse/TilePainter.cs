@@ -31,7 +31,7 @@ public class TilePainter : MonoBehaviour{
 	private static bool IsAssetAFolder(UnityEngine.Object obj){
 		string path = "";
 		if (obj == null){return false;}
-		path = AssetDatabase.GetAssetPath(obj.GetInstanceID());
+		path = AssetDatabase.GetAssetPath(obj);
 		if (path.Length > 0){
 		if (Directory.Exists(path)){
 			return true;
@@ -88,7 +88,7 @@ public class TilePainter : MonoBehaviour{
 		}
 
 		if (palette_folder != -1){
-			string path = AssetDatabase.GetAssetPath(palette[palette_folder].GetInstanceID());
+			string path = AssetDatabase.GetAssetPath(palette[palette_folder]);
 			path = path.Trim().Replace("Assets/Resources/", "");
 			palette.RemoveAt(palette_folder);
 			UnityEngine.Object[] contents = (UnityEngine.Object[]) Resources.LoadAll(path);

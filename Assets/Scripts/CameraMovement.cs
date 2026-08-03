@@ -32,7 +32,7 @@ public class CameraFollow : MonoBehaviour
         targetPosition = transform.position;
         // find InputManager if not assigned
         if (inputManager == null)
-            inputManager = InputManager.Instance ?? Object.FindFirstObjectByType<InputManager>();
+            inputManager = InputManager.Instance ?? Object.FindAnyObjectByType<InputManager>();
 
         // initialize targetZoom if camera available
         if (camComponent == null)
