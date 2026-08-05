@@ -6,7 +6,7 @@ using System.Collections;
 public class TileSocketBakerWindow : EditorWindow
 {
     string resourcesFolder = "Dungeon";
-    int resolution = 16;
+    int resolution = 8;
     bool allowRotation = true;
     bool visualizeSamples = true;
 
@@ -48,12 +48,15 @@ void Bake()
 
         foreach (int r in allowedRotations)
         {
+            string profileName = $"{prefab.name}_Rot{r}";
             var profile = ScriptableObject.CreateInstance<TileSocketProfile>();
+            profile.name = profileName;
             profile.baseTileName = prefab.name;
             profile.category = GetCategory(prefab.name);
             profile.rotation = r;
             profile.sourcePrefab = prefab;
             profile.resolution = resolution;
+            profile.propSockets = BakePropSockets(prefab, r);
 
             // Sample the exact physical rotation used at runtime instead of
             // trying to permute and reverse the unrotated edge masks.
@@ -64,13 +67,14 @@ void Bake()
             profile.eastHash = PortalEdgeAnalyzer.GeneratePortalMask(rotatedInstance, TileSide.East, resolution, 6, 0.02f);
             GameObject.DestroyImmediate(rotatedInstance);
 
-            string path = $"{folder}/{prefab.name}_Rot{r}.asset";
+            string path = $"{folder}/{profileName}.asset";
             var existingProfile = AssetDatabase.LoadAssetAtPath<TileSocketProfile>(path);
             if (existingProfile != null)
             {
                 EditorUtility.CopySerialized(profile, existingProfile);
                 DestroyImmediate(profile);
                 profile = existingProfile;
+                profile.name = profileName;
                 EditorUtility.SetDirty(profile);
             }
             else
@@ -98,6 +102,34 @@ void Bake()
     }
     AssetDatabase.SaveAssets();
     Debug.Log("Baking complete!");
+}
+
+List<BakedPropSocket> BakePropSockets(GameObject prefab, int rotationIndex)
+{
+    var bakedSockets = new List<BakedPropSocket>();
+    foreach (var authoredSocket in prefab.GetComponentsInChildren<PropSocketAuthoring>(true))
+    {
+        bakedSockets.Add(new BakedPropSocket
+        {
+            structureId = authoredSocket.structureId.Trim(),
+            laneId = string.IsNullOrWhiteSpace(authoredSocket.laneId)
+                ? "Default"
+                : authoredSocket.laneId.Trim(),
+            selectionWeight = Mathf.Max(0f, authoredSocket.selectionWeight),
+            role = authoredSocket.role,
+            direction = RotateDirection(authoredSocket.direction, rotationIndex),
+            localPosition = prefab.transform.InverseTransformPoint(authoredSocket.transform.position),
+            localRotation = Quaternion.Inverse(prefab.transform.rotation) * authoredSocket.transform.rotation
+        });
+    }
+
+    return bakedSockets;
+}
+
+PropSocketDirection RotateDirection(PropSocketDirection direction, int clockwiseRotations)
+{
+    int value = ((int)direction + clockwiseRotations) % 4;
+    return (PropSocketDirection)value;
 }
     
 static GameObject InstantiateRotated(GameObject prefab, int rotationIndex)
@@ -181,6 +213,7 @@ char GetSymmetry(string prefabName)
     if (prefabName.EndsWith("_T")) return 'T';
     if (prefabName.EndsWith("_I")) return 'I';
     if (prefabName.EndsWith("_L")) return 'L';
+    if (prefabName.EndsWith("_U")) return 'U';
     if (prefabName.EndsWith("_D")) return 'D';
     return 'L'; // Default to L (no symmetry, all rotations)
 }
@@ -201,9 +234,10 @@ List<int> GetAllowedRotations(char symmetry)
     {
         case 'X': return new List<int> { 0 }; // Only one orientation
         case 'T': return new List<int> { 0, 1, 2, 3 };
-        case 'I':
+        case 'I': return new List<int> { 0, 2 }; // 0° and 180°
         case 'D': return new List<int> { 0, 2 }; // 0° and 180°
         case 'L': return new List<int> { 0, 1, 2, 3 }; // All rotations
+        case 'U': return new List<int> { 0, 3 }; // 0° and 270° clockwise
         default: return new List<int> { 0, 1, 2, 3 };
     }
 }
