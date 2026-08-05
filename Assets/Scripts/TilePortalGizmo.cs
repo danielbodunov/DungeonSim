@@ -103,25 +103,25 @@ public class TilePortalGizmo : MonoBehaviour
             TileSide.North => new Vector3(
                                 Mathf.Lerp(b.min.x + offset, b.max.x - offset, t),
                                 b.max.y,
-                                0.5f
+                                depth
                                 ),
             // -Y
             TileSide.South => new Vector3(
                                 Mathf.Lerp(b.min.x + offset, b.max.x - offset, t),
                                 b.min.y,
-                                0.5f
+                                depth
                                 ),
             // -X
             TileSide.West => new Vector3(
                                 b.min.x,
                                 Mathf.Lerp(b.min.y + offset, b.max.y - offset, t),
-                                0.5f
+                                depth
                                 ),
             // +X
             TileSide.East => new Vector3(
                                 b.max.x,
                                 Mathf.Lerp(b.min.y + offset, b.max.y - offset, t),
-                                0.5f
+                                depth
                                 ),
             _ => Vector3.zero,
         };
@@ -157,23 +157,9 @@ public class TilePortalGizmo : MonoBehaviour
                 float t = (float)j / (resolution - 1);
                 Vector3 samplePoint = Vector3.zero;
 
-                for (int v = 0; v < 3; v++)
-                {
-                    float vt = (float)v / (3 - 1);
-                    float depth = Mathf.Lerp(b.min.z, b.max.z, vt);
-
-                    Vector3 origin = GetEdgePoint(b, side, t, depth);
-                    Vector3 direction = GetInwardDirection(side);
-                    samplePoint = origin;
-
-                    origin += direction * -0.02f;
-                    
-                    if (!Physics.Raycast(origin, direction, 3))
-                    {
-                        samplePoint = origin;
-                        break;
-                    }
-                }
+                Vector3 origin = GetEdgePoint(b, side, t, b.center.z);
+                Vector3 direction = GetInwardDirection(side);
+                samplePoint = origin + direction * -0.02f;
                 samplePositions[i][j] = samplePoint;
             }
         }
