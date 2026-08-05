@@ -4,7 +4,6 @@ using UnityEngine.InputSystem;
 public class CameraFollow : MonoBehaviour
 {
     public Transform followTarget; // Reference to the player's Transform
-    public float zPosition = 10f; // Fixed Z position for the camera
     public float panSpeed = 5f;
     public float zoomSpeed = 2f;
     public float minZoom = 15f;
@@ -73,7 +72,7 @@ public class CameraFollow : MonoBehaviour
         bool isPanning = false;
         if (input.sqrMagnitude > 0.0001f)
         {
-            Vector3 delta = new Vector3(-input.x, input.y, 0f) * panSpeed * Time.deltaTime;
+            Vector3 delta = new Vector3(input.x, input.y, 0f) * panSpeed * Time.deltaTime;
             targetPosition += delta;
             isPanning = true;
         }
@@ -104,9 +103,9 @@ public class CameraFollow : MonoBehaviour
             targetPosition.x = followTarget.position.x;
         }
 
-        // Smoothly move camera to the target position and lock Z
-        Vector3 smoothTarget = new Vector3(targetPosition.x, targetPosition.y, zPosition);
-        transform.position = Vector3.SmoothDamp(transform.position, smoothTarget, ref positionVelocity, panSmoothTime);
+        // Preserve the camera's authored Z position. Panning only changes X/Y.
+        transform.position = Vector3.SmoothDamp(
+            transform.position, targetPosition, ref positionVelocity, panSmoothTime);
 
         // Smooth zoom
         if (camComponent != null)
