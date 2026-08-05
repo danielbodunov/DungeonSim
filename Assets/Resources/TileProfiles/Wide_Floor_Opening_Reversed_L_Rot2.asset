@@ -13,44 +13,49 @@ MonoBehaviour:
   m_Name: Wide_Floor_Opening_Reversed_L_Rot2
   m_EditorClassIdentifier: Assembly-CSharp::TileSocketProfile
   sourcePrefab: {fileID: 5674844955389797704, guid: eb73f44a8613a104e80fbaba01130db2, type: 3}
-  resolution: 4
+  resolution: 8
   rotation: 2
   baseTileName: Wide_Floor_Opening_Reversed_L
   category: 3
-  northHash: 0000
-  southHash: 1110
-  westHash: 1110
-  eastHash: 0110
+  northHash: 00000000
+  southHash: 00111111
+  westHash: 00111100
+  eastHash: 11111100
   northMatches:
   - Ground_Full_X_R0
   - Narrow_Cap_R0
-  - Narrow_Cap_R2
-  - Narrow_Cap_R3
-  - Narrow_Corner_L_R0
-  - Narrow_Corner_L_R1
-  - Narrow_Straight_R0
-  - Narrow_Straight_R2
-  - Narrow_T_R1
-  - Starter_X_R0
-  - Wide_Corner_01_L_R2
-  - Wide_Corner_01_L_R3
-  - Wide_Corner_03_L_R2
-  - Wide_Corner_03_L_R3
-  - Wide_Floor_Opening_L_R0
-  - Wide_Floor_Opening_Reversed_L_R0
-  - Wide_Side_T_R1
-  southMatches:
-  - Wide_Corner_01_L_R2
-  - Wide_Corner_02_L_R3
-  - Wide_Corner_03_L_R2
-  - Wide_Floor_Opening_L_R0
-  - Wide_Floor_Opening_Reversed_L_R3
-  - Wide_Opening_T_R2
-  - Wide_Side_T_R0
-  eastMatches:
+  - Narrow_Cap_R1
   - Narrow_Cap_R2
   - Narrow_Corner_L_R0
   - Narrow_Corner_L_R3
+  - Narrow_Straight_R0
+  - Narrow_Straight_R2
+  - Narrow_T_R3
+  - Starter_X_R0
+  - Wide_Corner_01_L_R2
+  - Wide_Corner_01_L_R3
+  - Wide_Floor_Opening_L_R0
+  - Wide_Floor_Opening_Reversed_L_R0
+  - Wide_Side_T_R3
+  southMatches:
+  - Wide_Corner_01_L_R3
+  - Wide_Corner_02_L_R1
+  - Wide_Floor_Opening_L_R0
+  - Wide_Floor_Opening_Reversed_L_R1
+  - Wide_Opening_T_R2
+  - Wide_Side_T_R0
+  eastMatches:
+  - Wide_Corner_01_L_R1
+  - Wide_Corner_02_L_R1
+  - Wide_Corner_03_U_R0
+  - Wide_Floor_Opening_L_R2
+  - Wide_Floor_Opening_Reversed_L_R3
+  - Wide_Opening_T_R3
+  - Wide_Side_T_R1
+  westMatches:
+  - Narrow_Cap_R2
+  - Narrow_Corner_L_R0
+  - Narrow_Corner_L_R1
   - Narrow_Junction_X_R0
   - Narrow_Straight_R0
   - Narrow_Straight_R2
@@ -60,11 +65,32 @@ MonoBehaviour:
   - Wide_Floor_Opening_L_R2
   - Wide_Floor_Opening_Reversed_L_R0
   - Wide_Opening_T_R0
-  westMatches:
-  - Wide_Corner_01_L_R0
-  - Wide_Corner_02_L_R3
-  - Wide_Corner_03_L_R0
-  - Wide_Floor_Opening_L_R2
-  - Wide_Floor_Opening_Reversed_L_R1
-  - Wide_Opening_T_R1
-  - Wide_Side_T_R3
+  propSockets:
+  - structureId: Ladder
+    laneId: Default
+    selectionWeight: 1
+    role: 2
+    direction: 0
+    localPosition: {x: 0, y: 0, z: 0}
+    localRotation: {x: 0, y: 0, z: 0, w: 1}
+  - structureId: Ladder
+    laneId: Default
+    selectionWeight: 1
+    role: 0
+    direction: 1
+    localPosition: {x: 0, y: 0, z: 0}
+    localRotation: {x: -0, y: 0, z: 0.70710677, w: 0.7071068}
+  - structureId: Ladder
+    laneId: Default
+    selectionWeight: 1
+    role: 0
+    direction: 2
+    localPosition: {x: 0, y: 0, z: 0}
+    localRotation: {x: -0, y: 0, z: 1, w: 0.0000015497205}
+  - structureId: Ladder
+    laneId: Default
+    selectionWeight: 1
+    role: 1
+    direction: 3
+    localPosition: {x: 0, y: 0, z: 0}
+    localRotation: {x: 0, y: 0, z: 0.7071089, w: -0.7071047}

@@ -10,42 +10,69 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: d3cb726cbd9fa8e4d8fabbba5854d153, type: 3}
-  m_Name: 
+  m_Name: Wide_Corner_02_L_Rot0
   m_EditorClassIdentifier: Assembly-CSharp::TileSocketProfile
   sourcePrefab: {fileID: 841458722058369353, guid: 34610e1956bd77241a3273527c2b0d56, type: 3}
-  resolution: 4
+  resolution: 8
   rotation: 0
   baseTileName: Wide_Corner_02_L
   category: 3
-  northHash: 1111
-  southHash: 1110
-  westHash: 1111
-  eastHash: 0111
+  northHash: 11111111
+  southHash: 00111111
+  westHash: 00111111
+  eastHash: 11111111
   northMatches:
   - Wide_Center_X_R0
+  - Wide_Corner_02_L_R1
   - Wide_Corner_02_L_R2
-  - Wide_Corner_02_L_R3
-  - Wide_Opening_T_R1
-  - Wide_Side_T_R3
+  - Wide_Opening_T_R3
+  - Wide_Side_T_R1
   southMatches:
-  - Wide_Corner_01_L_R2
-  - Wide_Corner_02_L_R3
-  - Wide_Corner_03_L_R2
+  - Wide_Corner_01_L_R3
+  - Wide_Corner_02_L_R1
   - Wide_Floor_Opening_L_R0
-  - Wide_Floor_Opening_Reversed_L_R3
+  - Wide_Floor_Opening_Reversed_L_R1
   - Wide_Opening_T_R2
   - Wide_Side_T_R0
   eastMatches:
-  - Wide_Corner_01_L_R2
-  - Wide_Corner_02_L_R1
-  - Wide_Corner_03_L_R2
-  - Wide_Floor_Opening_L_R0
-  - Wide_Floor_Opening_Reversed_L_R3
-  - Wide_Opening_T_R3
-  - Wide_Side_T_R1
-  westMatches:
   - Wide_Center_X_R0
-  - Wide_Corner_02_L_R1
   - Wide_Corner_02_L_R2
+  - Wide_Corner_02_L_R3
   - Wide_Opening_T_R0
   - Wide_Side_T_R2
+  westMatches:
+  - Wide_Corner_01_L_R3
+  - Wide_Corner_02_L_R3
+  - Wide_Floor_Opening_L_R0
+  - Wide_Floor_Opening_Reversed_L_R1
+  - Wide_Opening_T_R1
+  - Wide_Side_T_R3
+  propSockets:
+  - structureId: Ladder
+    laneId: Default
+    selectionWeight: 1
+    role: 0
+    direction: 2
+    localPosition: {x: 0, y: 0, z: 0}
+    localRotation: {x: 0, y: 0, z: 0, w: 1}
+  - structureId: Ladder
+    laneId: Default
+    selectionWeight: 1
+    role: 1
+    direction: 2
+    localPosition: {x: 0, y: 0, z: 0}
+    localRotation: {x: 0, y: 0, z: 0, w: 1}
+  - structureId: Ladder
+    laneId: Default
+    selectionWeight: 1
+    role: 1
+    direction: 1
+    localPosition: {x: 0, y: 0, z: 0}
+    localRotation: {x: 0, y: 0, z: 0, w: 1}
+  - structureId: Ladder
+    laneId: Default
+    selectionWeight: 1
+    role: 0
+    direction: 1
+    localPosition: {x: 0, y: 0, z: 0}
+    localRotation: {x: 0, y: 0, z: 0, w: 1}
