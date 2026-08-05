@@ -7,10 +7,11 @@ public class TileGridGenerator : MonoBehaviour
 
     [SerializeField] TileAdjacencyDatabase database;
     [SerializeField] GameObject placeholderPrefab;
+    [SerializeField] PropGenerator propGenerator;
     [SerializeField] int width = 32;
     [SerializeField] int height = 32;
     [SerializeField] Vector2 origin = Vector2.zero;
-    [SerializeField] Vector2 generationDirection = new Vector2(-1, -1);
+    [SerializeField] Vector2 generationDirection = new Vector2(1, -1);
     [SerializeField, Min(1000)] int localSearchNodeLimit = 25000;
 
     List<GameObject> prefabs;
@@ -32,6 +33,14 @@ public class TileGridGenerator : MonoBehaviour
         BuildRuntimeDatabase();
         InitializeGrid();
         InstantiateGrid();
+
+        if (propGenerator == null)
+            propGenerator = GetComponent<PropGenerator>();
+        if (propGenerator == null)
+            propGenerator = gameObject.AddComponent<PropGenerator>();
+
+        propGenerator.Initialize(this);
+        propGenerator.GenerateProps();
     }
 
     // ---- 1. Runtime DB ----
@@ -95,13 +104,16 @@ public class TileGridGenerator : MonoBehaviour
     Quaternion GetTileRotation(int tileIndex)
     {
         // Baked rotation indices progress clockwise when viewed from +Z.
-        float gridOrientation = generationDirection.x < 0f && generationDirection.y < 0f
-            ? 180f
-            : 0f;
         return Quaternion.Euler(
             0f,
             0f,
-            database.tiles[tileIndex].rotation * -90f + gridOrientation);
+            database.tiles[tileIndex].rotation * -90f);
+    }
+
+    GameObject InstantiateTile(int tileIndex, Vector3 position)
+    {
+        return Instantiate(
+            prefabs[tileIndex], position, GetTileRotation(tileIndex), transform);
     }
 
     // ---- 2. Grid ----
@@ -170,8 +182,9 @@ public class TileGridGenerator : MonoBehaviour
         {
             var p = queue.Dequeue();
 
-            ConstrainNeighbor(p.x, p.y, p.x, p.y + 1, north, queue);
-            ConstrainNeighbor(p.x, p.y, p.x, p.y - 1, south, queue);
+            // Grid rows increase downward in world space, so y + 1 is south.
+            ConstrainNeighbor(p.x, p.y, p.x, p.y + 1, south, queue);
+            ConstrainNeighbor(p.x, p.y, p.x, p.y - 1, north, queue);
             ConstrainNeighbor(p.x, p.y, p.x + 1, p.y, east,  queue);
             ConstrainNeighbor(p.x, p.y, p.x - 1, p.y, west,  queue);
         }
@@ -263,7 +276,88 @@ public class TileGridGenerator : MonoBehaviour
         return best;
     }
 
-    Vector3 GetWorldPosition(int x, int y)
+    public int GridWidth => width;
+    public int GridHeight => height;
+
+    public bool IsFixedGround(int x, int y)
+    {
+        if (x < 0 || x >= width || y < 0 || y >= height)
+            return false;
+
+        return fixedGround[x, y];
+    }
+
+    public bool IsPlacedCell(int x, int y)
+    {
+        if (x < 0 || x >= width || y < 0 || y >= height)
+            return false;
+
+        return placed[x, y];
+    }
+
+    public void NotifyLayoutChanged()
+    {
+        if (propGenerator != null)
+            propGenerator.GenerateProps();
+    }
+
+    public string GetCellProfileId(int x, int y)
+    {
+        if (x < 0 || x >= width || y < 0 || y >= height || cells[x, y].Count != 1)
+            return "Unresolved";
+
+        return GetProfileId(database.tiles[cells[x, y][0]]);
+    }
+
+    public IReadOnlyList<BakedPropSocket> GetCellPropSockets(int x, int y)
+    {
+        if (x < 0 || x >= width || y < 0 || y >= height || cells[x, y].Count != 1)
+            return System.Array.Empty<BakedPropSocket>();
+
+        return database.tiles[cells[x, y][0]].propSockets
+            ?? (IReadOnlyList<BakedPropSocket>)System.Array.Empty<BakedPropSocket>();
+    }
+
+    public bool HasMatchingVerticalEdge(int x, int upperY, int lowerY)
+    {
+        if (x < 0 || x >= width || upperY < 0 || lowerY < 0 ||
+            upperY >= height || lowerY >= height || lowerY != upperY + 1 ||
+            cells[x, upperY].Count != 1 || cells[x, lowerY].Count != 1)
+            return false;
+
+        TileSocketProfile upper = database.tiles[cells[x, upperY][0]];
+        TileSocketProfile lower = database.tiles[cells[x, lowerY][0]];
+        return upper.southHash == lower.northHash;
+    }
+
+    public bool TryGetPropSocketWorldPose(
+        int x,
+        int y,
+        BakedPropSocket socket,
+        out Vector3 position,
+        out Quaternion rotation)
+    {
+        position = default;
+        rotation = Quaternion.identity;
+        if (x < 0 || x >= width || y < 0 || y >= height ||
+            socket == null || instantiated[x, y] == null)
+            return false;
+
+        Transform tileTransform = instantiated[x, y].transform;
+        position = tileTransform.TransformPoint(socket.localPosition);
+        rotation = tileTransform.rotation * socket.localRotation;
+        return true;
+    }
+
+    public PropSocketDirection GetRuntimeSocketDirection(BakedPropSocket socket)
+    {
+        if (socket == null)
+            return PropSocketDirection.North;
+
+        return socket.direction;
+    }
+
+    public Vector3 GetCellWorldPosition(int x, int y)
     {
         return new Vector3(
             origin.x-.5f + x * generationDirection.x,
@@ -271,6 +365,8 @@ public class TileGridGenerator : MonoBehaviour
             0
         );
     }
+
+    public Vector3 GetWorldPosition(int x, int y) => GetCellWorldPosition(x, y);
 
     Vector2Int GetGridCoordinates(Vector3 worldPosition)
     {
@@ -293,7 +389,7 @@ public class TileGridGenerator : MonoBehaviour
             if (cells[x, y].Count == 1)
             {
                 int tileIndex = cells[x, y][0];
-                instantiated[x, y] = Instantiate(prefabs[tileIndex], GetWorldPosition(x, y), GetTileRotation(tileIndex), transform);
+                instantiated[x, y] = InstantiateTile(tileIndex, GetWorldPosition(x, y));
             }
             else
             {
@@ -311,12 +407,7 @@ public class TileGridGenerator : MonoBehaviour
         int tileIndex)
     {
         if (instantiated[x, y] != null) Destroy(instantiated[x, y]);
-        instantiated[x, y] = Instantiate(
-            prefabs[tileIndex],
-            GetWorldPosition(x, y),
-            GetTileRotation(tileIndex),
-            transform
-        );
+        instantiated[x, y] = InstantiateTile(tileIndex, GetWorldPosition(x, y));
     }
     
     public void ClickWorldPosition(Vector3 worldPosition)
@@ -387,7 +478,10 @@ public class TileGridGenerator : MonoBehaviour
             foreach (var position in region)
                 InstantiateCurrentCell(position.x, position.y);
             Debug.LogWarning($"Ground placement at ({x},{y}) caused a contradiction and was reverted.");
+            return;
         }
+
+        NotifyLayoutChanged();
     }
 
     public void ClickCell(int x, int y)
@@ -450,6 +544,7 @@ public class TileGridGenerator : MonoBehaviour
         }
 
         placed[x, y] = true;
+        NotifyLayoutChanged();
         return true;
     }
 
@@ -479,8 +574,7 @@ public class TileGridGenerator : MonoBehaviour
         if (placed[x, y] && cells[x, y].Count == 1)
         {
             int tileIndex = cells[x, y][0];
-            instantiated[x, y] = Instantiate(
-                prefabs[tileIndex], GetWorldPosition(x, y), GetTileRotation(tileIndex), transform);
+            instantiated[x, y] = InstantiateTile(tileIndex, GetWorldPosition(x, y));
             return;
         }
 
@@ -719,8 +813,8 @@ public class TileGridGenerator : MonoBehaviour
         HashSet<Vector2Int> region,
         Dictionary<Vector2Int, int> assignments)
     {
-        return FitsNeighbor(position, candidate, new Vector2Int(0, 1), north, south, region, assignments)
-            && FitsNeighbor(position, candidate, new Vector2Int(0, -1), south, north, region, assignments)
+        return FitsNeighbor(position, candidate, new Vector2Int(0, 1), south, north, region, assignments)
+            && FitsNeighbor(position, candidate, new Vector2Int(0, -1), north, south, region, assignments)
             && FitsNeighbor(position, candidate, new Vector2Int(1, 0), east, west, region, assignments)
             && FitsNeighbor(position, candidate, new Vector2Int(-1, 0), west, east, region, assignments);
     }
