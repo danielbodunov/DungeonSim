@@ -23,6 +23,7 @@ public class TileSocketProfile : ScriptableObject
     public List<string> southMatches = new();
     public List<string> eastMatches = new();
     public List<string> westMatches = new();
+    public List<BakedPropSocket> propSockets = new();
 
     public string GetHash(TileSide side)
     {
