@@ -4,6 +4,8 @@ using System.Collections.Generic;
 
 public static class PortalEdgeAnalyzer
 {
+    const float CellSize = 1f;
+    const float EdgeStartOffset = 0.01f;
 
     public static string GeneratePortalMask(
         GameObject prefab,
@@ -22,7 +24,12 @@ public static class PortalEdgeAnalyzer
 
         Debug.Log($"Instance position and rotation for {prefab.name}:{prefab.transform.position},{prefab.transform.rotation.eulerAngles}");
 
-        var bounds = CalculateBounds(prefab);
+        // Tile adjacency is defined on the logical 1x1 cell, not on visual
+        // renderer bounds. Cosmetic mesh offsets or prop-authoring gizmos must
+        // not move the edge samples away from the tile's colliders.
+        var bounds = new Bounds(
+            prefab.transform.position,
+            new Vector3(CellSize, CellSize, CellSize));
         StringBuilder mask = new();
 
         for (int i = 0; i < resolution; i++)
@@ -32,23 +39,19 @@ public static class PortalEdgeAnalyzer
             bool blocked = true;
             Vector3 lastSamplePoint = Vector3.zero;
 
-            for (int v = 0; v < 1; v++)
+            // Edge topology is defined in the tile's XY plane. Sampling at
+            // the logical center makes the result independent of whether the
+            // source geometry faces +Z or -Z.
+            Vector3 origin = GetEdgePoint(bounds, side, t, bounds.center.z);
+            Vector3 direction = GetInwardDirection(side);
+            lastSamplePoint = origin;
+
+            origin -= direction * EdgeStartOffset;
+
+            if (!Physics.Raycast(origin, direction, checkDepth))
             {
-                float vt = (float)v / (depthSamples - 1);
-                float depth = Mathf.Lerp(bounds.min.z, bounds.max.z, vt);
-
-                Vector3 origin = GetEdgePoint(bounds, side, t, depth);
-                Vector3 direction = GetInwardDirection(side);
+                blocked = false;
                 lastSamplePoint = origin;
-
-                origin += direction * -.01f;
-                
-                if (!Physics.Raycast(origin, direction, .02f))
-                {
-                    blocked = false;
-                    lastSamplePoint = origin;
-                    break;
-                }
             }
             Debug.Log($"Sample point for {prefab.name} on side {side} at t={t}: {lastSamplePoint}, blocked: {blocked}");
 
@@ -56,16 +59,6 @@ public static class PortalEdgeAnalyzer
             mask.Append(blocked ? "0" : "1");
         }
         return mask.ToString();
-    }
-
-    static Bounds CalculateBounds(GameObject go)
-    {
-        var renderers = go.GetComponentsInChildren<Renderer>();
-        Bounds bounds = renderers[0].bounds;
-
-        foreach (var r in renderers)
-            bounds.Encapsulate(r.bounds);
-        return bounds;
     }
 
     static Vector3 GetEdgePoint(Bounds b, TileSide side, float t, float depth)
@@ -77,25 +70,25 @@ public static class PortalEdgeAnalyzer
             TileSide.North => new Vector3(
                                 Mathf.Lerp(b.min.x + offset, b.max.x - offset, t),
                                 b.max.y,
-                                0.5f
+                                depth
                                 ),
             // -Y
             TileSide.South => new Vector3(
                                 Mathf.Lerp(b.min.x + offset, b.max.x - offset, t),
                                 b.min.y,
-                                0.5f
+                                depth
                                 ),
             // -X
             TileSide.West => new Vector3(
                                 b.min.x,
                                 Mathf.Lerp(b.min.y + offset, b.max.y - offset, t),
-                                0.5f
+                                depth
                                 ),
             // +X
             TileSide.East => new Vector3(
                                 b.max.x,
                                 Mathf.Lerp(b.min.y + offset, b.max.y - offset, t),
-                                0.5f
+                                depth
                                 ),
             _ => Vector3.zero,
         };
