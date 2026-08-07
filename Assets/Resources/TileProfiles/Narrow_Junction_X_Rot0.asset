@@ -26,8 +26,7 @@ MonoBehaviour:
   - Narrow_Corner_L_R1
   - Narrow_Corner_L_R2
   - Narrow_Junction_X_R0
-  - Narrow_Straight_R1
-  - Narrow_Straight_R3
+  - Narrow_Straight_I_R1
   - Narrow_T_R0
   - Narrow_T_R1
   - Narrow_T_R2
@@ -39,8 +38,7 @@ MonoBehaviour:
   - Narrow_Corner_L_R0
   - Narrow_Corner_L_R3
   - Narrow_Junction_X_R0
-  - Narrow_Straight_R1
-  - Narrow_Straight_R3
+  - Narrow_Straight_I_R1
   - Narrow_T_R0
   - Narrow_T_R2
   - Narrow_T_R3
@@ -52,8 +50,7 @@ MonoBehaviour:
   - Narrow_Corner_L_R2
   - Narrow_Corner_L_R3
   - Narrow_Junction_X_R0
-  - Narrow_Straight_R0
-  - Narrow_Straight_R2
+  - Narrow_Straight_I_R0
   - Narrow_T_R1
   - Narrow_T_R2
   - Narrow_T_R3
@@ -65,8 +62,7 @@ MonoBehaviour:
   - Narrow_Corner_L_R0
   - Narrow_Corner_L_R1
   - Narrow_Junction_X_R0
-  - Narrow_Straight_R0
-  - Narrow_Straight_R2
+  - Narrow_Straight_I_R0
   - Narrow_T_R0
   - Narrow_T_R1
   - Narrow_T_R3
@@ -75,16 +71,56 @@ MonoBehaviour:
   - Wide_Opening_T_R0
   propSockets:
   - structureId: Ladder
-    laneId: Default
+    laneId: Center
+    bundleId: Default
     selectionWeight: 1
     role: 0
     direction: 2
+    allowsTraversalExit: 0
     localPosition: {x: 0, y: 0, z: 0}
-    localRotation: {x: 0, y: 0, z: -1, w: 0}
+    localRotation: {x: 0, y: 0, z: 0, w: 1}
   - structureId: Ladder
-    laneId: Default
+    laneId: Center
+    bundleId: ShaftEntry_Interm_C
     selectionWeight: 1
     role: 1
     direction: 2
+    allowsTraversalExit: 0
     localPosition: {x: 0, y: 0, z: 0}
-    localRotation: {x: 0, y: 0, z: -1, w: -0.00000077486027}
+    localRotation: {x: 0, y: 0, z: 0, w: 1}
+  - structureId: Ladder
+    laneId: Left
+    bundleId: ShaftEntry_L
+    selectionWeight: 1
+    role: 0
+    direction: 2
+    allowsTraversalExit: 0
+    localPosition: {x: 0, y: 0, z: 0}
+    localRotation: {x: 0, y: 0, z: 0, w: 1}
+  - structureId: Ladder
+    laneId: Left
+    bundleId: ShaftEntry_Interm_L
+    selectionWeight: 1
+    role: 1
+    direction: 2
+    allowsTraversalExit: 1
+    localPosition: {x: 0, y: 0, z: 0}
+    localRotation: {x: 0, y: 0, z: 0, w: 1}
+  - structureId: Ladder
+    laneId: Right
+    bundleId: ShaftEntry_R
+    selectionWeight: 1
+    role: 0
+    direction: 2
+    allowsTraversalExit: 0
+    localPosition: {x: 0, y: 0, z: 0}
+    localRotation: {x: 0, y: 0, z: 0, w: 1}
+  - structureId: Ladder
+    laneId: Right
+    bundleId: ShaftEntry_Interm_R
+    selectionWeight: 1
+    role: 1
+    direction: 2
+    allowsTraversalExit: 1
+    localPosition: {x: 0, y: 0, z: 0}
+    localRotation: {x: 0, y: 0, z: 0, w: 1}

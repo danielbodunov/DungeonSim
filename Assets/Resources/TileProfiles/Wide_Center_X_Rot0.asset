@@ -47,9 +47,29 @@ MonoBehaviour:
   - Wide_Side_T_R0
   propSockets:
   - structureId: Ladder
-    laneId: Default
+    laneId: Center
+    bundleId: Default
     selectionWeight: 1
     role: 1
     direction: 2
+    allowsTraversalExit: 0
     localPosition: {x: 0, y: 0, z: 0}
-    localRotation: {x: 0, y: 0, z: -0.707107, w: 0.7071066}
+    localRotation: {x: 0, y: 0, z: -0.00000029502795, w: 1}
+  - structureId: Ladder
+    laneId: Left
+    bundleId: Default
+    selectionWeight: 1
+    role: 1
+    direction: 2
+    allowsTraversalExit: 0
+    localPosition: {x: -0.3, y: 0, z: 0}
+    localRotation: {x: 0, y: 0, z: -0.00000029502795, w: 1}
+  - structureId: Ladder
+    laneId: Right
+    bundleId: Default
+    selectionWeight: 1
+    role: 1
+    direction: 2
+    allowsTraversalExit: 0
+    localPosition: {x: 0.3, y: 0, z: 0}
+    localRotation: {x: 0, y: 0, z: -0.00000029502795, w: 1}

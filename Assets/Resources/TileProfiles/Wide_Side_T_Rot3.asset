@@ -34,8 +34,7 @@ MonoBehaviour:
   - Narrow_Cap_R3
   - Narrow_Corner_L_R1
   - Narrow_Corner_L_R2
-  - Narrow_Straight_R0
-  - Narrow_Straight_R2
+  - Narrow_Straight_I_R0
   - Narrow_T_R1
   - Starter_X_R0
   - Wide_Corner_01_L_R0
@@ -61,16 +60,29 @@ MonoBehaviour:
   - Wide_Side_T_R3
   propSockets:
   - structureId: Ladder
-    laneId: Default
-    selectionWeight: 1
-    role: 2
-    direction: 0
-    localPosition: {x: 0, y: 0, z: 0}
-    localRotation: {x: -0, y: 0, z: 0.7071059, w: 0.7071077}
-  - structureId: Ladder
-    laneId: Default
+    laneId: Center
+    bundleId: Default
     selectionWeight: 1
     role: 1
-    direction: 1
+    direction: 3
+    allowsTraversalExit: 0
     localPosition: {x: 0, y: 0, z: 0}
-    localRotation: {x: -0, y: 0, z: 0.0000018477438, w: 1}
+    localRotation: {x: 0, y: 0, z: 0, w: 1}
+  - structureId: Ladder
+    laneId: Right
+    bundleId: Default
+    selectionWeight: 1
+    role: 1
+    direction: 3
+    allowsTraversalExit: 0
+    localPosition: {x: 0.2, y: 0, z: 0}
+    localRotation: {x: 0, y: 0, z: 0, w: 1}
+  - structureId: Ladder
+    laneId: Left
+    bundleId: Default
+    selectionWeight: 1
+    role: 1
+    direction: 3
+    allowsTraversalExit: 0
+    localPosition: {x: -0.2, y: 0, z: 0}
+    localRotation: {x: 0, y: 0, z: 0, w: 1}
