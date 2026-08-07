@@ -33,6 +33,13 @@ public class TilePlacement : MonoBehaviour
     private TileAdjacencyDatabase tileDatabase;
 
     private Vector3Int? lastDragCell;
+    private bool buildingEnabled = true;
+
+    public bool BuildingEnabled => buildingEnabled;
+    public IReadOnlyList<ObjectData> AvailableObjects => database != null
+        ? database.objectsData
+        : System.Array.Empty<ObjectData>();
+
     private void Start()
     {
         if(tileGridGenerator == null)
@@ -46,6 +53,9 @@ public class TilePlacement : MonoBehaviour
 
     public void StartPlacement(int ID)
     {
+        if (!buildingEnabled)
+            return;
+
         StopPlacement(); // Ensure any existing placement is stopped before starting a new one
         selectedObjectIndex = database.objectsData.FindIndex(data => data.ID == ID);
         if (selectedObjectIndex <  0)
@@ -64,6 +74,9 @@ public class TilePlacement : MonoBehaviour
 
     private void PlaceStructure()
     {
+        if (!buildingEnabled)
+            return;
+
         if(inputManager.IsPointerOverUI())
         {
             return;
@@ -76,6 +89,9 @@ public class TilePlacement : MonoBehaviour
 
     private void PlaceGround()
     {
+        if (!buildingEnabled)
+            return;
+
         if (inputManager.IsPointerOverUI())
             return;
 
@@ -86,6 +102,9 @@ public class TilePlacement : MonoBehaviour
 
     private void PlaceAtCell(Vector3Int gridPosition)
     {
+        if (!buildingEnabled)
+            return;
+
         if (lastDragCell.HasValue && lastDragCell.Value == gridPosition)
             return;
 
@@ -95,7 +114,7 @@ public class TilePlacement : MonoBehaviour
         lastDragCell = gridPosition;
     }
     
-    private void StopPlacement()
+    public void StopPlacement()
     {
         selectedObjectIndex = -1;
         gridVisualization.SetActive(false);
@@ -109,8 +128,7 @@ public class TilePlacement : MonoBehaviour
 
     private void Update()
     {
-
-        if (selectedObjectIndex < 0)
+        if (!buildingEnabled || selectedObjectIndex < 0)
         { 
             return; 
         }
@@ -129,6 +147,13 @@ public class TilePlacement : MonoBehaviour
         if (!inputManager.IsPointerOverUI())
             PlaceAtCell(gridPosition);
 
+    }
+
+    public void SetBuildingEnabled(bool enabled)
+    {
+        buildingEnabled = enabled;
+        if (!buildingEnabled)
+            StopPlacement();
     }
 
     // private void CreateGroundTiles()

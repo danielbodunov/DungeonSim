@@ -278,6 +278,21 @@ public class TileGridGenerator : MonoBehaviour
 
     public int GridWidth => width;
     public int GridHeight => height;
+    public int PlacedCellCount
+    {
+        get
+        {
+            if (placed == null)
+                return 0;
+
+            int count = 0;
+            for (int x = 0; x < width; x++)
+            for (int y = 0; y < height; y++)
+                if (placed[x, y])
+                    count++;
+            return count;
+        }
+    }
 
     public bool IsFixedGround(int x, int y)
     {
@@ -328,6 +343,19 @@ public class TileGridGenerator : MonoBehaviour
         TileSocketProfile upper = database.tiles[cells[x, upperY][0]];
         TileSocketProfile lower = database.tiles[cells[x, lowerY][0]];
         return upper.southHash == lower.northHash;
+    }
+
+    public bool HasMatchingHorizontalEdge(int leftX, int rightX, int y)
+    {
+        if (leftX < 0 || rightX < 0 || y < 0 ||
+            leftX >= width || rightX >= width || y >= height ||
+            rightX != leftX + 1 ||
+            cells[leftX, y].Count != 1 || cells[rightX, y].Count != 1)
+            return false;
+
+        TileSocketProfile left = database.tiles[cells[leftX, y][0]];
+        TileSocketProfile right = database.tiles[cells[rightX, y][0]];
+        return left.eastHash == right.westHash;
     }
 
     public bool TryGetPropSocketWorldPose(

@@ -3,11 +3,13 @@ using System.Collections.Generic;
 
 public class PropGenerator : MonoBehaviour
 {
+    [SerializeField] PropCatalog propCatalog;
     [SerializeField] string ladderStructureId = "Ladder";
     [SerializeField] string ladderTopPrefabName = "Ladder_Start";
     [SerializeField] string ladderMiddlePrefabName = "Ladder_Continue";
     [SerializeField] string ladderBottomPrefabName = "Ladder_End";
     [SerializeField] Vector3 ladderWorldEulerAngles = Vector3.zero;
+    [SerializeField, Min(0.001f)] float ladderSocketAlignmentTolerance = 0.15f;
     [SerializeField] bool logLadderDiagnostics = true;
 
     TileGridGenerator gridGenerator;
@@ -16,7 +18,28 @@ public class PropGenerator : MonoBehaviour
     GameObject ladderBottomPrefab;
     HashSet<Vector2Int> occupiedPropCells = new();
     List<GameObject> spawnedProps = new();
+    readonly List<GeneratedStructureRun> generatedRuns = new();
     Coroutine pendingGeneration;
+
+    public IReadOnlyList<GeneratedStructureRun> GeneratedRuns => generatedRuns;
+    public int StructureVersion { get; private set; }
+    public event System.Action StructuresRegenerated;
+
+    public List<GeneratedStructureRun> GetRunsAtCell(Vector2Int cell)
+    {
+        var results = new List<GeneratedStructureRun>();
+        foreach (GeneratedStructureRun run in generatedRuns)
+        {
+            foreach (GeneratedStructurePiece piece in run.pieces)
+            {
+                if (piece.cell != cell)
+                    continue;
+                results.Add(run);
+                break;
+            }
+        }
+        return results;
+    }
 
     struct LadderPiece
     {
@@ -73,15 +96,26 @@ public class PropGenerator : MonoBehaviour
         }
         spawnedProps.Clear();
         occupiedPropCells.Clear();
+        generatedRuns.Clear();
+        StructureVersion++;
         PlaceLadders();
+        PlaceSingleProps();
         pendingGeneration = null;
+        StructuresRegenerated?.Invoke();
     }
 
     void LoadPropPrefabs()
     {
-        ladderTopPrefab = LoadPropPrefab(ladderTopPrefabName);
-        ladderMiddlePrefab = LoadPropPrefab(ladderMiddlePrefabName);
-        ladderBottomPrefab = LoadPropPrefab(ladderBottomPrefabName);
+        if (propCatalog == null)
+            propCatalog = Resources.Load<PropCatalog>("PropCatalog");
+
+        PropDefinition ladder = propCatalog?.Find(ladderStructureId);
+        ladderTopPrefab = ladder?.GetPrefab(PropSocketRole.Start)
+            ?? LoadPropPrefab(ladderTopPrefabName);
+        ladderMiddlePrefab = ladder?.GetPrefab(PropSocketRole.Continue)
+            ?? LoadPropPrefab(ladderMiddlePrefabName);
+        ladderBottomPrefab = ladder?.GetPrefab(PropSocketRole.End)
+            ?? LoadPropPrefab(ladderBottomPrefabName);
     }
 
     GameObject LoadPropPrefab(string prefabName)
@@ -143,14 +177,18 @@ public class PropGenerator : MonoBehaviour
 
             completedRuns++;
 
+            GeneratedStructureRun generatedRun = BuildGeneratedRun(selectedRun);
+            if (generatedRun != null)
+                generatedRuns.Add(generatedRun);
+
             for (int i = 0; i < selectedRun.Count; i++)
             {
-                GameObject prefab = i == 0
+                GameObject fallbackPrefab = i == 0
                     ? ladderTopPrefab
                     : i == selectedRun.Count - 1
                         ? ladderBottomPrefab
                         : ladderMiddlePrefab;
-                PlaceLadderPiece(prefab, selectedRun[i]);
+                PlaceLadderPiece(fallbackPrefab, selectedRun[i]);
             }
         }
 
@@ -160,6 +198,72 @@ public class PropGenerator : MonoBehaviour
                 ? $"\n- {string.Join("\n- ", failures)}"
                 : string.Empty;
             Debug.Log($"Ladder generation: {compatibleStarts} compatible starts, {completedRuns} completed runs.{details}");
+        }
+    }
+
+    void PlaceSingleProps()
+    {
+        if (propCatalog == null)
+            return;
+
+        foreach (PropDefinition definition in propCatalog.definitions)
+        {
+            if (definition == null || definition.generationMode != PropGenerationMode.Single)
+                continue;
+
+            GameObject fallbackPrefab = definition.GetPrefab(PropSocketRole.Single);
+
+            for (int x = 1; x < gridGenerator.GridWidth - 1; x++)
+            for (int y = 1; y < gridGenerator.GridHeight - 1; y++)
+            {
+                if (!gridGenerator.IsPlacedCell(x, y))
+                    continue;
+
+                var cell = new Vector2Int(x, y);
+                if (definition.occupiesCell && occupiedPropCells.Contains(cell))
+                    continue;
+                if (Random.value > definition.spawnChance)
+                    continue;
+
+                var candidates = new List<BakedPropSocket>();
+                float totalWeight = 0f;
+                foreach (BakedPropSocket socket in gridGenerator.GetCellPropSockets(x, y))
+                {
+                    if (socket == null || socket.role != PropSocketRole.Single ||
+                        !string.Equals(socket.structureId, definition.structureId,
+                            System.StringComparison.OrdinalIgnoreCase) ||
+                        socket.selectionWeight <= 0f)
+                        continue;
+
+                    candidates.Add(socket);
+                    totalWeight += socket.selectionWeight;
+                }
+
+                if (candidates.Count == 0 || totalWeight <= 0f)
+                    continue;
+
+                float selection = Random.value * totalWeight;
+                BakedPropSocket selected = candidates[candidates.Count - 1];
+                foreach (BakedPropSocket candidate in candidates)
+                {
+                    selection -= candidate.selectionWeight;
+                    if (selection <= 0f)
+                    {
+                        selected = candidate;
+                        break;
+                    }
+                }
+
+                if (!gridGenerator.TryGetPropSocketWorldPose(
+                    x, y, selected, out Vector3 position, out Quaternion socketRotation))
+                    continue;
+
+                int spawned = SpawnResolvedBundle(
+                    definition, fallbackPrefab, selected, position, socketRotation,
+                    x, y);
+                if (spawned > 0 && definition.occupiesCell)
+                    occupiedPropCells.Add(cell);
+            }
         }
     }
 
@@ -192,6 +296,14 @@ public class PropGenerator : MonoBehaviour
     {
         failure = string.Empty;
         run = new List<LadderPiece> { new LadderPiece(x, y, startSocket) };
+        if (!gridGenerator.TryGetPropSocketWorldPose(
+            x, y, startSocket, out Vector3 startPosition, out _))
+        {
+            failure = "the Start socket has no runtime world pose";
+            return false;
+        }
+
+        Vector2 alignmentAnchor = new Vector2(startPosition.x, startPosition.z);
         for (int nextY = y + 1; nextY < gridGenerator.GridHeight - 1; nextY++)
         {
             if (!gridGenerator.IsPlacedCell(x, nextY))
@@ -212,10 +324,14 @@ public class PropGenerator : MonoBehaviour
                 return false;
             }
 
-            BakedPropSocket continuation = FindSocket(
-                x, nextY, PropSocketRole.Continue, startSocket.laneId);
-            BakedPropSocket end = FindSocket(
-                x, nextY, PropSocketRole.End, startSocket.laneId);
+            BakedPropSocket continuation = FindAlignedSocket(
+                x, nextY, PropSocketRole.Continue, startSocket.laneId,
+                alignmentAnchor,
+                out float continuationDistance);
+            BakedPropSocket end = FindAlignedSocket(
+                x, nextY, PropSocketRole.End, startSocket.laneId,
+                alignmentAnchor,
+                out float endDistance);
             if (end != null)
             {
                 run.Add(new LadderPiece(x, nextY, end));
@@ -224,7 +340,11 @@ public class PropGenerator : MonoBehaviour
 
             if (continuation == null)
             {
-                failure = $"{gridGenerator.GetCellProfileId(x, nextY)} has no matching Continue or End socket";
+                float nearestDistance = Mathf.Min(continuationDistance, endDistance);
+                string alignment = float.IsPositiveInfinity(nearestDistance)
+                    ? "no compatible Continue or End sockets"
+                    : $"nearest compatible socket is {nearestDistance:0.###} units from the ladder anchor (tolerance {ladderSocketAlignmentTolerance:0.###})";
+                failure = $"{gridGenerator.GetCellProfileId(x, nextY)} has {alignment}";
                 return false;
             }
 
@@ -235,15 +355,79 @@ public class PropGenerator : MonoBehaviour
         return false;
     }
 
-    BakedPropSocket FindSocket(int x, int y, PropSocketRole role, string laneId)
+    BakedPropSocket FindAlignedSocket(
+        int x,
+        int y,
+        PropSocketRole role,
+        string laneId,
+        Vector2 alignmentAnchor,
+        out float closestDistance)
     {
+        closestDistance = float.PositiveInfinity;
+        BakedPropSocket closest = null;
         foreach (BakedPropSocket socket in gridGenerator.GetCellPropSockets(x, y))
             if (IsSocket(socket, role) &&
+                string.Equals(socket.laneId, laneId,
+                    System.StringComparison.OrdinalIgnoreCase) &&
                 IsCompatibleDirection(gridGenerator.GetRuntimeSocketDirection(socket), role) &&
-                string.Equals(socket.laneId, laneId, System.StringComparison.OrdinalIgnoreCase))
-                return socket;
+                gridGenerator.TryGetPropSocketWorldPose(
+                    x, y, socket, out Vector3 position, out _))
+            {
+                float distance = Vector2.Distance(
+                    alignmentAnchor, new Vector2(position.x, position.z));
+                if (distance < closestDistance)
+                {
+                    closestDistance = distance;
+                    closest = socket;
+                }
+            }
 
-        return null;
+        return closestDistance <= ladderSocketAlignmentTolerance ? closest : null;
+    }
+
+    GeneratedStructureRun BuildGeneratedRun(List<LadderPiece> run)
+    {
+        var generated = new GeneratedStructureRun
+        {
+            structureId = ladderStructureId,
+            generationVersion = StructureVersion
+        };
+
+        for (int i = 0; i < run.Count; i++)
+        {
+            LadderPiece piece = run[i];
+            if (!gridGenerator.TryGetPropSocketWorldPose(
+                piece.x, piece.y, piece.socket, out Vector3 position, out _))
+                return null;
+
+            var cell = new Vector2Int(piece.x, piece.y);
+            generated.pieces.Add(new GeneratedStructurePiece
+            {
+                cell = cell,
+                tileProfileId = gridGenerator.GetCellProfileId(piece.x, piece.y),
+                role = piece.socket.role,
+                laneId = piece.socket.laneId,
+                bundleId = piece.socket.bundleId,
+                worldPosition = position,
+                socket = piece.socket
+            });
+
+            bool isEndpoint = i == 0 || i == run.Count - 1 ||
+                (piece.socket.role == PropSocketRole.Continue &&
+                    piece.socket.allowsTraversalExit);
+            if (isEndpoint)
+            {
+                generated.traversalEndpoints.Add(new GeneratedTraversalEndpoint
+                {
+                    cell = cell,
+                    worldPosition = position,
+                    sourceRole = piece.socket.role,
+                    isIntermediate = i > 0 && i < run.Count - 1
+                });
+            }
+        }
+
+        return generated;
     }
 
     bool IsSocket(BakedPropSocket socket, PropSocketRole role)
@@ -270,13 +454,68 @@ public class PropGenerator : MonoBehaviour
         var cell = new Vector2Int(piece.x, piece.y);
         if (prefab == null || occupiedPropCells.Contains(cell) ||
             !gridGenerator.TryGetPropSocketWorldPose(
-                piece.x, piece.y, piece.socket, out Vector3 position, out _))
+                piece.x, piece.y, piece.socket, out Vector3 position, out Quaternion socketRotation))
             return;
 
-        Quaternion rotation = Quaternion.Euler(ladderWorldEulerAngles);
-        var prop = Instantiate(prefab, position, rotation, transform);
-        prop.name = $"{prefab.name} [{piece.x},{piece.y}] on {gridGenerator.GetCellProfileId(piece.x, piece.y)}";
+        PropDefinition definition = propCatalog?.Find(ladderStructureId);
+        int spawned = SpawnResolvedBundle(
+            definition, prefab, piece.socket, position, socketRotation,
+            piece.x, piece.y, ladderWorldEulerAngles);
+        if (spawned > 0)
+            occupiedPropCells.Add(cell);
+    }
+
+    int SpawnResolvedBundle(
+        PropDefinition definition,
+        GameObject fallbackPrefab,
+        BakedPropSocket socket,
+        Vector3 position,
+        Quaternion socketRotation,
+        int x,
+        int y,
+        Vector3? fallbackRotation = null)
+    {
+        Quaternion baseRotation = definition != null
+            ? (definition.useSocketRotation ? socketRotation : Quaternion.identity)
+                * Quaternion.Euler(definition.rotationOffset)
+            : Quaternion.Euler(fallbackRotation ?? Vector3.zero);
+
+        PropPieceBundle bundle = definition?.GetBundle(
+            socket.laneId, socket.role, socket.bundleId);
+        int count = 0;
+        if (bundle != null)
+        {
+            foreach (PropBundleItem item in bundle.items)
+            {
+                if (item == null || item.prefab == null)
+                    continue;
+
+                Vector3 itemPosition = position + baseRotation * item.localPosition;
+                Quaternion itemRotation = baseRotation * Quaternion.Euler(item.localRotation);
+                SpawnProp(item.prefab, itemPosition, itemRotation, x, y, socket);
+                count++;
+            }
+            return count;
+        }
+
+        if (fallbackPrefab != null)
+        {
+            SpawnProp(fallbackPrefab, position, baseRotation, x, y, socket);
+            count++;
+        }
+        return count;
+    }
+
+    void SpawnProp(
+        GameObject prefab,
+        Vector3 position,
+        Quaternion rotation,
+        int x,
+        int y,
+        BakedPropSocket socket)
+    {
+        GameObject prop = Instantiate(prefab, position, rotation, transform);
+        prop.name = $"{prefab.name} [{x},{y}] {socket.laneId}/{socket.bundleId} on {gridGenerator.GetCellProfileId(x, y)}";
         spawnedProps.Add(prop);
-        occupiedPropCells.Add(cell);
     }
 }

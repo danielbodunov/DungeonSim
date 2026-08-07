@@ -12,6 +12,9 @@ public class PropSocketAuthoring : MonoBehaviour
     [Tooltip("Sockets in one generated structure must use the same lane ID.")]
     public string laneId = "Default";
 
+    [Tooltip("Selects the role bundle used in this cell, such as Default or Platform. Unlike Lane ID, this may change along a structure run.")]
+    public string bundleId = "Default";
+
     [Min(0f), Tooltip("Relative chance of choosing this Start socket. Ignored for other roles.")]
     public float selectionWeight = 1f;
 
@@ -20,8 +23,14 @@ public class PropSocketAuthoring : MonoBehaviour
     [Tooltip("Connection direction in the unrotated tile: Start points away from the start, End points toward the incoming structure, and Continue identifies its axis.")]
     public PropSocketDirection direction = PropSocketDirection.South;
 
-    void OnDrawGizmos()
+    [Tooltip("For Continue sockets, exposes this point as an intermediate NPC ladder entrance/exit. Start and End are always traversal endpoints.")]
+    public bool allowsTraversalExit;
+
+    void OnDrawGizmosSelected()
     {
+        if (!NPCTraversalDebug.SocketVisualsEnabled)
+            return;
+
         Gizmos.color = role switch
         {
             PropSocketRole.Start => Color.green,
@@ -50,9 +59,12 @@ public class PropSocketAuthoring : MonoBehaviour
         string weightLabel = role == PropSocketRole.Start
             ? $" w:{selectionWeight:0.##}"
             : string.Empty;
+        string exitLabel = role == PropSocketRole.Continue && allowsTraversalExit
+            ? " Exit"
+            : string.Empty;
         Handles.Label(
             origin + Vector3.up * 0.12f,
-            $"{structureId} {role} {direction}\nLane: {laneId}{weightLabel}");
+            $"{structureId} {role} {direction}{exitLabel}\nLane: {laneId} Bundle: {bundleId}{weightLabel}");
 #endif
     }
 
