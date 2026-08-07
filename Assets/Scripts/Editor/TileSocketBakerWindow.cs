@@ -115,9 +115,13 @@ List<BakedPropSocket> BakePropSockets(GameObject prefab, int rotationIndex)
             laneId = string.IsNullOrWhiteSpace(authoredSocket.laneId)
                 ? "Default"
                 : authoredSocket.laneId.Trim(),
+            bundleId = string.IsNullOrWhiteSpace(authoredSocket.bundleId)
+                ? "Default"
+                : authoredSocket.bundleId.Trim(),
             selectionWeight = Mathf.Max(0f, authoredSocket.selectionWeight),
             role = authoredSocket.role,
             direction = RotateDirection(authoredSocket.direction, rotationIndex),
+            allowsTraversalExit = authoredSocket.allowsTraversalExit,
             localPosition = prefab.transform.InverseTransformPoint(authoredSocket.transform.position),
             localRotation = Quaternion.Inverse(prefab.transform.rotation) * authoredSocket.transform.rotation
         });
@@ -234,7 +238,7 @@ List<int> GetAllowedRotations(char symmetry)
     {
         case 'X': return new List<int> { 0 }; // Only one orientation
         case 'T': return new List<int> { 0, 1, 2, 3 };
-        case 'I': return new List<int> { 0, 2 }; // 0° and 180°
+        case 'I': return new List<int> { 0, 1 }; // 0° and 90°
         case 'D': return new List<int> { 0, 2 }; // 0° and 180°
         case 'L': return new List<int> { 0, 1, 2, 3 }; // All rotations
         case 'U': return new List<int> { 0, 3 }; // 0° and 270° clockwise
