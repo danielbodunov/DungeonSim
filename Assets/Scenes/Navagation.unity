@@ -669,120 +669,6 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 476870051}
   m_Mesh: {fileID: 10207, guid: 0000000000000000e000000000000000, type: 0}
---- !u!1 &595710808
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 595710809}
-  - component: {fileID: 595710812}
-  - component: {fileID: 595710811}
-  - component: {fileID: 595710810}
-  m_Layer: 0
-  m_Name: Start
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &595710809
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 595710808}
-  serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0.097, y: 0.139, z: 0}
-  m_LocalScale: {x: 0.1, y: 0.1, z: 0.1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 806986661}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!136 &595710810
-CapsuleCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 595710808}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 2
-  m_Radius: 0.5
-  m_Height: 2
-  m_Direction: 1
-  m_Center: {x: 0, y: 0, z: 0}
---- !u!23 &595710811
-MeshRenderer:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 595710808}
-  m_Enabled: 1
-  m_CastShadows: 1
-  m_ReceiveShadows: 1
-  m_DynamicOccludee: 1
-  m_StaticShadowCaster: 0
-  m_MotionVectors: 1
-  m_LightProbeUsage: 1
-  m_ReflectionProbeUsage: 1
-  m_RayTracingMode: 2
-  m_RayTraceProcedural: 0
-  m_RayTracingAccelStructBuildFlagsOverride: 0
-  m_RayTracingAccelStructBuildFlags: 1
-  m_SmallMeshCulling: 1
-  m_ForceMeshLod: -1
-  m_MeshLodSelectionBias: 0
-  m_RenderingLayerMask: 1
-  m_RendererPriority: 0
-  m_Materials:
-  - {fileID: 2100000, guid: 31321ba15b8f8eb4c954353edc038b1d, type: 2}
-  m_StaticBatchInfo:
-    firstSubMesh: 0
-    subMeshCount: 0
-  m_StaticBatchRoot: {fileID: 0}
-  m_ProbeAnchor: {fileID: 0}
-  m_LightProbeVolumeOverride: {fileID: 0}
-  m_ScaleInLightmap: 1
-  m_ReceiveGI: 1
-  m_PreserveUVs: 0
-  m_IgnoreNormalsForChartDetection: 0
-  m_ImportantGI: 0
-  m_StitchLightmapSeams: 1
-  m_SelectedEditorRenderState: 3
-  m_MinimumChartSize: 4
-  m_AutoUVMaxDistance: 0.5
-  m_AutoUVMaxAngle: 89
-  m_LightmapParameters: {fileID: 0}
-  m_GlobalIlluminationMeshLod: 0
-  m_SortingLayerID: 0
-  m_SortingLayer: 0
-  m_SortingOrder: 0
-  m_MaskInteraction: 0
-  m_AdditionalVertexStreams: {fileID: 0}
---- !u!33 &595710812
-MeshFilter:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 595710808}
-  m_Mesh: {fileID: 10208, guid: 0000000000000000e000000000000000, type: 0}
 --- !u!1 &684458481
 GameObject:
   m_ObjectHideFlags: 0
@@ -1000,8 +886,6 @@ Transform:
   - {fileID: 1410278422}
   - {fileID: 724667838}
   - {fileID: 1175536934}
-  - {fileID: 853043480}
-  - {fileID: 595710809}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &815490997
@@ -1108,13 +992,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 853043479}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: -100, y: 0, z: -0.86021024}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1191691392}
-  m_Father: {fileID: 806986661}
+  m_Father: {fileID: 1175536934}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &889250765
 GameObject:
@@ -1580,6 +1464,7 @@ Transform:
   - {fileID: 889250766}
   - {fileID: 815490998}
   - {fileID: 895780770}
+  - {fileID: 853043480}
   m_Father: {fileID: 806986661}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &1175536935
@@ -1722,8 +1607,10 @@ GameObject:
   - component: {fileID: 1410278423}
   - component: {fileID: 1410278424}
   - component: {fileID: 1410278425}
+  - component: {fileID: 1410278426}
+  - component: {fileID: 1410278427}
   m_Layer: 0
-  m_Name: PlacementSystem
+  m_Name: GridManager
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1779,7 +1666,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::TileGridGenerator
   database: {fileID: 11400000, guid: 7bd6d774b621d844ba2bd943e68f7261, type: 2}
   placeholderPrefab: {fileID: 175052975836350859, guid: 7bd5947bc781b64459fbd3bfb956b422, type: 3}
-  propGenerator: {fileID: 0}
+  propGenerator: {fileID: 1410278425}
   width: 15
   height: 15
   origin: {x: 0, y: 0}
@@ -1797,12 +1684,67 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 630ffd591d2809541a45af238d135f1c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PropGenerator
+  propCatalog: {fileID: 11400000, guid: 796177d0301d2b54eb891189cc598560, type: 2}
   ladderStructureId: Ladder
   ladderTopPrefabName: Ladder_Start
   ladderMiddlePrefabName: Ladder_Continue
   ladderBottomPrefabName: Ladder_End
   ladderWorldEulerAngles: {x: 0, y: 0, z: 0}
+  ladderSocketAlignmentTolerance: 0.15
   logLadderDiagnostics: 1
+--- !u!114 &1410278426
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1410278421}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4f2a3ea103404aaf8e0528f1999df813, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NPCTraversal
+  grid: {fileID: 1410278424}
+  props: {fileID: 1410278425}
+  npcPrefab: {fileID: 5623173914377802050, guid: 56f8b251fcad2fe429bf8d6b07f04a29, type: 3}
+  useManualStartCell: 0
+  manualStartCell: {x: 1, y: 1}
+  spawnOffset: {x: 0, y: 0, z: 0}
+  moveSpeed: 2
+  ladderSpeed: 1.6
+  patrolAutomatically: 1
+  waitAtDestination: 0.2
+  walkableLayers:
+    serializedVersion: 2
+    m_Bits: 64
+  validationSamples: 5
+  groundProbeHeight: 0.75
+  groundProbeDistance: 1
+  maxSurfaceRise: 0.1
+  maxStepHeight: 0.3
+  maxWalkableSlope: 50
+  groundOffset: 0
+--- !u!114 &1410278427
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1410278421}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9486d891058a45f79b8e3963150562d3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NPCTraversalDebug
+  traversal: {fileID: 1410278426}
+  showTileDebugVisuals: 1
+  showNavigationGraph: 1
+  showWalkableSamples: 1
+  showRejectedSamples: 1
+  showSocketVisuals: 1
+  showActivePath: 1
+  showNextTarget: 1
+  markerRadius: 0.04
 --- !u!1 &1424434503
 GameObject:
   m_ObjectHideFlags: 0
