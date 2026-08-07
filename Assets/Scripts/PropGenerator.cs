@@ -20,9 +20,14 @@ public class PropGenerator : MonoBehaviour
     List<GameObject> spawnedProps = new();
     readonly List<GeneratedStructureRun> generatedRuns = new();
     Coroutine pendingGeneration;
+    int pendingGenerationSeed;
 
     public IReadOnlyList<GeneratedStructureRun> GeneratedRuns => generatedRuns;
     public int StructureVersion { get; private set; }
+    public int GenerationSeed { get; private set; }
+    public int SaveGenerationSeed => pendingGeneration != null
+        ? pendingGenerationSeed
+        : GenerationSeed;
     public event System.Action StructuresRegenerated;
 
     public List<GeneratedStructureRun> GetRunsAtCell(Vector2Int cell)
@@ -75,9 +80,15 @@ public class PropGenerator : MonoBehaviour
 
     public void GenerateProps()
     {
+        GenerateProps(Random.Range(-1000000000, 1000000000));
+    }
+
+    public void GenerateProps(int generationSeed)
+    {
         if (gridGenerator == null)
             return;
 
+        pendingGenerationSeed = generationSeed;
         if (pendingGeneration == null)
             pendingGeneration = StartCoroutine(RegenerateAfterFrame());
     }
@@ -98,8 +109,19 @@ public class PropGenerator : MonoBehaviour
         occupiedPropCells.Clear();
         generatedRuns.Clear();
         StructureVersion++;
-        PlaceLadders();
-        PlaceSingleProps();
+        GenerationSeed = pendingGenerationSeed;
+
+        Random.State previousRandomState = Random.state;
+        Random.InitState(GenerationSeed);
+        try
+        {
+            PlaceLadders();
+            PlaceSingleProps();
+        }
+        finally
+        {
+            Random.state = previousRandomState;
+        }
         pendingGeneration = null;
         StructuresRegenerated?.Invoke();
     }

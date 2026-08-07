@@ -27,6 +27,10 @@ public class TileGridGenerator : MonoBehaviour
     GameObject[,] instantiated;
     bool[,] placed;
     bool[,] fixedGround;
+    readonly Dictionary<Vector2Int, CellTrap> placedTraps = new();
+    readonly Dictionary<Vector2Int, int> placedTrapObjectIds = new();
+    readonly Dictionary<Vector2Int, string> placedTrapPrefabNames = new();
+    Transform trapContainer;
 
     void Start()
     {
@@ -278,6 +282,10 @@ public class TileGridGenerator : MonoBehaviour
 
     public int GridWidth => width;
     public int GridHeight => height;
+    public bool IsInitialized => cells != null && instantiated != null && placed != null;
+    public int PropGenerationSeed => propGenerator != null
+        ? propGenerator.SaveGenerationSeed
+        : 0;
     public int PlacedCellCount
     {
         get
@@ -314,6 +322,117 @@ public class TileGridGenerator : MonoBehaviour
     {
         if (propGenerator != null)
             propGenerator.GenerateProps();
+    }
+
+    public void RegenerateProps(int generationSeed)
+    {
+        if (propGenerator != null)
+            propGenerator.GenerateProps(generationSeed);
+    }
+
+    public List<SavedTileCell> CaptureTileLayout()
+    {
+        var result = new List<SavedTileCell>();
+        if (!IsInitialized)
+            return result;
+
+        for (int x = 1; x < width - 1; x++)
+        for (int y = 1; y < height - 1; y++)
+        {
+            // Save all visibly resolved cells, including player-cleared ground,
+            // plus any placed cell. Unresolved placeholders are reconstructed by
+            // propagating constraints from these stable assignments.
+            bool isResolved = cells[x, y].Count == 1;
+            if (!isResolved && !placed[x, y])
+                continue;
+
+            result.Add(new SavedTileCell
+            {
+                x = x,
+                y = y,
+                isPlaced = placed[x, y],
+                profileId = isResolved
+                    ? GetProfileId(database.tiles[cells[x, y][0]])
+                    : string.Empty
+            });
+        }
+        return result;
+    }
+
+    public bool RestoreTileLayout(List<SavedTileCell> savedCells)
+    {
+        if (!IsInitialized || savedCells == null)
+            return false;
+
+        var tileIndicesById = new Dictionary<string, int>(
+            System.StringComparer.OrdinalIgnoreCase);
+        for (int i = 0; i < database.tiles.Count; i++)
+            tileIndicesById[GetProfileId(database.tiles[i])] = i;
+
+        var assignments = new Dictionary<Vector2Int, int>();
+        var placedCells = new HashSet<Vector2Int>();
+        foreach (SavedTileCell savedCell in savedCells)
+        {
+            var position = new Vector2Int(savedCell.x, savedCell.y);
+            if (savedCell.x <= 0 || savedCell.y <= 0 ||
+                savedCell.x >= width - 1 || savedCell.y >= height - 1 ||
+                assignments.ContainsKey(position) ||
+                string.IsNullOrWhiteSpace(savedCell.profileId) ||
+                !tileIndicesById.TryGetValue(savedCell.profileId, out int tileIndex))
+            {
+                return false;
+            }
+
+            assignments[position] = tileIndex;
+            if (savedCell.isPlaced)
+                placedCells.Add(position);
+        }
+
+        ClearTraps();
+        DestroyInstantiatedGrid();
+        InitializeGrid();
+
+        foreach (KeyValuePair<Vector2Int, int> assignment in assignments)
+        {
+            Vector2Int position = assignment.Key;
+            cells[position.x, position.y].Clear();
+            cells[position.x, position.y].Add(assignment.Value);
+            placed[position.x, position.y] = placedCells.Contains(position);
+        }
+
+        foreach (Vector2Int position in assignments.Keys)
+            Propagate(position.x, position.y);
+
+        if (HasContradiction())
+        {
+            Debug.LogWarning(
+                "The saved tile assignments conflict with the current adjacency database.",
+                this);
+            DestroyInstantiatedGrid();
+            InitializeGrid();
+            InstantiateGrid();
+            NotifyLayoutChanged();
+            return false;
+        }
+
+        InstantiateGrid();
+        return true;
+    }
+
+    void DestroyInstantiatedGrid()
+    {
+        if (instantiated == null)
+            return;
+
+        for (int x = 0; x < instantiated.GetLength(0); x++)
+        for (int y = 0; y < instantiated.GetLength(1); y++)
+        {
+            GameObject instance = instantiated[x, y];
+            if (instance == null)
+                continue;
+            instance.SetActive(false);
+            Destroy(instance);
+        }
     }
 
     public string GetCellProfileId(int x, int y)
@@ -509,6 +628,7 @@ public class TileGridGenerator : MonoBehaviour
             return;
         }
 
+        RemoveTrapAtCell(new Vector2Int(x, y));
         NotifyLayoutChanged();
     }
 
@@ -530,6 +650,142 @@ public class TileGridGenerator : MonoBehaviour
         {
             Debug.LogWarning($"No local tile combination can connect at ({x},{y}) without changing tiles farther away.");
         }
+    }
+
+    public void PlaceTrapWorldPosition(
+        Vector3 worldPosition,
+        GameObject trapPrefab,
+        int objectId = -1)
+    {
+        Vector2Int coordinates = GetGridCoordinates(worldPosition);
+        PlaceTrapCell(coordinates.x, coordinates.y, trapPrefab, objectId);
+    }
+
+    public bool RemoveTrapWorldPosition(Vector3 worldPosition)
+    {
+        Vector2Int coordinates = GetGridCoordinates(worldPosition);
+        return RemoveTrapAtCell(coordinates);
+    }
+
+    public bool PlaceTrapCell(
+        int x,
+        int y,
+        GameObject trapPrefab,
+        int objectId = -1)
+    {
+        var cell = new Vector2Int(x, y);
+        if (trapPrefab == null)
+        {
+            Debug.LogWarning("A trap prefab must be assigned before it can be placed.", this);
+            return false;
+        }
+
+        if (x < 0 || x >= width || y < 0 || y >= height || !placed[x, y])
+        {
+            Debug.LogWarning($"Traps can only be placed on a built dungeon tile. Cell ({x},{y}) is not available.", this);
+            return false;
+        }
+
+        if (placedTraps.TryGetValue(cell, out CellTrap existingTrap))
+        {
+            if (existingTrap != null)
+            {
+                Debug.LogWarning($"Cell ({x},{y}) already contains a trap.", this);
+                return false;
+            }
+            placedTraps.Remove(cell);
+        }
+
+        if (trapContainer == null)
+        {
+            var container = new GameObject("Placed Traps");
+            container.transform.SetParent(transform, false);
+            trapContainer = container.transform;
+        }
+
+        GameObject instance = Instantiate(
+            trapPrefab, GetCellWorldPosition(x, y), Quaternion.identity, trapContainer);
+        CellTrap trap = instance.GetComponent<CellTrap>();
+        if (trap == null)
+        {
+            Debug.LogWarning(
+                $"Trap prefab '{trapPrefab.name}' needs a component derived from CellTrap.",
+                trapPrefab);
+            Destroy(instance);
+            return false;
+        }
+
+        trap.Initialize(this, cell);
+        placedTraps.Add(cell, trap);
+        placedTrapObjectIds[cell] = objectId;
+        placedTrapPrefabNames[cell] = trapPrefab.name;
+        return true;
+    }
+
+    public List<SavedTrapCell> CaptureTrapLayout()
+    {
+        var result = new List<SavedTrapCell>();
+        foreach (KeyValuePair<Vector2Int, CellTrap> pair in placedTraps)
+        {
+            if (pair.Value == null)
+                continue;
+
+            placedTrapObjectIds.TryGetValue(pair.Key, out int objectId);
+            placedTrapPrefabNames.TryGetValue(pair.Key, out string prefabName);
+            result.Add(new SavedTrapCell
+            {
+                x = pair.Key.x,
+                y = pair.Key.y,
+                objectId = objectId,
+                prefabName = prefabName
+            });
+        }
+        return result;
+    }
+
+    public void ClearTraps()
+    {
+        foreach (CellTrap trap in placedTraps.Values)
+        {
+            if (trap == null)
+                continue;
+            trap.gameObject.SetActive(false);
+            Destroy(trap.gameObject);
+        }
+        placedTraps.Clear();
+        placedTrapObjectIds.Clear();
+        placedTrapPrefabNames.Clear();
+    }
+
+    public void NotifyNpcEnteredCell(NPCCharacter npc, Vector2Int cell)
+    {
+        if (npc == null)
+            return;
+
+        if (placedTraps.TryGetValue(cell, out CellTrap trap))
+        {
+            if (trap != null)
+                trap.OnNpcEntered(npc);
+            else
+            {
+                placedTraps.Remove(cell);
+                placedTrapObjectIds.Remove(cell);
+                placedTrapPrefabNames.Remove(cell);
+            }
+        }
+    }
+
+    bool RemoveTrapAtCell(Vector2Int cell)
+    {
+        if (!placedTraps.TryGetValue(cell, out CellTrap trap))
+            return false;
+
+        placedTraps.Remove(cell);
+        placedTrapObjectIds.Remove(cell);
+        placedTrapPrefabNames.Remove(cell);
+        if (trap != null)
+            Destroy(trap.gameObject);
+        return true;
     }
 
     bool TryResolveLocalPlacement(int x, int y)

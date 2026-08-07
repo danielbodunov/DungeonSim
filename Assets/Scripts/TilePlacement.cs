@@ -34,8 +34,14 @@ public class TilePlacement : MonoBehaviour
 
     private Vector3Int? lastDragCell;
     private bool buildingEnabled = true;
+    private bool removingTraps;
 
     public bool BuildingEnabled => buildingEnabled;
+    public bool IsRemovingTraps => removingTraps;
+    public int SelectedObjectId => selectedObjectIndex >= 0 &&
+        database != null && selectedObjectIndex < database.objectsData.Count
+            ? database.objectsData[selectedObjectIndex].ID
+            : -1;
     public IReadOnlyList<ObjectData> AvailableObjects => database != null
         ? database.objectsData
         : System.Array.Empty<ObjectData>();
@@ -69,6 +75,19 @@ public class TilePlacement : MonoBehaviour
         inputManager.OnRightClicked += PlaceGround;
         inputManager.OnExit += StopPlacement;
 
+    }
+
+    public void StartTrapRemoval()
+    {
+        if (!buildingEnabled)
+            return;
+
+        StopPlacement();
+        removingTraps = true;
+        gridVisualization.SetActive(true);
+        cellIndicator.SetActive(true);
+        inputManager.OnClicked += PlaceStructure;
+        inputManager.OnExit += StopPlacement;
     }
 
 
@@ -109,14 +128,27 @@ public class TilePlacement : MonoBehaviour
             return;
 
         Vector3 cellCenter = grid.GetCellCenterWorld(gridPosition);
-        Debug.Log($"Placing object ID {database.objectsData[selectedObjectIndex].ID} at grid position ({gridPosition.x}, {gridPosition.y})");
-        tileGridGenerator.ClickWorldPosition(cellCenter);
+        if (removingTraps)
+        {
+            tileGridGenerator.RemoveTrapWorldPosition(cellCenter);
+            lastDragCell = gridPosition;
+            return;
+        }
+
+        ObjectData selectedObject = database.objectsData[selectedObjectIndex];
+        Debug.Log($"Placing {selectedObject.Name} (ID {selectedObject.ID}) at grid position ({gridPosition.x}, {gridPosition.y})");
+        if (selectedObject.PlacementType == ObjectPlacementType.Trap)
+            tileGridGenerator.PlaceTrapWorldPosition(
+                cellCenter, selectedObject.Prefab, selectedObject.ID);
+        else
+            tileGridGenerator.ClickWorldPosition(cellCenter);
         lastDragCell = gridPosition;
     }
     
     public void StopPlacement()
     {
         selectedObjectIndex = -1;
+        removingTraps = false;
         gridVisualization.SetActive(false);
         cellIndicator.SetActive(false);
         inputManager.OnClicked -= PlaceStructure;
@@ -128,7 +160,7 @@ public class TilePlacement : MonoBehaviour
 
     private void Update()
     {
-        if (!buildingEnabled || selectedObjectIndex < 0)
+        if (!buildingEnabled || (!removingTraps && selectedObjectIndex < 0))
         { 
             return; 
         }

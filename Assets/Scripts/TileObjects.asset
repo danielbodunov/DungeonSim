@@ -17,15 +17,24 @@ MonoBehaviour:
     <ID>k__BackingField: 0
     <Size>k__BackingField: {x: 1, y: 1}
     <Prefab>k__BackingField: {fileID: 7475470560256124472, guid: ca754777a0b7eb941b76004af6dcff54, type: 3}
+    <PlacementType>k__BackingField: 0
   - <Name>k__BackingField: DungonBlock1
     <ID>k__BackingField: 1
     <Size>k__BackingField: {x: 1, y: 1}
     <Prefab>k__BackingField: {fileID: 7056729030556307383, guid: 47a523a84eaabf844b5895322ca5ebf0, type: 3}
+    <PlacementType>k__BackingField: 0
   - <Name>k__BackingField: Floor
     <ID>k__BackingField: 2
     <Size>k__BackingField: {x: 1, y: 1}
     <Prefab>k__BackingField: {fileID: 7056729030556307383, guid: e96d54736ea205a43a3adde4efc2221a, type: 3}
+    <PlacementType>k__BackingField: 0
   - <Name>k__BackingField: Door
     <ID>k__BackingField: 3
     <Size>k__BackingField: {x: 1, y: 2}
     <Prefab>k__BackingField: {fileID: 7056729030556307383, guid: e96d54736ea205a43a3adde4efc2221a, type: 3}
+    <PlacementType>k__BackingField: 0
+  - <Name>k__BackingField: Spike Wall
+    <ID>k__BackingField: 4
+    <Size>k__BackingField: {x: 1, y: 1}
+    <Prefab>k__BackingField: {fileID: 1001, guid: 5c39c4ab8a0e44398b0ec97618835a79, type: 3}
+    <PlacementType>k__BackingField: 1
