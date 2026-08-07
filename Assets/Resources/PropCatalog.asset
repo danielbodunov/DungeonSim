@@ -1,0 +1,89 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: eebfbbfe51f848df8a4fe5a20e12ccea, type: 3}
+  m_Name: PropCatalog
+  m_EditorClassIdentifier: Assembly-CSharp::PropCatalog
+  definitions:
+  - structureId: Ladder
+    generationMode: 1
+    spawnChance: 1
+    occupiesCell: 1
+    useSocketRotation: 0
+    rotationOffset: {x: 0, y: 0, z: 0}
+    laneVariants:
+    - laneId: Center
+      bundles:
+      - role: 0
+        bundleId: ShaftEntry_C
+        items:
+        - prefab: {fileID: 2968449841723058801, guid: 80d51bdebca62f74db84efcb3a7f2870, type: 3}
+          localPosition: {x: 0, y: 0, z: 0}
+          localRotation: {x: 0, y: 0, z: 0}
+        - prefab: {fileID: 2682171395563642975, guid: dce9120a1323fe44792d2f11ef4562c9, type: 3}
+          localPosition: {x: 0, y: 0, z: 0}
+          localRotation: {x: 0, y: 0, z: 0}
+      - role: 1
+        bundleId: ShaftEntry_Interm_C
+        items:
+        - prefab: {fileID: 2968449841723058801, guid: 80d51bdebca62f74db84efcb3a7f2870, type: 3}
+          localPosition: {x: 0, y: 0, z: 0}
+          localRotation: {x: 0, y: 0, z: 0}
+        - prefab: {fileID: 5251770508717774214, guid: 1424626f1dbf66c478e49be98415a879, type: 3}
+          localPosition: {x: 0, y: 0, z: 0}
+          localRotation: {x: 0, y: 0, z: 0}
+    - laneId: Left
+      bundles:
+      - role: 0
+        bundleId: ShaftEntry_L
+        items:
+        - prefab: {fileID: 2682171395563642975, guid: dce9120a1323fe44792d2f11ef4562c9, type: 3}
+          localPosition: {x: -0.2, y: 0, z: 0}
+          localRotation: {x: 0, y: 0, z: 0}
+        - prefab: {fileID: 2968449841723058801, guid: 96cb29c4c0ac8f545b221cb3c27846f3, type: 3}
+          localPosition: {x: 0, y: 0, z: 0}
+          localRotation: {x: 0, y: 0, z: 0}
+      - role: 1
+        bundleId: ShaftEntry_Interm_L
+        items:
+        - prefab: {fileID: 5251770508717774214, guid: 1424626f1dbf66c478e49be98415a879, type: 3}
+          localPosition: {x: -0.2, y: 0, z: 0}
+          localRotation: {x: 0, y: 0, z: 0}
+        - prefab: {fileID: 2968449841723058801, guid: 96cb29c4c0ac8f545b221cb3c27846f3, type: 3}
+          localPosition: {x: 0, y: 0, z: 0}
+          localRotation: {x: 0, y: 0, z: 0}
+    - laneId: Right
+      bundles:
+      - role: 0
+        bundleId: ShaftEntry_R
+        items:
+        - prefab: {fileID: 2682171395563642975, guid: dce9120a1323fe44792d2f11ef4562c9, type: 3}
+          localPosition: {x: 0.2, y: 0, z: 0}
+          localRotation: {x: 0, y: 0, z: 0}
+        - prefab: {fileID: 2968449841723058801, guid: 4b5a0425e2ea87247a9ec2d87a6e6b56, type: 3}
+          localPosition: {x: 0, y: 0, z: 0}
+          localRotation: {x: 0, y: 0, z: 0}
+      - role: 1
+        bundleId: ShaftEntry_Interm_R
+        items:
+        - prefab: {fileID: 5251770508717774214, guid: 1424626f1dbf66c478e49be98415a879, type: 3}
+          localPosition: {x: 0.2, y: 0, z: 0}
+          localRotation: {x: 0, y: 0, z: 0}
+        - prefab: {fileID: 2968449841723058801, guid: 4b5a0425e2ea87247a9ec2d87a6e6b56, type: 3}
+          localPosition: {x: 0, y: 0, z: 0}
+          localRotation: {x: 0, y: 0, z: 0}
+    prefabs:
+    - role: 0
+      prefab: {fileID: 2682171395563642975, guid: dce9120a1323fe44792d2f11ef4562c9, type: 3}
+    - role: 1
+      prefab: {fileID: 5251770508717774214, guid: 1424626f1dbf66c478e49be98415a879, type: 3}
+    - role: 2
+      prefab: {fileID: 548719599350142419, guid: 367ff467b77f7cd4ebb512190d2dac2c, type: 3}
