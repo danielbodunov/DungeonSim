@@ -24,6 +24,10 @@ public class NPCTraversal : MonoBehaviour
     [SerializeField] bool useManualStartCell;
     [SerializeField] Vector2Int manualStartCell = new(1, 1);
     [SerializeField] Vector3 spawnOffset;
+    [SerializeField, Min(0.1f), Tooltip("How far above the entrance anchor to begin looking for its floor.")]
+    float spawnProbeHeight = 2f;
+    [SerializeField, Min(0.1f), Tooltip("How far below a tall entrance room to search for a walkable floor.")]
+    float spawnProbeDepth = 20f;
 
     [Header("Movement")]
     [SerializeField, Min(0.01f)] float moveSpeed = 2f;
@@ -31,6 +35,14 @@ public class NPCTraversal : MonoBehaviour
     float ladderSpeed = 1.6f;
     [SerializeField] bool patrolAutomatically = true;
     [SerializeField, Min(0f)] float waitAtDestination = 1f;
+
+    [Header("Stamina Costs")]
+    [SerializeField, Min(0f), Tooltip("Stamina spent per world unit walked.")]
+    float movementStaminaCost = 0.5f;
+    [SerializeField, Min(1f), Tooltip("Multiplier applied to movement stamina while climbing.")]
+    float ladderStaminaMultiplier = 2f;
+    [SerializeField, Min(0.01f), Tooltip("Stamina spent per second while performing an exploration task at a cell.")]
+    float taskStaminaCostPerSecond = 0.5f;
 
     [Header("Walkable Surface Validation")]
     [SerializeField] LayerMask walkableLayers = ~0;
@@ -71,6 +83,18 @@ public class NPCTraversal : MonoBehaviour
     }
     public IReadOnlyList<Vector3> DebugWalkableSamples => debugWalkableSamples;
     public IReadOnlyList<Vector3> DebugRejectedSamples => debugRejectedSamples;
+    public event System.Action<NPCCharacter> AdventurerDied;
+
+    internal void NotifyAdventurerDied(NPCCharacter character)
+    {
+        AdventurerDied?.Invoke(character);
+    }
+
+    internal void NotifyCellEntered(NPCTraversalAgent visitor, Vector2Int cell)
+    {
+        if (visitor != null)
+            grid?.NotifyNpcEnteredCell(visitor.Character, cell);
+    }
 
     void Awake()
     {
@@ -270,7 +294,7 @@ public class NPCTraversal : MonoBehaviour
         return GetGroundedPosition(expected);
     }
 
-    public NPCTraversalAgent SpawnAdventurer()
+    public NPCTraversalAgent SpawnAdventurer(NPCCharacterRecord characterRecord = null)
     {
         if (npcPrefab == null)
         {
@@ -278,24 +302,41 @@ public class NPCTraversal : MonoBehaviour
             return null;
         }
 
-        Vector2Int start = useManualStartCell ? manualStartCell : FindTopLeftCell();
-        if (!graph.ContainsKey(start))
+        if (!TryFindSpawnPose(out Vector2Int start, out Vector3 spawnPosition))
         {
-            Debug.LogWarning($"NPC start cell {start} is not a placed, traversable tile.", this);
+            Debug.LogWarning(
+                "NPCTraversal could not find a placed entrance cell with a walkable floor.",
+                this);
             return null;
         }
 
-        GameObject instance = Instantiate(npcPrefab,
-            grid.GetCellWorldPosition(start.x, start.y) + spawnOffset,
-            Quaternion.identity);
+        GameObject instance = Instantiate(npcPrefab, spawnPosition, Quaternion.identity);
+        NPCCharacter character = instance.GetComponent<NPCCharacter>();
+        if (character == null)
+            character = instance.AddComponent<NPCCharacter>();
+        if (characterRecord != null)
+            character.ApplyRecord(characterRecord);
         agent = instance.GetComponent<NPCTraversalAgent>();
         if (agent == null)
             agent = instance.AddComponent<NPCTraversalAgent>();
+        agents.Add(agent);
         agent.Configure(
             this, start, moveSpeed, ladderSpeed,
-            patrolAutomatically, waitAtDestination);
-        agents.Add(agent);
+            patrolAutomatically, waitAtDestination,
+            movementStaminaCost, ladderStaminaMultiplier,
+            taskStaminaCostPerSecond);
         return agent;
+    }
+
+    public void DespawnAdventurer(NPCTraversalAgent visitor)
+    {
+        if (visitor == null)
+            return;
+
+        agents.Remove(visitor);
+        if (agent == visitor)
+            agent = agents.Count > 0 ? agents[agents.Count - 1] : null;
+        Destroy(visitor.gameObject);
     }
 
     public void ClearAdventurers()
@@ -319,16 +360,72 @@ public class NPCTraversal : MonoBehaviour
             agent = agents[agents.Count - 1];
     }
 
-    Vector2Int FindTopLeftCell()
+    bool TryFindSpawnPose(out Vector2Int start, out Vector3 position)
     {
+        if (useManualStartCell && graph.ContainsKey(manualStartCell) &&
+            TryGetEntranceFloorPosition(manualStartCell, out position))
+        {
+            start = manualStartCell;
+            return true;
+        }
+
         for (int y = 0; y < grid.GridHeight; y++)
         for (int x = 0; x < grid.GridWidth; x++)
         {
             var cell = new Vector2Int(x, y);
-            if (graph.ContainsKey(cell))
-                return cell;
+            if (graph.ContainsKey(cell) && TryGetEntranceFloorPosition(cell, out position))
+            {
+                start = cell;
+                return true;
+            }
         }
-        return new Vector2Int(-1, -1);
+
+        start = new Vector2Int(-1, -1);
+        position = default;
+        return false;
+    }
+
+    bool TryGetEntranceFloorPosition(Vector2Int cell, out Vector3 position)
+    {
+        Vector3 anchor = grid.GetCellWorldPosition(cell.x, cell.y);
+        anchor.x += spawnOffset.x;
+        anchor.z += spawnOffset.z;
+        Vector3 rayOrigin = anchor + Vector3.up * spawnProbeHeight;
+        int hitCount = Physics.RaycastNonAlloc(
+            rayOrigin,
+            Vector3.down,
+            groundHits,
+            spawnProbeHeight + spawnProbeDepth,
+            walkableLayers,
+            QueryTriggerInteraction.Ignore);
+
+        RaycastHit bestHit = default;
+        bool found = false;
+        float closestHeightDifference = float.PositiveInfinity;
+        for (int i = 0; i < hitCount; i++)
+        {
+            RaycastHit candidate = groundHits[i];
+            float heightDifference = candidate.point.y - anchor.y;
+            if (heightDifference > maxSurfaceRise ||
+                heightDifference < -spawnProbeDepth ||
+                Vector3.Angle(candidate.normal, Vector3.up) > maxWalkableSlope)
+                continue;
+
+            float absoluteDifference = Mathf.Abs(heightDifference);
+            if (absoluteDifference >= closestHeightDifference)
+                continue;
+
+            closestHeightDifference = absoluteDifference;
+            bestHit = candidate;
+            found = true;
+        }
+
+        position = anchor;
+        if (!found)
+            return false;
+
+        position.y = bestHit.point.y + groundOffset + spawnOffset.y;
+        return true;
     }
 
     public List<Vector3> FindRoute(Vector2Int start, Vector2Int destination)
@@ -499,7 +596,9 @@ public class NPCTraversalAgent : MonoBehaviour
     List<Vector3> activeRoute;
     int nextWaypointIndex = -1;
     readonly HashSet<Vector2Int> visitedCells = new();
-    int remainingStamina;
+    float movementStaminaCost;
+    float ladderStaminaMultiplier;
+    float taskStaminaCostPerSecond;
     bool returningHome;
     bool visitInProgress;
 
@@ -514,7 +613,7 @@ public class NPCTraversalAgent : MonoBehaviour
     public Vector2Int StartCell => startCell;
     public Vector2Int CurrentCell => currentCell;
     public IReadOnlyCollection<Vector2Int> VisitedCells => visitedCells;
-    public int RemainingStamina => remainingStamina;
+    public float RemainingStamina => character != null ? character.CurrentStamina : 0f;
     public bool IsReturningHome => returningHome;
     public bool VisitInProgress => visitInProgress;
 
@@ -528,7 +627,10 @@ public class NPCTraversalAgent : MonoBehaviour
         float moveSpeed,
         float ladderMoveSpeed,
         bool patrol,
-        float wait)
+        float wait,
+        float staminaCostPerUnit,
+        float ladderCostMultiplier,
+        float taskCostPerSecond)
     {
         navigation = owner;
         this.startCell = startCell;
@@ -537,10 +639,30 @@ public class NPCTraversalAgent : MonoBehaviour
         climbSpeed = ladderMoveSpeed;
         autoPatrol = patrol;
         waitTime = wait;
+        movementStaminaCost = staminaCostPerUnit;
+        ladderStaminaMultiplier = ladderCostMultiplier;
+        taskStaminaCostPerSecond = taskCostPerSecond;
         character = GetComponent<NPCCharacter>();
         if (character == null)
             character = gameObject.AddComponent<NPCCharacter>();
+        character.Died += OnCharacterDied;
         BeginDungeonVisit();
+    }
+
+    void OnDestroy()
+    {
+        if (character != null)
+            character.Died -= OnCharacterDied;
+    }
+
+    void OnCharacterDied(NPCCharacter deadCharacter)
+    {
+        if (movement != null)
+            StopCoroutine(movement);
+        movement = null;
+        visitInProgress = false;
+        navigation?.NotifyAdventurerDied(deadCharacter);
+        navigation?.DespawnAdventurer(this);
     }
 
     public void RefreshNavigation(NPCTraversal owner)
@@ -576,9 +698,9 @@ public class NPCTraversalAgent : MonoBehaviour
             return false;
 
         visitedCells.Clear();
-        remainingStamina = character != null ? character.Stamina : 0;
-        if (remainingStamina <= 0)
+        if (character == null)
             return false;
+        character.ResetVisitResources();
         returningHome = false;
         visitInProgress = true;
         RecordArrival(currentCell);
@@ -620,7 +742,13 @@ public class NPCTraversalAgent : MonoBehaviour
                     transform.position, target, segmentSpeed * Time.deltaTime);
                 if (!isLadderSegment)
                     next = navigation.GetGroundedPosition(next);
+                float distanceMoved = Vector3.Distance(transform.position, next);
                 transform.position = next;
+                if (!returningHome && character != null)
+                {
+                    float multiplier = isLadderSegment ? ladderStaminaMultiplier : 1f;
+                    character.SpendStamina(distanceMoved * movementStaminaCost * multiplier);
+                }
                 yield return null;
             }
         }
@@ -630,8 +758,8 @@ public class NPCTraversalAgent : MonoBehaviour
         activeRoute = null;
         nextWaypointIndex = -1;
         movement = null;
-        if (waitTime > 0f)
-            yield return new WaitForSeconds(waitTime);
+        if (!returningHome && waitTime > 0f && character.CurrentStamina > 0f)
+            yield return SpendStaminaWhileWaiting(waitTime);
 
         if (returningHome && currentCell == startCell)
         {
@@ -647,10 +775,13 @@ public class NPCTraversalAgent : MonoBehaviour
         if (!visitInProgress)
             return;
 
-        bool firstVisit = remainingStamina > 0 && visitedCells.Add(cell);
+        navigation?.NotifyCellEntered(this, cell);
+        if (character == null || character.IsDead)
+            return;
+
+        bool firstVisit = visitedCells.Add(cell);
         if (firstVisit)
         {
-            remainingStamina--;
             if (character != null)
                 character.RecordCellExplored();
         }
@@ -662,11 +793,25 @@ public class NPCTraversalAgent : MonoBehaviour
         if (!visitInProgress || navigation == null || movement != null)
             return;
 
-        if (!returningHome && remainingStamina > 0 &&
+        if (!returningHome && character.CurrentStamina > 0f &&
             navigation.TryGetNearestUnvisitedCell(
                 currentCell, visitedCells, out Vector2Int destination))
         {
             MoveToCell(destination);
+            return;
+        }
+
+        // Once all reachable cells are known, keep roaming and doing tasks until
+        // the visit's stamina is genuinely exhausted.
+        if (!returningHome && character.CurrentStamina > 0f)
+        {
+            if (navigation.TryGetRandomReachableCell(currentCell, out Vector2Int roamCell))
+            {
+                MoveToCell(roamCell);
+                return;
+            }
+
+            movement = StartCoroutine(PerformTaskUntilExhausted());
             return;
         }
 
@@ -680,6 +825,29 @@ public class NPCTraversalAgent : MonoBehaviour
             CompleteDungeonVisit();
     }
 
+    IEnumerator SpendStaminaWhileWaiting(float duration)
+    {
+        float elapsed = 0f;
+        while (elapsed < duration && character.CurrentStamina > 0f)
+        {
+            float delta = Mathf.Min(Time.deltaTime, duration - elapsed);
+            character.SpendStamina(taskStaminaCostPerSecond * delta);
+            elapsed += delta;
+            yield return null;
+        }
+    }
+
+    IEnumerator PerformTaskUntilExhausted()
+    {
+        while (character.CurrentStamina > 0f)
+        {
+            character.SpendStamina(taskStaminaCostPerSecond * Time.deltaTime);
+            yield return null;
+        }
+        movement = null;
+        StartNextExplorationStep();
+    }
+
     void CompleteDungeonVisit()
     {
         if (!visitInProgress)
@@ -690,15 +858,6 @@ public class NPCTraversalAgent : MonoBehaviour
         if (character != null)
             character.RecordDungeonVisitCompleted();
         DungeonVisitCompleted?.Invoke(this);
-
-        if (autoPatrol)
-            StartCoroutine(BeginNextVisitAfterDelay());
-    }
-
-    IEnumerator BeginNextVisitAfterDelay()
-    {
-        if (waitTime > 0f)
-            yield return new WaitForSeconds(waitTime);
-        BeginDungeonVisit();
+        navigation?.DespawnAdventurer(this);
     }
 }
