@@ -122,6 +122,8 @@ GameObject:
   m_Component:
   - component: {fileID: 6205799654187402736}
   - component: {fileID: 8849218475620191042}
+  - component: {fileID: 1173946582018457203}
+  - component: {fileID: 4088459784047361901}
   m_Layer: 0
   m_Name: Placeholder_NPC
   m_TagString: Untagged
@@ -160,14 +162,55 @@ MonoBehaviour:
   characterName: Adventurer
   level: 1
   experience: 0
-  health: 10
-  stamina: 10
+  maxHealth: 10
+  maxStamina: 10
+  currentHealth: 0
+  currentStamina: 0
   strength: 5
   dexterity: 5
   luck: 5
   intelligence: 5
   dungeonVisits: 0
   experiencePerNewCell: 1
+--- !u!114 &1173946582018457203
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5623173914377802050}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d6b1153e98ed4e8ea255f14e340a0cbd, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NPCStatusBars
+  worldOffset: {x: 0, y: 0.38, z: 0}
+  worldScale: 0.002
+  barWidth: 200
+  barHeight: 8
+  barSpacing: 5
+  nameHeight: 24
+  nameSpacing: 2
+  healthColor: {r: 0.15, g: 0.85, b: 0.2, a: 1}
+  staminaColor: {r: 0.95, g: 0.75, b: 0.1, a: 1}
+  backgroundColor: {r: 0.04, g: 0.04, b: 0.04, a: 0.9}
+  nameColor: {r: 1, g: 1, b: 1, a: 1}
+--- !u!114 &4088459784047361901
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5623173914377802050}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0e75fca1428848639a7e0611fe188520, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DungeonLightSource
+  color: {r: 0.9716981, g: 0.67485577, b: 0.35292807, a: 1}
+  intensity: 0.5
+  radiusInCells: 3
+  dynamicSource: 1
 --- !u!1 &7137259454906864840
 GameObject:
   m_ObjectHideFlags: 0
@@ -196,8 +239,8 @@ Transform:
   m_GameObject: {fileID: 7137259454906864840}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 0.1039, z: 0}
-  m_LocalScale: {x: 0.1, y: 0.1, z: 0.1}
+  m_LocalPosition: {x: 0, y: 0.046, z: 0}
+  m_LocalScale: {x: 0.05, y: 0.05, z: 0.05}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 5755321105239761185}

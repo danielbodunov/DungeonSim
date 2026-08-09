@@ -2422,8 +2422,8 @@
     "m_ObjectId": "4a1fc49f2d41484ea2b95c4caed66a16",
     "m_Title": "Y Lines",
     "m_Position": {
-        "x": 0.0,
-        "y": -17.0
+        "x": -136.0,
+        "y": 997.0
     }
 }
 
@@ -3975,8 +3975,8 @@
     "m_ObjectId": "c6fddd527b8b41a69fd888544a3e5175",
     "m_Title": "X Lines",
     "m_Position": {
-        "x": 0.0,
-        "y": -17.0
+        "x": -112.0,
+        "y": 373.0
     }
 }
 
@@ -4013,8 +4013,8 @@
     "m_ObjectId": "caa9db4f0c544cda84229b3575738367",
     "m_Title": "Grid Cutoff",
     "m_Position": {
-        "x": 0.0,
-        "y": -17.0
+        "x": 808.0,
+        "y": -518.0
     }
 }
 
@@ -5060,8 +5060,8 @@
     "m_ObjectId": "f80ac0975bf84b21a35ccc09064d2221",
     "m_Title": "Colors",
     "m_Position": {
-        "x": 0.0,
-        "y": -17.0
+        "x": 848.0,
+        "y": 484.0
     }
 }
 

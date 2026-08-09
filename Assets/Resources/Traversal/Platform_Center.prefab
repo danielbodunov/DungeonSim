@@ -9,6 +9,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 8681808383742973854}
+  - component: {fileID: 8169191237519023854}
   m_Layer: 0
   m_Name: Platform_Center
   m_TagString: Untagged
@@ -32,6 +33,22 @@ Transform:
   - {fileID: 2578228742069098490}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &8169191237519023854
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2968449841723058801}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 07504f5c9aaf48aa8e336f06ed140b1b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DungeonLightReceiver
+  materialOverride: {fileID: 0}
+  includeInactiveRenderers: 1
+  skipTransparentMaterials: 1
+  restoreMaterialsOnDisable: 1
 --- !u!1 &6417459759253748312
 GameObject:
   m_ObjectHideFlags: 0
@@ -133,6 +150,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: -7511558181221131132, guid: 588118a42ab21d144b7290db35016ab1, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: 8a6c43d48ef36364f89b1ed3f21b3e77, type: 2}
     - target: {fileID: 919132149155446097, guid: 588118a42ab21d144b7290db35016ab1, type: 3}
       propertyPath: m_Name
       value: Platform_Default

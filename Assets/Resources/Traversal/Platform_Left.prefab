@@ -9,6 +9,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 8681808383742973854}
+  - component: {fileID: 666669123558168089}
   m_Layer: 0
   m_Name: Platform_Left
   m_TagString: Untagged
@@ -32,6 +33,22 @@ Transform:
   - {fileID: 1607538394518824251}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &666669123558168089
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2968449841723058801}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 07504f5c9aaf48aa8e336f06ed140b1b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DungeonLightReceiver
+  materialOverride: {fileID: 0}
+  includeInactiveRenderers: 1
+  skipTransparentMaterials: 1
+  restoreMaterialsOnDisable: 1
 --- !u!1 &3130333395411198741
 GameObject:
   m_ObjectHideFlags: 0
