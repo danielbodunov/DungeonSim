@@ -32,6 +32,8 @@ public class TileGridGenerator : MonoBehaviour
     readonly Dictionary<Vector2Int, string> placedTrapPrefabNames = new();
     Transform trapContainer;
 
+    public event System.Action LayoutChanged;
+
     void Start()
     {
         BuildRuntimeDatabase();
@@ -282,6 +284,8 @@ public class TileGridGenerator : MonoBehaviour
 
     public int GridWidth => width;
     public int GridHeight => height;
+    public Vector2 GridOrigin => origin;
+    public Vector2 GridGenerationDirection => generationDirection;
     public bool IsInitialized => cells != null && instantiated != null && placed != null;
     public int PropGenerationSeed => propGenerator != null
         ? propGenerator.SaveGenerationSeed
@@ -322,6 +326,8 @@ public class TileGridGenerator : MonoBehaviour
     {
         if (propGenerator != null)
             propGenerator.GenerateProps();
+
+        LayoutChanged?.Invoke();
     }
 
     public void RegenerateProps(int generationSeed)
@@ -416,6 +422,7 @@ public class TileGridGenerator : MonoBehaviour
         }
 
         InstantiateGrid();
+        LayoutChanged?.Invoke();
         return true;
     }
 
@@ -514,6 +521,93 @@ public class TileGridGenerator : MonoBehaviour
     }
 
     public Vector3 GetWorldPosition(int x, int y) => GetCellWorldPosition(x, y);
+
+    public bool TryWorldToCell(Vector3 worldPosition, out Vector2Int coordinates)
+    {
+        coordinates = GetGridCoordinates(worldPosition);
+        return coordinates.x >= 0 && coordinates.y >= 0 &&
+            coordinates.x < width && coordinates.y < height;
+    }
+
+    public bool TryGetCellEdgeMask(int x, int y, TileSide side, out string mask)
+    {
+        mask = string.Empty;
+        if (!IsInitialized || x < 0 || y < 0 || x >= width || y >= height ||
+            cells[x, y].Count != 1)
+        {
+            return false;
+        }
+
+        mask = database.tiles[cells[x, y][0]].GetHash(side);
+        return !string.IsNullOrEmpty(mask);
+    }
+
+    public bool CanLightPass(Vector2Int from, Vector2Int to)
+    {
+        if (!IsPlacedCell(from.x, from.y) || !IsPlacedCell(to.x, to.y))
+            return false;
+
+        Vector2Int delta = to - from;
+        TileSide fromSide;
+        TileSide toSide;
+        if (delta == Vector2Int.right)
+        {
+            fromSide = TileSide.East;
+            toSide = TileSide.West;
+        }
+        else if (delta == Vector2Int.left)
+        {
+            fromSide = TileSide.West;
+            toSide = TileSide.East;
+        }
+        else if (delta == Vector2Int.up)
+        {
+            // Grid Y increases down the dungeon in world space.
+            fromSide = TileSide.South;
+            toSide = TileSide.North;
+        }
+        else if (delta == Vector2Int.down)
+        {
+            fromSide = TileSide.North;
+            toSide = TileSide.South;
+        }
+        else
+        {
+            return false;
+        }
+
+        if (!TryGetCellEdgeMask(from.x, from.y, fromSide, out string fromMask) ||
+            !TryGetCellEdgeMask(to.x, to.y, toSide, out string toMask))
+        {
+            return false;
+        }
+
+        int sampleCount = Mathf.Min(fromMask.Length, toMask.Length);
+        for (int i = 0; i < sampleCount; i++)
+            if (fromMask[i] == '1' && toMask[i] == '1')
+                return true;
+
+        return false;
+    }
+
+    public void ApplyMaterialToPlacedTiles(Material material)
+    {
+        if (material == null || !IsInitialized)
+            return;
+
+        for (int x = 0; x < width; x++)
+        for (int y = 0; y < height; y++)
+        {
+            if (!placed[x, y] || instantiated[x, y] == null)
+                continue;
+
+            foreach (Renderer tileRenderer in
+                instantiated[x, y].GetComponentsInChildren<Renderer>(true))
+            {
+                tileRenderer.sharedMaterial = material;
+            }
+        }
+    }
 
     Vector2Int GetGridCoordinates(Vector3 worldPosition)
     {
@@ -705,6 +799,8 @@ public class TileGridGenerator : MonoBehaviour
 
         GameObject instance = Instantiate(
             trapPrefab, GetCellWorldPosition(x, y), Quaternion.identity, trapContainer);
+        if (instance.GetComponentInChildren<DungeonLightReceiver>(true) == null)
+            instance.AddComponent<DungeonLightReceiver>();
         CellTrap trap = instance.GetComponent<CellTrap>();
         if (trap == null)
         {
