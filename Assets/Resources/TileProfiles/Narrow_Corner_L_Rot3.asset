@@ -127,7 +127,7 @@ MonoBehaviour:
   - structureId: Ladder
     laneId: Left
     bundleId: ShaftEntry_L
-    selectionWeight: 1
+    selectionWeight: 2
     role: 0
     direction: 3
     allowsTraversalExit: 0
