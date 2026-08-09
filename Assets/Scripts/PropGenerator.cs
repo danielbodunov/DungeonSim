@@ -318,8 +318,8 @@ public class PropGenerator : MonoBehaviour
     {
         failure = string.Empty;
         run = new List<LadderPiece> { new LadderPiece(x, y, startSocket) };
-        if (!gridGenerator.TryGetPropSocketWorldPose(
-            x, y, startSocket, out Vector3 startPosition, out _))
+        if (!TryGetLadderAnchorWorldPosition(
+            x, y, startSocket, out Vector3 startPosition))
         {
             failure = "the Start socket has no runtime world pose";
             return false;
@@ -392,8 +392,8 @@ public class PropGenerator : MonoBehaviour
                 string.Equals(socket.laneId, laneId,
                     System.StringComparison.OrdinalIgnoreCase) &&
                 IsCompatibleDirection(gridGenerator.GetRuntimeSocketDirection(socket), role) &&
-                gridGenerator.TryGetPropSocketWorldPose(
-                    x, y, socket, out Vector3 position, out _))
+                TryGetLadderAnchorWorldPosition(
+                    x, y, socket, out Vector3 position))
             {
                 float distance = Vector2.Distance(
                     alignmentAnchor, new Vector2(position.x, position.z));
@@ -407,6 +407,50 @@ public class PropGenerator : MonoBehaviour
         return closestDistance <= ladderSocketAlignmentTolerance ? closest : null;
     }
 
+    bool TryGetLadderAnchorWorldPosition(
+        int x,
+        int y,
+        BakedPropSocket socket,
+        out Vector3 position)
+    {
+        if (!gridGenerator.TryGetPropSocketWorldPose(
+            x, y, socket, out position, out Quaternion socketRotation))
+        {
+            return false;
+        }
+
+        PropDefinition definition = propCatalog?.Find(ladderStructureId);
+        PropPieceBundle bundle = definition?.GetBundle(
+            socket.laneId, socket.role, socket.bundleId);
+        GameObject ladderPrefab = GetLadderPrefab(socket.role);
+        if (bundle == null || ladderPrefab == null)
+            return true;
+
+        Quaternion baseRotation = (definition.useSocketRotation
+            ? socketRotation
+            : Quaternion.identity) * Quaternion.Euler(definition.rotationOffset);
+        foreach (PropBundleItem item in bundle.items)
+        {
+            if (item == null || item.prefab != ladderPrefab)
+                continue;
+
+            position += baseRotation * item.localPosition;
+            break;
+        }
+        return true;
+    }
+
+    GameObject GetLadderPrefab(PropSocketRole role)
+    {
+        return role switch
+        {
+            PropSocketRole.Start => ladderTopPrefab,
+            PropSocketRole.Continue => ladderMiddlePrefab,
+            PropSocketRole.End => ladderBottomPrefab,
+            _ => null
+        };
+    }
+
     GeneratedStructureRun BuildGeneratedRun(List<LadderPiece> run)
     {
         var generated = new GeneratedStructureRun
@@ -418,8 +462,8 @@ public class PropGenerator : MonoBehaviour
         for (int i = 0; i < run.Count; i++)
         {
             LadderPiece piece = run[i];
-            if (!gridGenerator.TryGetPropSocketWorldPose(
-                piece.x, piece.y, piece.socket, out Vector3 position, out _))
+            if (!TryGetLadderAnchorWorldPosition(
+                piece.x, piece.y, piece.socket, out Vector3 position))
                 return null;
 
             var cell = new Vector2Int(piece.x, piece.y);
@@ -538,6 +582,8 @@ public class PropGenerator : MonoBehaviour
     {
         GameObject prop = Instantiate(prefab, position, rotation, transform);
         prop.name = $"{prefab.name} [{x},{y}] {socket.laneId}/{socket.bundleId} on {gridGenerator.GetCellProfileId(x, y)}";
+        if (prop.GetComponentInChildren<DungeonLightReceiver>(true) == null)
+            prop.AddComponent<DungeonLightReceiver>();
         spawnedProps.Add(prop);
     }
 }
