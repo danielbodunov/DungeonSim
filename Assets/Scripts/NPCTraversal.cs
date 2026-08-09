@@ -311,6 +311,8 @@ public class NPCTraversal : MonoBehaviour
         }
 
         GameObject instance = Instantiate(npcPrefab, spawnPosition, Quaternion.identity);
+        if (instance.GetComponentInChildren<DungeonLightReceiver>(true) == null)
+            instance.AddComponent<DungeonLightReceiver>();
         NPCCharacter character = instance.GetComponent<NPCCharacter>();
         if (character == null)
             character = instance.AddComponent<NPCCharacter>();
@@ -363,17 +365,51 @@ public class NPCTraversal : MonoBehaviour
     bool TryFindSpawnPose(out Vector2Int start, out Vector3 position)
     {
         if (useManualStartCell && graph.ContainsKey(manualStartCell) &&
-            TryGetEntranceFloorPosition(manualStartCell, out position))
+            TryGetEntranceFloorPosition(manualStartCell, true, out position))
         {
             start = manualStartCell;
             return true;
         }
 
-        for (int y = 0; y < grid.GridHeight; y++)
-        for (int x = 0; x < grid.GridWidth; x++)
+        var orderedCells = new List<Vector2Int>(graph.Keys);
+        orderedCells.Sort((a, b) =>
         {
-            var cell = new Vector2Int(x, y);
-            if (graph.ContainsKey(cell) && TryGetEntranceFloorPosition(cell, out position))
+            Vector3 aWorld = grid.GetCellWorldPosition(a.x, a.y);
+            Vector3 bWorld = grid.GetCellWorldPosition(b.x, b.y);
+            int horizontal = aWorld.x.CompareTo(bWorld.x);
+            if (horizontal != 0)
+                return horizontal;
+            // If cells share the same horizontal position, prefer the highest.
+            return bWorld.y.CompareTo(aWorld.y);
+        });
+
+        // Prefer a connected node on a floor near its navigation anchor. Floor
+        // openings can otherwise raycast to a much lower surface that belongs to
+        // a different navigation level, leaving the spawned NPC isolated.
+        if (TryFindOrderedSpawn(orderedCells, true, false, out start, out position) ||
+            TryFindOrderedSpawn(orderedCells, false, false, out start, out position) ||
+            TryFindOrderedSpawn(orderedCells, true, true, out start, out position) ||
+            TryFindOrderedSpawn(orderedCells, false, true, out start, out position))
+            return true;
+
+        start = new Vector2Int(-1, -1);
+        position = default;
+        return false;
+    }
+
+    bool TryFindOrderedSpawn(
+        List<Vector2Int> orderedCells,
+        bool requireConnection,
+        bool allowDeepFloor,
+        out Vector2Int start,
+        out Vector3 position)
+    {
+        for (int i = 0; i < orderedCells.Count; i++)
+        {
+            Vector2Int cell = orderedCells[i];
+            if (requireConnection && graph[cell].Count == 0)
+                continue;
+            if (TryGetEntranceFloorPosition(cell, allowDeepFloor, out position))
             {
                 start = cell;
                 return true;
@@ -385,11 +421,22 @@ public class NPCTraversal : MonoBehaviour
         return false;
     }
 
-    bool TryGetEntranceFloorPosition(Vector2Int cell, out Vector3 position)
+    bool TryGetEntranceFloorPosition(
+        Vector2Int cell, bool allowDeepFloor, out Vector3 position)
     {
         Vector3 anchor = grid.GetCellWorldPosition(cell.x, cell.y);
         anchor.x += spawnOffset.x;
         anchor.z += spawnOffset.z;
+
+        if (!allowDeepFloor)
+        {
+            position = anchor;
+            if (!TryGetWalkableGround(anchor, out RaycastHit nearbyHit))
+                return false;
+            position.y = nearbyHit.point.y + groundOffset + spawnOffset.y;
+            return true;
+        }
+
         Vector3 rayOrigin = anchor + Vector3.up * spawnProbeHeight;
         int hitCount = Physics.RaycastNonAlloc(
             rayOrigin,
