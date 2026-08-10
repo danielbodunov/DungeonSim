@@ -20,6 +20,8 @@ public class NPCTraversalDebug : MonoBehaviour
     bool showSocketVisuals = true;
 
     [Header("NPC Debug Visuals")]
+    [SerializeField] bool showVisitedCells = true;
+    [SerializeField] bool showFamiliarConnections = true;
     [SerializeField] bool showActivePath = true;
     [SerializeField] bool showNextTarget = true;
     [SerializeField, Min(0.005f)] float markerRadius = 0.04f;
@@ -61,10 +63,39 @@ public class NPCTraversalDebug : MonoBehaviour
             if (showRejectedSamples)
                 DrawSamples(traversal.DebugRejectedSamples, new Color(1f, 0.1f, 0.1f, 0.9f));
         }
+        if (showVisitedCells)
+            DrawVisitedCells();
+        if (showFamiliarConnections)
+            DrawFamiliarConnections();
         if (showActivePath)
             DrawActivePath();
         if (showNextTarget)
             DrawNextTarget();
+    }
+
+    void DrawVisitedCells()
+    {
+        NPCTraversalAgent agent = traversal.ActiveAgent;
+        if (agent == null)
+            return;
+
+        Gizmos.color = new Color(0.25f, 1f, 0.35f, 0.9f);
+        foreach (Vector2Int cell in agent.VisitedCells)
+            Gizmos.DrawWireSphere(
+                traversal.GetCellWorldPosition(cell), markerRadius * 2.5f);
+    }
+
+    void DrawFamiliarConnections()
+    {
+        NPCTraversalAgent agent = traversal.ActiveAgent;
+        if (agent == null)
+            return;
+
+        Gizmos.color = new Color(1f, 0.75f, 0.1f, 1f);
+        foreach (NPCTraversalConnection connection in agent.FamiliarConnections)
+            Gizmos.DrawLine(
+                traversal.GetCellWorldPosition(connection.first),
+                traversal.GetCellWorldPosition(connection.second));
     }
 
     void DrawGraph()

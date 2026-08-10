@@ -9,6 +9,32 @@ public struct NPCDebugConnection
     public bool isLadder;
 }
 
+public readonly struct NPCTraversalConnection : System.IEquatable<NPCTraversalConnection>
+{
+    public readonly Vector2Int first;
+    public readonly Vector2Int second;
+
+    public NPCTraversalConnection(Vector2Int a, Vector2Int b)
+    {
+        if (a.x < b.x || (a.x == b.x && a.y <= b.y))
+        {
+            first = a;
+            second = b;
+        }
+        else
+        {
+            first = b;
+            second = a;
+        }
+    }
+
+    public bool Equals(NPCTraversalConnection other) =>
+        first == other.first && second == other.second;
+    public override bool Equals(object obj) =>
+        obj is NPCTraversalConnection other && Equals(other);
+    public override int GetHashCode() => (first.GetHashCode() * 397) ^ second.GetHashCode();
+}
+
 /// <summary>
 /// Builds runtime NPC routes from placed tile openings and generated ladders.
 /// Add this beside TileGridGenerator and assign an NPC prefab.
@@ -85,6 +111,13 @@ public class NPCTraversal : MonoBehaviour
         public bool isLadder;
     }
 
+    internal class RouteStep
+    {
+        public Vector2Int from;
+        public Vector2Int to;
+        public List<Vector3> waypoints;
+    }
+
     public NPCTraversalAgent ActiveAgent => agent;
     public IReadOnlyList<NPCTraversalAgent> ActiveAgents => agents;
     public int ActiveAgentCount
@@ -101,6 +134,19 @@ public class NPCTraversal : MonoBehaviour
     internal float FallRecoveryDelay => fallRecoveryDelay;
     public event System.Action<NPCCharacter> AdventurerDied;
     public event System.Action<NPCTraversalAgent, Vector2Int, bool> AdventurerCellEntered;
+    public event System.Func<NPCTraversalAgent, Vector2Int, bool> InvestigationDecisionRequested;
+
+    internal bool ShouldInvestigate(NPCTraversalAgent visitor, Vector2Int cell)
+    {
+        if (InvestigationDecisionRequested == null)
+            return false;
+
+        foreach (System.Func<NPCTraversalAgent, Vector2Int, bool> decision in
+                 InvestigationDecisionRequested.GetInvocationList())
+            if (decision(visitor, cell))
+                return true;
+        return false;
+    }
 
     internal void NotifyAdventurerDied(NPCCharacter character)
     {
@@ -594,13 +640,29 @@ public class NPCTraversal : MonoBehaviour
 
     public List<Vector3> FindRoute(Vector2Int start, Vector2Int destination)
     {
+        List<RouteStep> steps = FindRouteSteps(start, destination);
+        if (steps == null)
+            return null;
+
+        var route = new List<Vector3>();
+        foreach (RouteStep step in steps)
+            route.AddRange(step.waypoints);
+        return route;
+    }
+
+    internal List<RouteStep> FindRouteSteps(
+        Vector2Int start,
+        Vector2Int destination,
+        HashSet<NPCTraversalConnection> allowedConnections = null)
+    {
         if (!graph.ContainsKey(start) || !graph.ContainsKey(destination))
             return null;
 
         var queue = new Queue<Vector2Int>();
-        var previous = new Dictionary<Vector2Int, RouteEdge>();
+        var previousCell = new Dictionary<Vector2Int, Vector2Int>();
+        var previousEdge = new Dictionary<Vector2Int, RouteEdge>();
         queue.Enqueue(start);
-        previous[start] = null;
+        previousCell[start] = start;
 
         while (queue.Count > 0)
         {
@@ -609,34 +671,32 @@ public class NPCTraversal : MonoBehaviour
                 break;
             foreach (RouteEdge edge in graph[current])
             {
-                if (previous.ContainsKey(edge.destination))
+                if (allowedConnections != null &&
+                    !allowedConnections.Contains(
+                        new NPCTraversalConnection(current, edge.destination)))
                     continue;
-                previous[edge.destination] = new RouteEdge
-                {
-                    destination = current,
-                    waypoints = edge.waypoints
-                };
+                if (previousCell.ContainsKey(edge.destination))
+                    continue;
+                previousCell[edge.destination] = current;
+                previousEdge[edge.destination] = edge;
                 queue.Enqueue(edge.destination);
             }
         }
 
-        if (!previous.ContainsKey(destination))
+        if (!previousCell.ContainsKey(destination))
             return null;
 
-        var edges = new List<RouteEdge>();
-        Vector2Int step = destination;
-        while (step != start)
+        var steps = new List<RouteStep>();
+        Vector2Int to = destination;
+        while (to != start)
         {
-            RouteEdge edge = previous[step];
-            edges.Add(edge);
-            step = edge.destination;
+            Vector2Int from = previousCell[to];
+            RouteEdge edge = previousEdge[to];
+            steps.Add(new RouteStep { from = from, to = to, waypoints = edge.waypoints });
+            to = from;
         }
-        edges.Reverse();
-
-        var route = new List<Vector3>();
-        foreach (RouteEdge edge in edges)
-            route.AddRange(edge.waypoints);
-        return route;
+        steps.Reverse();
+        return steps;
     }
 
     public bool TryGetRandomReachableCell(Vector2Int start, out Vector2Int result)
@@ -744,6 +804,9 @@ public class NPCTraversal : MonoBehaviour
             });
         }
     }
+
+    internal Vector3 GetCellWorldPosition(Vector2Int cell) =>
+        grid.GetCellWorldPosition(cell.x, cell.y);
 }
 
 public class NPCTraversalAgent : MonoBehaviour
@@ -760,6 +823,7 @@ public class NPCTraversalAgent : MonoBehaviour
     List<Vector3> activeRoute;
     int nextWaypointIndex = -1;
     readonly HashSet<Vector2Int> visitedCells = new();
+    readonly HashSet<NPCTraversalConnection> familiarConnections = new();
     float movementStaminaCost;
     float ladderStaminaMultiplier;
     float taskStaminaCostPerSecond;
@@ -777,6 +841,7 @@ public class NPCTraversalAgent : MonoBehaviour
     public Vector2Int StartCell => startCell;
     public Vector2Int CurrentCell => currentCell;
     public IReadOnlyCollection<Vector2Int> VisitedCells => visitedCells;
+    public IReadOnlyCollection<NPCTraversalConnection> FamiliarConnections => familiarConnections;
     public float RemainingStamina => character != null ? character.CurrentStamina : 0f;
     public bool IsReturningHome => returningHome;
     public bool VisitInProgress => visitInProgress;
@@ -861,6 +926,7 @@ public class NPCTraversalAgent : MonoBehaviour
             return false;
 
         visitedCells.Clear();
+        familiarConnections.Clear();
         if (character == null)
             return false;
         character.ResetVisitResources();
@@ -873,66 +939,84 @@ public class NPCTraversalAgent : MonoBehaviour
 
     public bool MoveToCell(Vector2Int destination)
     {
+        return MoveToCell(destination, false);
+    }
+
+    bool MoveToCell(Vector2Int destination, bool familiarOnly)
+    {
         if (navigation == null)
             return false;
-        List<Vector3> route = navigation.FindRoute(currentCell, destination);
-        if (route == null)
+        List<NPCTraversal.RouteStep> steps = navigation.FindRouteSteps(
+            currentCell,
+            destination,
+            familiarOnly ? familiarConnections : null);
+        if (steps == null)
             return false;
         if (movement != null)
             StopCoroutine(movement);
-        activeRoute = route;
-        nextWaypointIndex = route.Count > 0 ? 0 : -1;
-        movement = StartCoroutine(FollowRoute(route, destination));
+        activeRoute = new List<Vector3>();
+        foreach (NPCTraversal.RouteStep step in steps)
+            activeRoute.AddRange(step.waypoints);
+        nextWaypointIndex = activeRoute.Count > 0 ? 0 : -1;
+        movement = StartCoroutine(FollowRoute(steps));
         return true;
     }
 
-    IEnumerator FollowRoute(List<Vector3> route, Vector2Int destination)
+    IEnumerator FollowRoute(List<NPCTraversal.RouteStep> steps)
     {
-        for (int i = 0; i < route.Count; i++)
+        int waypointIndex = 0;
+        foreach (NPCTraversal.RouteStep step in steps)
         {
-            nextWaypointIndex = i;
-            Vector3 waypoint = route[i];
-            Vector3 segmentStart = transform.position;
-            bool isLadderSegment = Mathf.Abs(waypoint.y - segmentStart.y) > 0.25f &&
-                Mathf.Abs(waypoint.x - segmentStart.x) < 0.15f;
-            Vector3 target = isLadderSegment
-                ? waypoint
-                : navigation.GetGroundedPosition(waypoint);
-            while ((transform.position - target).sqrMagnitude > 0.0001f)
+            for (int i = 0; i < step.waypoints.Count; i++, waypointIndex++)
             {
-                float segmentSpeed = isLadderSegment ? climbSpeed : speed;
-                Vector3 next = Vector3.MoveTowards(
-                    transform.position, target, segmentSpeed * Time.deltaTime);
-                if (!isLadderSegment)
+                nextWaypointIndex = waypointIndex;
+                Vector3 waypoint = step.waypoints[i];
+                Vector3 segmentStart = transform.position;
+                bool isLadderSegment = Mathf.Abs(waypoint.y - segmentStart.y) > 0.25f &&
+                    Mathf.Abs(waypoint.x - segmentStart.x) < 0.15f;
+                Vector3 target = isLadderSegment
+                    ? waypoint
+                    : navigation.GetGroundedPosition(waypoint);
+                while ((transform.position - target).sqrMagnitude > 0.0001f)
                 {
-                    Vector3 groundedNext = navigation.GetGroundedPosition(next);
-                    if (transform.position.y - groundedNext.y >
-                        navigation.MaximumUnplannedDrop)
+                    float segmentSpeed = isLadderSegment ? climbSpeed : speed;
+                    Vector3 next = Vector3.MoveTowards(
+                        transform.position, target, segmentSpeed * Time.deltaTime);
+                    if (!isLadderSegment)
                     {
-                        yield return RecoverFromUnexpectedFall(
-                            next, transform.position.y);
-                        yield break;
+                        Vector3 groundedNext = navigation.GetGroundedPosition(next);
+                        if (transform.position.y - groundedNext.y >
+                            navigation.MaximumUnplannedDrop)
+                        {
+                            yield return RecoverFromUnexpectedFall(
+                                next, transform.position.y);
+                            yield break;
+                        }
+                        next = groundedNext;
                     }
-                    next = groundedNext;
+                    float distanceMoved = Vector3.Distance(transform.position, next);
+                    transform.position = next;
+                    if (!returningHome && character != null)
+                    {
+                        float multiplier = isLadderSegment ? ladderStaminaMultiplier : 1f;
+                        character.SpendStamina(distanceMoved * movementStaminaCost * multiplier);
+                    }
+                    yield return null;
                 }
-                float distanceMoved = Vector3.Distance(transform.position, next);
-                transform.position = next;
-                if (!returningHome && character != null)
-                {
-                    float multiplier = isLadderSegment ? ladderStaminaMultiplier : 1f;
-                    character.SpendStamina(distanceMoved * movementStaminaCost * multiplier);
-                }
-                yield return null;
             }
+
+            familiarConnections.Add(new NPCTraversalConnection(step.from, step.to));
+            currentCell = step.to;
+            RecordArrival(currentCell);
+
+            if (!returningHome && waitTime > 0f && character.CurrentStamina > 0f &&
+                navigation.ShouldInvestigate(this, currentCell))
+                yield return SpendStaminaWhileWaiting(waitTime);
         }
 
-        currentCell = destination;
-        RecordArrival(destination);
         activeRoute = null;
         nextWaypointIndex = -1;
         movement = null;
-        if (!returningHome && waitTime > 0f && character.CurrentStamina > 0f)
-            yield return SpendStaminaWhileWaiting(waitTime);
 
         if (returningHome && currentCell == startCell)
         {
@@ -1030,7 +1114,7 @@ public class NPCTraversalAgent : MonoBehaviour
         }
 
         returningHome = true;
-        if (currentCell != startCell && MoveToCell(startCell))
+        if (currentCell != startCell && MoveToCell(startCell, true))
             return;
 
         // Already home, or the graph changed so home can no longer be reached.
