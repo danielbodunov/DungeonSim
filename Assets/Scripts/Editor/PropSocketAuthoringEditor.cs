@@ -13,6 +13,7 @@ public class PropSocketAuthoringEditor : Editor
     {
         DrawDefaultInspector();
 
+        DrawCompatibleLaneButtons();
         DrawBundleIdPicker();
 
         EditorGUILayout.Space();
@@ -22,6 +23,49 @@ public class PropSocketAuthoringEditor : Editor
 
         if (GUILayout.Button("Open Prop Socket Authoring"))
             PropSocketAuthoringWindow.Open();
+    }
+
+    void DrawCompatibleLaneButtons()
+    {
+        serializedObject.Update();
+        SerializedProperty roleProperty = serializedObject.FindProperty("role");
+        if ((PropSocketRole)roleProperty.enumValueIndex != PropSocketRole.Continue)
+            return;
+
+        SerializedProperty lanesProperty =
+            serializedObject.FindProperty("compatibleLaneIds");
+        EditorGUILayout.LabelField("Continue Lane Shortcuts", EditorStyles.boldLabel);
+        using (new EditorGUILayout.HorizontalScope())
+        {
+            if (GUILayout.Button("Accept Left"))
+                AddCompatibleLane(lanesProperty, "Left");
+            if (GUILayout.Button("Accept Right"))
+                AddCompatibleLane(lanesProperty, "Right");
+            if (GUILayout.Button("Accept Both"))
+            {
+                AddCompatibleLane(lanesProperty, "Left");
+                AddCompatibleLane(lanesProperty, "Right");
+            }
+            if (GUILayout.Button("Clear"))
+                lanesProperty.ClearArray();
+        }
+        serializedObject.ApplyModifiedProperties();
+    }
+
+    static void AddCompatibleLane(SerializedProperty lanesProperty, string laneId)
+    {
+        for (int i = 0; i < lanesProperty.arraySize; i++)
+            if (string.Equals(
+                    lanesProperty.GetArrayElementAtIndex(i).stringValue,
+                    laneId,
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
+        int index = lanesProperty.arraySize;
+        lanesProperty.InsertArrayElementAtIndex(index);
+        lanesProperty.GetArrayElementAtIndex(index).stringValue = laneId;
     }
 
     void DrawBundleIdPicker()
