@@ -38,8 +38,10 @@ public class GameplayLoopUI : MonoBehaviour
     RectTransform saveListContent;
     bool wasPausedBeforeSaveMenu;
     Image removeTrapButtonImage;
+    Image toggleWallButtonImage;
     readonly Dictionary<float, Image> speedButtonImages = new();
     readonly Dictionary<int, Image> paletteButtonImages = new();
+    readonly Dictionary<CellWidthIntent, Image> widthButtonImages = new();
 
     void Awake()
     {
@@ -176,12 +178,24 @@ public class GameplayLoopUI : MonoBehaviour
     {
         RectTransform panel = CreatePanel(
             "Expansion Palette", parent, new Vector2(0.5f, 0f), new Vector2(0.5f, 0f),
-            new Vector2(0.5f, 0f), new Vector2(1180f, 126f), new Vector2(0f, 18f), Panel);
+            new Vector2(0.5f, 0f), new Vector2(1180f, 196f), new Vector2(0f, 18f), Panel);
         expansionPalette = panel.gameObject;
         CreateLabel(panel, "BUILD PALETTE", 18, new Vector2(14f, -10f), new Vector2(170f, 28f));
+        CreateLabel(panel, "CELL WIDTH", 14, new Vector2(205f, -13f), new Vector2(105f, 26f));
+        CreateWidthButton(panel, "Auto", CellWidthIntent.Auto, new Vector2(315f, -8f));
+        CreateWidthButton(panel, "Narrow", CellWidthIntent.Narrow, new Vector2(415f, -8f));
+        CreateWidthButton(panel, "Wide", CellWidthIntent.Wide, new Vector2(535f, -8f));
+        CreateLabel(panel, "WALLS", 14, new Vector2(650f, -13f), new Vector2(62f, 26f));
+        Button toggleWall = CreateButton(
+            panel, "Toggle Wall", new Vector2(716f, -8f), new Vector2(120f, 34f),
+            () => placement?.StartEdgeToggle());
+        toggleWallButtonImage = toggleWall.GetComponent<Image>();
+        CreateLabel(
+            panel, "Click a shared boundary", 12,
+            new Vector2(850f, -13f), new Vector2(200f, 26f));
 
         RectTransform row = CreateRect("Items", panel);
-        SetRect(row, Vector2.zero, Vector2.one, new Vector2(14f, 12f), new Vector2(-14f, -45f));
+        SetRect(row, Vector2.zero, Vector2.one, new Vector2(14f, 12f), new Vector2(-14f, -78f));
         HorizontalLayoutGroup layout = row.gameObject.AddComponent<HorizontalLayoutGroup>();
         layout.spacing = 10f;
         layout.childAlignment = TextAnchor.MiddleLeft;
@@ -484,6 +498,7 @@ public class GameplayLoopUI : MonoBehaviour
         TMP_Text details = CreateText(
             "Details", row,
             $"{savedTime}   •   Opened {slot.DungeonOpenCount} days   •   " +
+            $"Level {slot.DungeonLevel}   •   {slot.AdventurerAura} Aura   •   " +
             $"{slot.AdventurerCount} NPCs   •   {slot.TileCellCount} cells",
             13, FontStyles.Normal, TextAlignmentOptions.Left, Ink);
         SetTopLeftRect(details.rectTransform, new Vector2(14f, -42f), new Vector2(650f, 25f));
@@ -515,6 +530,17 @@ public class GameplayLoopUI : MonoBehaviour
         Button button = CreateButton(parent, label, position, new Vector2(52f, 36f),
             () => loop.SetGameplaySpeed(speed));
         speedButtonImages[speed] = button.GetComponent<Image>();
+    }
+
+    void CreateWidthButton(
+        RectTransform parent,
+        string label,
+        CellWidthIntent intent,
+        Vector2 position)
+    {
+        Button button = CreateButton(parent, label, position, new Vector2(90f, 34f),
+            () => placement?.SetWidthIntent(intent));
+        widthButtonImages[intent] = button.GetComponent<Image>();
     }
 
     void Refresh()
@@ -558,6 +584,7 @@ public class GameplayLoopUI : MonoBehaviour
         {
             phaseDetails.text =
                 $"Rating {BuildRating(loop.DungeonRating)}  •  " +
+                $"Level {loop.DungeonLevel}  •  {loop.AdventurerAura} Aura  •  " +
                 $"Opened {loop.DungeonOpenCount} days  •  Build enabled{pause}";
             return;
         }
@@ -567,6 +594,7 @@ public class GameplayLoopUI : MonoBehaviour
         explorationDetails.text =
             $"Rating {BuildRating(loop.DungeonRating)}     Adventurers " +
             $"{loop.ActiveAdventurers}/{loop.MaximumAdventurers}     " +
+            $"Aura {loop.AdventurerAura} (+{loop.PendingAdventurerAura})     " +
             $"Closes in {seconds / 60:00}:{seconds % 60:00}";
     }
 
@@ -578,6 +606,17 @@ public class GameplayLoopUI : MonoBehaviour
 
         if (removeTrapButtonImage != null)
             removeTrapButtonImage.color = placement != null && placement.IsRemovingTraps
+                ? Accent
+                : ButtonColor;
+
+        CellWidthIntent selectedWidth = placement != null
+            ? placement.WidthIntent
+            : CellWidthIntent.Auto;
+        foreach (KeyValuePair<CellWidthIntent, Image> pair in widthButtonImages)
+            pair.Value.color = pair.Key == selectedWidth ? Accent : ButtonColor;
+
+        if (toggleWallButtonImage != null)
+            toggleWallButtonImage.color = placement != null && placement.IsEditingEdges
                 ? Accent
                 : ButtonColor;
     }
