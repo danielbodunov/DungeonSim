@@ -46,8 +46,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PropSocketAuthoring
   structureId: Ladder
   laneId: Right
+  compatibleLaneIds: []
   bundleId: ShaftEntry_R
-  selectionWeight: 1
+  selectionWeight: 0
   role: 0
   direction: 1
   allowsTraversalExit: 0
@@ -97,6 +98,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PropSocketAuthoring
   structureId: Ladder
   laneId: Left
+  compatibleLaneIds: []
   bundleId: ShaftEntry_Interm_L
   selectionWeight: 1
   role: 1
@@ -194,8 +196,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PropSocketAuthoring
   structureId: Ladder
   laneId: Center
+  compatibleLaneIds: []
   bundleId: ShaftEntry_C
-  selectionWeight: 1
+  selectionWeight: 0
   role: 0
   direction: 1
   allowsTraversalExit: 0
@@ -384,6 +387,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PropSocketAuthoring
   structureId: Ladder
   laneId: Center
+  compatibleLaneIds: []
   bundleId: Default
   selectionWeight: 1
   role: 1
@@ -435,6 +439,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PropSocketAuthoring
   structureId: Ladder
   laneId: Right
+  compatibleLaneIds: []
   bundleId: ShaftEntry_Interm_R
   selectionWeight: 1
   role: 1
@@ -486,6 +491,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PropSocketAuthoring
   structureId: Ladder
   laneId: Center
+  compatibleLaneIds: []
   bundleId: ShaftEntry_Interm_C
   selectionWeight: 1
   role: 1
@@ -537,6 +543,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PropSocketAuthoring
   structureId: Ladder
   laneId: Left
+  compatibleLaneIds: []
   bundleId: ShaftEntry_Interm_L
   selectionWeight: 1
   role: 1
@@ -588,8 +595,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PropSocketAuthoring
   structureId: Ladder
   laneId: Left
+  compatibleLaneIds: []
   bundleId: ShaftEntry_L
-  selectionWeight: 1
+  selectionWeight: 0
   role: 0
   direction: 1
   allowsTraversalExit: 0
@@ -639,6 +647,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PropSocketAuthoring
   structureId: Ladder
   laneId: Left
+  compatibleLaneIds:
+  - Left
+  - Right
   bundleId: Default
   selectionWeight: 1
   role: 1
@@ -690,6 +701,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PropSocketAuthoring
   structureId: Ladder
   laneId: Right
+  compatibleLaneIds: []
   bundleId: ShaftEntry_Interm_R
   selectionWeight: 1
   role: 1
@@ -741,6 +753,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PropSocketAuthoring
   structureId: Ladder
   laneId: Center
+  compatibleLaneIds: []
   bundleId: ShaftEntry_Interm_C
   selectionWeight: 1
   role: 1
@@ -792,6 +805,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PropSocketAuthoring
   structureId: Ladder
   laneId: Center
+  compatibleLaneIds: []
   bundleId: ShaftEntry_Interm_C
   selectionWeight: 1
   role: 1
@@ -877,6 +891,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PropSocketAuthoring
   structureId: Ladder
   laneId: Right
+  compatibleLaneIds:
+  - Left
+  - Right
   bundleId: Default
   selectionWeight: 1
   role: 1
@@ -928,6 +945,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PropSocketAuthoring
   structureId: Ladder
   laneId: Left
+  compatibleLaneIds: []
   bundleId: ShaftEntry_Interm_L
   selectionWeight: 1
   role: 1
@@ -979,6 +997,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PropSocketAuthoring
   structureId: Ladder
   laneId: Right
+  compatibleLaneIds: []
   bundleId: ShaftEntry_Interm_R
   selectionWeight: 1
   role: 1

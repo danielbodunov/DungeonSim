@@ -135,6 +135,7 @@ MonoBehaviour:
   role: 1
   direction: 3
   allowsTraversalExit: 1
+  platformPolicy: 1
 --- !u!1 &2538831007897676234
 GameObject:
   m_ObjectHideFlags: 0
@@ -237,6 +238,7 @@ MonoBehaviour:
   role: 1
   direction: 3
   allowsTraversalExit: 1
+  platformPolicy: 1
 --- !u!1 &4647711763513897174
 GameObject:
   m_ObjectHideFlags: 0
@@ -620,6 +622,7 @@ MonoBehaviour:
   role: 1
   direction: 3
   allowsTraversalExit: 1
+  platformPolicy: 1
 --- !u!1001 &8657312931438827614
 PrefabInstance:
   m_ObjectHideFlags: 0

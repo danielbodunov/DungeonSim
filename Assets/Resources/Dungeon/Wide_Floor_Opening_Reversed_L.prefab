@@ -380,6 +380,7 @@ MonoBehaviour:
   role: 1
   direction: 1
   allowsTraversalExit: 1
+  platformPolicy: 1
 --- !u!1 &5674844955389797704
 GameObject:
   m_ObjectHideFlags: 0
@@ -518,6 +519,7 @@ MonoBehaviour:
   role: 1
   direction: 1
   allowsTraversalExit: 1
+  platformPolicy: 1
 --- !u!1 &9023897979685689704
 GameObject:
   m_ObjectHideFlags: 0
@@ -569,6 +571,7 @@ MonoBehaviour:
   role: 1
   direction: 1
   allowsTraversalExit: 1
+  platformPolicy: 1
 --- !u!1 &9148245428762380842
 GameObject:
   m_ObjectHideFlags: 0
