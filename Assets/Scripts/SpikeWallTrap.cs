@@ -9,7 +9,7 @@ public enum SpikeWallState
 }
 
 /// <summary>
-/// A cell trap that damages the first NPC to enter while it is ready, then
+/// A cell trap that challenges the first NPC to enter while it is ready, then
 /// plays its extension and reset states before becoming available again.
 /// </summary>
 [DisallowMultipleComponent]
@@ -17,6 +17,8 @@ public class SpikeWallTrap : CellTrap
 {
     [Header("Trap Settings")]
     [SerializeField, Min(0)] int damage = 3;
+    [SerializeField, Min(0f)] float difficulty = 5f;
+    [SerializeField] TrapDodgeSettings dodgeSettings = new();
     [SerializeField, Min(0f)] float cooldown = 5f;
     [SerializeField, Min(0f), Tooltip("Delay before damage, for matching spike contact in the animation.")]
     float damageDelay;
@@ -40,6 +42,7 @@ public class SpikeWallTrap : CellTrap
     float cooldownEndsAt;
 
     public int Damage => damage;
+    public float Difficulty => difficulty;
     public float Cooldown => cooldown;
     public float CooldownRemaining => Mathf.Max(0f, cooldownEndsAt - Time.time);
     public SpikeWallState State { get; private set; } = SpikeWallState.Default;
@@ -83,7 +86,8 @@ public class SpikeWallTrap : CellTrap
             yield return new WaitForSeconds(damageDelay);
 
         if (target != null && !target.IsDead)
-            target.TakeDamage(damage);
+            NPCActionResolver.ResolveTrap(
+                target, this, damage, difficulty, dodgeSettings);
 
         float remainingTriggeredTime = activeDuration - damageDelay;
         if (remainingTriggeredTime > 0f)
@@ -120,6 +124,11 @@ public class SpikeWallTrap : CellTrap
     public void SetDamage(int amount)
     {
         damage = Mathf.Max(0, amount);
+    }
+
+    public void SetDifficulty(float value)
+    {
+        difficulty = Mathf.Max(0f, value);
     }
 
     void CreatePlaceholderVisual()
