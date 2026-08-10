@@ -5,6 +5,7 @@ This directory is for prioritized, actionable work rather than the full pool of 
 ## Active milestone
 
 - [Initial building and adventurer vertical slices](2026-08-09-initial-vertical-slices.md)
+- [t001 - NPC traversal memory](t001-NPC-Traversal-Memory.md)
 
 ## Issue tracking
 
