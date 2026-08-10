@@ -61,28 +61,67 @@ MonoBehaviour:
   propSockets:
   - structureId: Ladder
     laneId: Center
+    compatibleLaneIds: []
     bundleId: Default
     selectionWeight: 1
     role: 1
     direction: 3
     allowsTraversalExit: 0
+    platformPolicy: 0
     localPosition: {x: 0, y: 0, z: 0}
     localRotation: {x: 0, y: 0, z: 0, w: 1}
   - structureId: Ladder
     laneId: Right
+    compatibleLaneIds: []
     bundleId: Default
     selectionWeight: 1
     role: 1
     direction: 3
     allowsTraversalExit: 0
+    platformPolicy: 0
     localPosition: {x: 0.2, y: 0, z: 0}
     localRotation: {x: 0, y: 0, z: 0, w: 1}
   - structureId: Ladder
     laneId: Left
+    compatibleLaneIds: []
     bundleId: Default
     selectionWeight: 1
     role: 1
     direction: 3
     allowsTraversalExit: 0
+    platformPolicy: 0
     localPosition: {x: -0.2, y: 0, z: 0}
+    localRotation: {x: 0, y: 0, z: 0, w: 1}
+  - structureId: Ladder
+    laneId: Center
+    compatibleLaneIds: []
+    bundleId: Default
+    selectionWeight: 1
+    role: 2
+    direction: 0
+    allowsTraversalExit: 0
+    platformPolicy: 0
+    localPosition: {x: 0, y: 0, z: 0}
+    localRotation: {x: 0, y: 0, z: 0, w: 1}
+  - structureId: Ladder
+    laneId: Right
+    compatibleLaneIds: []
+    bundleId: Default
+    selectionWeight: 1
+    role: 2
+    direction: 0
+    allowsTraversalExit: 0
+    platformPolicy: 0
+    localPosition: {x: 0, y: -0.2, z: 0}
+    localRotation: {x: 0, y: 0, z: 0, w: 1}
+  - structureId: Ladder
+    laneId: Left
+    compatibleLaneIds: []
+    bundleId: Default
+    selectionWeight: 1
+    role: 2
+    direction: 0
+    allowsTraversalExit: 0
+    platformPolicy: 0
+    localPosition: {x: 0, y: 0.2, z: 0}
     localRotation: {x: 0, y: 0, z: 0, w: 1}

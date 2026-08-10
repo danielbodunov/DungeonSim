@@ -72,55 +72,67 @@ MonoBehaviour:
   propSockets:
   - structureId: Ladder
     laneId: Center
+    compatibleLaneIds: []
     bundleId: Default
     selectionWeight: 1
     role: 2
     direction: 1
     allowsTraversalExit: 0
+    platformPolicy: 0
     localPosition: {x: 0, y: 0, z: 0}
     localRotation: {x: 0, y: 0, z: -1, w: 0.000000104308114}
   - structureId: Ladder
     laneId: Right
+    compatibleLaneIds: []
     bundleId: Default
     selectionWeight: 1
     role: 2
     direction: 1
     allowsTraversalExit: 0
+    platformPolicy: 0
     localPosition: {x: -0.2, y: 0, z: 0}
     localRotation: {x: 0, y: 0, z: -1, w: 0.00000093877304}
   - structureId: Ladder
     laneId: Left
+    compatibleLaneIds: []
     bundleId: Default
     selectionWeight: 1
     role: 2
     direction: 1
     allowsTraversalExit: 0
+    platformPolicy: 0
     localPosition: {x: 0.2, y: 0, z: 0}
     localRotation: {x: 0, y: 0, z: -1, w: 0.000000104308114}
   - structureId: Ladder
     laneId: Right
+    compatibleLaneIds: []
     bundleId: Default
     selectionWeight: 1
     role: 2
     direction: 0
     allowsTraversalExit: 0
+    platformPolicy: 0
     localPosition: {x: 0, y: -0.2, z: 0}
     localRotation: {x: 0, y: 0, z: -0.7071067, w: 0.7071068}
   - structureId: Ladder
     laneId: Center
+    compatibleLaneIds: []
     bundleId: Default
     selectionWeight: 1
     role: 2
     direction: 0
     allowsTraversalExit: 0
+    platformPolicy: 0
     localPosition: {x: 0, y: 0, z: 0}
     localRotation: {x: 0, y: 0, z: -0.7071078, w: 0.7071059}
   - structureId: Ladder
     laneId: Left
+    compatibleLaneIds: []
     bundleId: Default
     selectionWeight: 1
     role: 2
     direction: 0
     allowsTraversalExit: 0
+    platformPolicy: 0
     localPosition: {x: 0, y: 0.2, z: 0}
     localRotation: {x: 0, y: 0, z: -0.7071078, w: 0.7071059}

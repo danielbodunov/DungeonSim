@@ -81,73 +81,89 @@ MonoBehaviour:
   propSockets:
   - structureId: Ladder
     laneId: Center
+    compatibleLaneIds: []
     bundleId: Default
     selectionWeight: 1
     role: 2
     direction: 3
     allowsTraversalExit: 0
+    platformPolicy: 0
     localPosition: {x: 0, y: 0, z: 0}
     localRotation: {x: 0, y: 0, z: -0.00000033717478, w: 1}
   - structureId: Ladder
     laneId: Center
+    compatibleLaneIds: []
     bundleId: ShaftEntry_C
     selectionWeight: 1
     role: 0
     direction: 3
     allowsTraversalExit: 0
+    platformPolicy: 0
     localPosition: {x: 0, y: 0, z: 0}
     localRotation: {x: 0, y: 0, z: -1, w: 0.0000022947786}
   - structureId: Ladder
     laneId: Center
+    compatibleLaneIds: []
     bundleId: Default
     selectionWeight: 1
     role: 2
     direction: 0
     allowsTraversalExit: 0
+    platformPolicy: 0
     localPosition: {x: 0, y: 0, z: 0}
     localRotation: {x: 0, y: 0, z: -0.7071068, w: 0.7071068}
   - structureId: Ladder
     laneId: Center
+    compatibleLaneIds: []
     bundleId: ShaftEntry_C
     selectionWeight: 1
     role: 0
     direction: 0
     allowsTraversalExit: 0
+    platformPolicy: 0
     localPosition: {x: 0, y: 0, z: 0}
     localRotation: {x: -0, y: 0, z: 0.70710665, w: 0.7071069}
   - structureId: Ladder
     laneId: Left
+    compatibleLaneIds: []
     bundleId: Default
     selectionWeight: 1
     role: 2
     direction: 3
     allowsTraversalExit: 0
+    platformPolicy: 0
     localPosition: {x: -0.2, y: 0.00000013486992, z: 0}
     localRotation: {x: 0, y: 0, z: -0.00000033717478, w: 1}
   - structureId: Ladder
     laneId: Left
+    compatibleLaneIds: []
     bundleId: ShaftEntry_L
     selectionWeight: 2
     role: 0
     direction: 3
     allowsTraversalExit: 0
+    platformPolicy: 0
     localPosition: {x: 0, y: 0, z: 0}
     localRotation: {x: 0, y: 0, z: -1, w: 0.0000022947786}
   - structureId: Ladder
     laneId: Left
+    compatibleLaneIds: []
     bundleId: Default
     selectionWeight: 1
     role: 2
     direction: 0
     allowsTraversalExit: 0
+    platformPolicy: 0
     localPosition: {x: 0.000000023841858, y: 0.20000003, z: 0}
     localRotation: {x: 0, y: 0, z: -0.7071068, w: 0.7071068}
   - structureId: Ladder
     laneId: Right
+    compatibleLaneIds: []
     bundleId: ShaftEntry_R
     selectionWeight: 2
     role: 0
     direction: 0
     allowsTraversalExit: 0
+    platformPolicy: 0
     localPosition: {x: 0, y: 0, z: 0}
     localRotation: {x: -0, y: 0, z: 0.70710665, w: 0.7071069}

@@ -48,28 +48,34 @@ MonoBehaviour:
   propSockets:
   - structureId: Ladder
     laneId: Center
+    compatibleLaneIds: []
     bundleId: Default
     selectionWeight: 1
     role: 1
     direction: 2
     allowsTraversalExit: 0
+    platformPolicy: 0
     localPosition: {x: 0, y: 0, z: 0}
     localRotation: {x: 0, y: 0, z: -0.00000029502795, w: 1}
   - structureId: Ladder
     laneId: Left
+    compatibleLaneIds: []
     bundleId: Default
     selectionWeight: 1
     role: 1
     direction: 2
     allowsTraversalExit: 0
-    localPosition: {x: -0.3, y: 0, z: 0}
+    platformPolicy: 0
+    localPosition: {x: -0.2, y: 0, z: 0}
     localRotation: {x: 0, y: 0, z: -0.00000029502795, w: 1}
   - structureId: Ladder
     laneId: Right
+    compatibleLaneIds: []
     bundleId: Default
     selectionWeight: 1
     role: 1
     direction: 2
     allowsTraversalExit: 0
-    localPosition: {x: 0.3, y: 0, z: 0}
+    platformPolicy: 0
+    localPosition: {x: 0.2, y: 0, z: 0}
     localRotation: {x: 0, y: 0, z: -0.00000029502795, w: 1}
