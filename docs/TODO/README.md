@@ -6,6 +6,10 @@ This directory is for prioritized, actionable work rather than the full pool of 
 
 - [Initial building and adventurer vertical slices](2026-08-09-initial-vertical-slices.md)
 
+## Issue tracking
+
+- [Known issues and follow-ups](Known_Issues_and_followups.md) records incidental issues discovered during active work without automatically expanding that work's scope.
+
 The broader candidate roadmaps remain:
 
 - [NPC behavior implementation phases](../Design/NPC_Behavior.md#proposed-implementation-phases)

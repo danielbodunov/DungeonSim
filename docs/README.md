@@ -22,5 +22,6 @@ This directory is the starting point for DungeonSim's game and system documentat
 2. Record choices that materially constrain implementation in `Decisions`.
 3. Add approved implementation work to `TODO`.
 4. Keep the entry in `features` updated with its current status and source documents.
+5. Record incidental, out-of-scope discoveries in [`Known Issues and Follow-ups`](TODO/Known_Issues_and_followups.md) instead of fixing them automatically.
 
 Use relative links so the documentation remains navigable both in the repository and on Git hosting.
