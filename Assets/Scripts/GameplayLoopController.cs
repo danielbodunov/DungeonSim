@@ -26,6 +26,14 @@ public class GameplayLoopController : MonoBehaviour
     [Header("Adventurers")]
     [SerializeField, Min(0.1f)] float adventurerSpawnInterval = 5f;
 
+    [Header("Adventurer Aura")]
+    [SerializeField, Min(0)] int adventurerAura;
+    [SerializeField, Min(1)] int dungeonLevel = 1;
+    [SerializeField, Min(0)] int auraPerNewCell = 1;
+    [SerializeField, Min(0)] int auraPerDamage = 1;
+    [SerializeField, Min(0)] int baseDefeatAura = 10;
+    [SerializeField, Min(1f)] float defeatLevelExponent = 2f;
+
     TilePlacement tilePlacement;
     TileGridGenerator tileGrid;
     NPCTraversal npcTraversal;
@@ -36,6 +44,7 @@ public class GameplayLoopController : MonoBehaviour
     [SerializeField] List<NPCCharacterRecord> adventurerRoster = new();
     readonly List<NPCCharacterRecord> roundVisitors = new();
     readonly Dictionary<NPCCharacter, NPCCharacterRecord> activeRecords = new();
+    readonly Dictionary<NPCCharacter, int> pendingVisitAura = new();
 
     public static GameplayLoopController Instance { get; private set; }
 
@@ -55,6 +64,18 @@ public class GameplayLoopController : MonoBehaviour
         : 0;
     public int DungeonOpenCount => dungeonOpenCount;
     public int DaysOpened => dungeonOpenCount;
+    public int AdventurerAura => adventurerAura;
+    public int DungeonLevel => dungeonLevel;
+    public int PendingAdventurerAura
+    {
+        get
+        {
+            int total = 0;
+            foreach (int amount in pendingVisitAura.Values)
+                total += amount;
+            return total;
+        }
+    }
     public IReadOnlyList<NPCCharacterRecord> AdventurerRoster => adventurerRoster;
 
     public event Action StateChanged;
@@ -85,9 +106,14 @@ public class GameplayLoopController : MonoBehaviour
         tileGrid = FindAnyObjectByType<TileGridGenerator>();
         npcTraversal = FindAnyObjectByType<NPCTraversal>();
         if (npcTraversal != null)
+        {
             npcTraversal.AdventurerDied += OnAdventurerDied;
+            npcTraversal.AdventurerCellEntered += OnAdventurerCellEntered;
+        }
         if (GetComponent<GameSaveManager>() == null)
             gameObject.AddComponent<GameSaveManager>();
+        if (GetComponent<NPCActionFeedbackUI>() == null)
+            gameObject.AddComponent<NPCActionFeedbackUI>();
     }
 
     void Start()
@@ -140,7 +166,7 @@ public class GameplayLoopController : MonoBehaviour
         ExplorationTimeRemaining = 0f;
         visitorsScheduled = 0;
         tilePlacement?.SetBuildingEnabled(true);
-        StoreActiveAdventurers();
+        ReturnAllActiveAdventurersOutside();
         npcTraversal?.ClearAdventurers();
         activeRecords.Clear();
         StateChanged?.Invoke();
@@ -156,7 +182,7 @@ public class GameplayLoopController : MonoBehaviour
         visitorsScheduled = 0;
         spawnTimer = 0f;
         tilePlacement?.SetBuildingEnabled(false);
-        StoreActiveAdventurers();
+        ReturnAllActiveAdventurersOutside();
         npcTraversal?.ClearAdventurers();
         activeRecords.Clear();
         PrepareRoundVisitors();
@@ -167,7 +193,7 @@ public class GameplayLoopController : MonoBehaviour
 
     public void ClearAdventurers()
     {
-        StoreActiveAdventurers();
+        ReturnAllActiveAdventurersOutside();
         npcTraversal?.ClearAdventurers();
         activeRecords.Clear();
         StateChanged?.Invoke();
@@ -209,11 +235,15 @@ public class GameplayLoopController : MonoBehaviour
     public void RestoreProgress(
         int savedDungeonOpenCount,
         float savedGameplaySpeed,
+        int savedAdventurerAura,
+        int savedDungeonLevel,
         List<NPCCharacterRecord> livingAdventurers)
     {
         SetPaused(false);
         SetExpansion();
         dungeonOpenCount = Mathf.Max(0, savedDungeonOpenCount);
+        adventurerAura = Mathf.Max(0, savedAdventurerAura);
+        dungeonLevel = Mathf.Max(1, savedDungeonLevel);
         adventurerRoster.Clear();
 
         var ids = new HashSet<string>();
@@ -265,12 +295,21 @@ public class GameplayLoopController : MonoBehaviour
             return;
 
         NPCCharacterRecord record = roundVisitors[visitorsScheduled];
-        NPCTraversalAgent spawned = npcTraversal.SpawnAdventurer(record);
+        NPCTraversalAgent spawned = npcTraversal.SpawnAdventurer(record, false);
         if (spawned != null)
         {
             activeRecords[spawned.Character] = record;
+            pendingVisitAura[spawned.Character] = 0;
+            spawned.Character.Damaged += OnAdventurerDamaged;
             spawned.DungeonVisitCompleted += OnDungeonVisitCompleted;
             visitorsScheduled++;
+            if (!spawned.BeginDungeonVisit())
+            {
+                spawned.Character.Damaged -= OnAdventurerDamaged;
+                activeRecords.Remove(spawned.Character);
+                pendingVisitAura.Remove(spawned.Character);
+                npcTraversal.DespawnAdventurer(spawned);
+            }
         }
     }
 
@@ -298,7 +337,10 @@ public class GameplayLoopController : MonoBehaviour
         if (visitor != null && visitor.Character != null &&
             activeRecords.TryGetValue(visitor.Character, out NPCCharacterRecord record))
         {
+            visitor.DungeonVisitCompleted -= OnDungeonVisitCompleted;
             visitor.Character.WriteToRecord(record);
+            visitor.Character.Damaged -= OnAdventurerDamaged;
+            SettleVisitAura(visitor.Character);
             activeRecords.Remove(visitor.Character);
         }
         StateChanged?.Invoke();
@@ -308,10 +350,69 @@ public class GameplayLoopController : MonoBehaviour
     {
         if (character != null && activeRecords.TryGetValue(character, out NPCCharacterRecord record))
         {
+            AddPendingAura(character, CalculateDefeatAura(character.Level));
+            character.RecordDungeonVisitCompleted();
+            character.WriteToRecord(record);
+            character.Damaged -= OnAdventurerDamaged;
+            SettleVisitAura(character);
             activeRecords.Remove(character);
-            adventurerRoster.Remove(record);
         }
         StateChanged?.Invoke();
+    }
+
+    void OnAdventurerCellEntered(
+        NPCTraversalAgent visitor,
+        Vector2Int cell,
+        bool firstVisit)
+    {
+        if (visitor == null || !firstVisit)
+            return;
+        AddPendingAura(visitor.Character, auraPerNewCell);
+    }
+
+    void OnAdventurerDamaged(NPCCharacter character, int appliedDamage)
+    {
+        AddPendingAura(character, appliedDamage * auraPerDamage);
+    }
+
+    void AddPendingAura(NPCCharacter character, int amount)
+    {
+        if (character == null || amount <= 0 || !pendingVisitAura.ContainsKey(character))
+            return;
+        pendingVisitAura[character] += amount;
+    }
+
+    void SettleVisitAura(NPCCharacter character)
+    {
+        if (character == null || !pendingVisitAura.TryGetValue(character, out int amount))
+            return;
+        adventurerAura += Mathf.Max(0, amount);
+        pendingVisitAura.Remove(character);
+    }
+
+    int CalculateDefeatAura(int adventurerLevel)
+    {
+        return Mathf.Max(0, Mathf.RoundToInt(
+            baseDefeatAura * Mathf.Pow(Mathf.Max(1, adventurerLevel), defeatLevelExponent)));
+    }
+
+    public bool TrySpendAura(int amount)
+    {
+        if (amount < 0 || adventurerAura < amount)
+            return false;
+        adventurerAura -= amount;
+        StateChanged?.Invoke();
+        return true;
+    }
+
+    public bool TryPurchaseDungeonLevel(int auraCost)
+    {
+        if (auraCost <= 0 || adventurerAura < auraCost)
+            return false;
+        adventurerAura -= auraCost;
+        dungeonLevel++;
+        StateChanged?.Invoke();
+        return true;
     }
 
     void StoreActiveAdventurers()
@@ -321,6 +422,33 @@ public class GameplayLoopController : MonoBehaviour
                 pair.Key.WriteToRecord(pair.Value);
     }
 
+    void ReturnAllActiveAdventurersOutside()
+    {
+        if (activeRecords.Count == 0)
+        {
+            pendingVisitAura.Clear();
+            return;
+        }
+
+        var activeCharacters = new List<NPCCharacter>(activeRecords.Keys);
+        foreach (NPCCharacter character in activeCharacters)
+        {
+            if (character == null ||
+                !activeRecords.TryGetValue(character, out NPCCharacterRecord record))
+            {
+                continue;
+            }
+
+            if (!character.IsDead)
+                character.RecordDungeonVisitCompleted();
+            character.WriteToRecord(record);
+            character.Damaged -= OnAdventurerDamaged;
+            SettleVisitAura(character);
+        }
+        activeRecords.Clear();
+        pendingVisitAura.Clear();
+    }
+
     void OnDestroy()
     {
         if (Instance != this)
@@ -328,7 +456,10 @@ public class GameplayLoopController : MonoBehaviour
 
         Time.timeScale = 1f;
         if (npcTraversal != null)
+        {
             npcTraversal.AdventurerDied -= OnAdventurerDied;
+            npcTraversal.AdventurerCellEntered -= OnAdventurerCellEntered;
+        }
         Instance = null;
     }
 }

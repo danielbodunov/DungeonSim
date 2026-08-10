@@ -12,6 +12,8 @@ public sealed class SaveSlotInfo
     public int DungeonOpenCount { get; set; }
     public int AdventurerCount { get; set; }
     public int TileCellCount { get; set; }
+    public int AdventurerAura { get; set; }
+    public int DungeonLevel { get; set; }
 }
 
 /// <summary>Writes, discovers, and restores named local dungeon checkpoints.</summary>
@@ -64,10 +66,13 @@ public class GameSaveManager : MonoBehaviour
             gridWidth = tileGrid.GridWidth,
             gridHeight = tileGrid.GridHeight,
             dungeonOpenCount = gameplayLoop.DungeonOpenCount,
+            adventurerAura = gameplayLoop.AdventurerAura,
+            dungeonLevel = gameplayLoop.DungeonLevel,
             selectedGameplaySpeed = gameplayLoop.SelectedSpeed,
             propGenerationSeed = tileGrid.PropGenerationSeed,
             livingAdventurers = gameplayLoop.CaptureLivingAdventurers(),
             tileCells = tileGrid.CaptureTileLayout(),
+            connectionEdges = tileGrid.CaptureConnectionIntents(),
             traps = tileGrid.CaptureTrapLayout()
         };
 
@@ -168,11 +173,13 @@ public class GameSaveManager : MonoBehaviour
         }
 
         List<SavedTileCell> previousTiles = tileGrid.CaptureTileLayout();
+        List<SavedConnectionEdge> previousConnections =
+            tileGrid.CaptureConnectionIntents();
         List<SavedTrapCell> previousTraps = tileGrid.CaptureTrapLayout();
         int previousPropSeed = tileGrid.PropGenerationSeed;
-        if (!tileGrid.RestoreTileLayout(save.tileCells))
+        if (!tileGrid.RestoreTileLayout(save.tileCells, save.connectionEdges))
         {
-            if (tileGrid.RestoreTileLayout(previousTiles))
+            if (tileGrid.RestoreTileLayout(previousTiles, previousConnections))
             {
                 RestoreTraps(previousTraps);
                 tileGrid.RegenerateProps(previousPropSeed);
@@ -185,6 +192,8 @@ public class GameSaveManager : MonoBehaviour
         gameplayLoop.RestoreProgress(
             save.dungeonOpenCount,
             save.selectedGameplaySpeed,
+            save.adventurerAura,
+            save.dungeonLevel,
             save.livingAdventurers);
 
         int restoredTraps = RestoreTraps(save.traps);
@@ -228,7 +237,9 @@ public class GameSaveManager : MonoBehaviour
                 SortTimeUtc = sortTime,
                 DungeonOpenCount = save.dungeonOpenCount,
                 AdventurerCount = save.livingAdventurers?.Count ?? 0,
-                TileCellCount = save.tileCells?.Count ?? 0
+                TileCellCount = save.tileCells?.Count ?? 0,
+                AdventurerAura = Mathf.Max(0, save.adventurerAura),
+                DungeonLevel = Mathf.Max(1, save.dungeonLevel)
             };
         }
         catch (Exception exception)
