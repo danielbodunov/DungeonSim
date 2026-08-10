@@ -1,4 +1,4 @@
-
+# DungeonSim Agent Instructions
 
 This file defines the standing rules for AI coding agents working in the DungeonSim repository.
 
