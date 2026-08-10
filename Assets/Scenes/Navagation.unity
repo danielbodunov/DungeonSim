@@ -306,8 +306,9 @@ MonoBehaviour:
   followTarget: {fileID: 0}
   panSpeed: 5
   zoomSpeed: 2
-  minZoom: 15
-  maxZoom: 50
+  minZoom: 1
+  maxZoom: 30
+  zoomFocusPlaneZ: 0
   camComponent: {fileID: 330585545}
   panSmoothTime: 0.12
   zoomSmoothTime: 0.08
@@ -1423,6 +1424,7 @@ MonoBehaviour:
   spawnProbeDepth: 20
   moveSpeed: 1
   ladderSpeed: 0.5
+  ladderTraversalZOffset: 0.3
   patrolAutomatically: 1
   waitAtDestination: 0.2
   movementStaminaCost: 0.5
@@ -1434,10 +1436,15 @@ MonoBehaviour:
   validationSamples: 5
   groundProbeHeight: 0.75
   groundProbeDistance: 1
+  groundProbeHalfWidth: 0.08
   maxSurfaceRise: 0.1
   maxStepHeight: 0.3
   maxWalkableSlope: 50
   groundOffset: 0
+  fallRecoveryDelay: 0.75
+  fallRecoveryProbeDepth: 20
+  fallDamageFreeDistance: 0.5
+  fallDamagePerUnit: 1
 --- !u!114 &1551020208
 MonoBehaviour:
   m_ObjectHideFlags: 0
