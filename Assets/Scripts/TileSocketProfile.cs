@@ -3,6 +3,8 @@ using System.Collections.Generic;
 
 public enum TileSide { North, South, East, West }
 public enum TileCategory { Unspecified, Ground, Narrow, Wide, Transition, Starter }
+public enum CellWidthIntent { Auto = 0, Narrow = 1, Wide = 2 }
+public enum ConnectionIntent { Auto = 0, Open = 1, Closed = 2 }
 
 [CreateAssetMenu(menuName = "Tiles/Tile Socket Profile")]
 public class TileSocketProfile : ScriptableObject

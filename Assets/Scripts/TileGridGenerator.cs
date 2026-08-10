@@ -4,6 +4,13 @@ using System.Collections.Generic;
 public class TileGridGenerator : MonoBehaviour
 {
     const string GroundTileName = "Ground_Full_X";
+    static readonly Vector2Int[] CardinalOffsets =
+    {
+        Vector2Int.up,
+        Vector2Int.down,
+        Vector2Int.right,
+        Vector2Int.left
+    };
 
     [SerializeField] TileAdjacencyDatabase database;
     [SerializeField] GameObject placeholderPrefab;
@@ -27,6 +34,9 @@ public class TileGridGenerator : MonoBehaviour
     GameObject[,] instantiated;
     bool[,] placed;
     bool[,] fixedGround;
+    CellWidthIntent[,] widthIntents;
+    ConnectionIntent[,] eastConnectionIntents;
+    ConnectionIntent[,] southConnectionIntents;
     readonly Dictionary<Vector2Int, CellTrap> placedTraps = new();
     readonly Dictionary<Vector2Int, int> placedTrapObjectIds = new();
     readonly Dictionary<Vector2Int, string> placedTrapPrefabNames = new();
@@ -130,6 +140,9 @@ public class TileGridGenerator : MonoBehaviour
         instantiated = new GameObject[width, height];
         placed = new bool[width, height];
         fixedGround = new bool[width, height];
+        widthIntents = new CellWidthIntent[width, height];
+        eastConnectionIntents = new ConnectionIntent[width, height];
+        southConnectionIntents = new ConnectionIntent[width, height];
 
         for (int x = 0; x < width; x++)
         for (int y = 0; y < height; y++)
@@ -322,6 +335,14 @@ public class TileGridGenerator : MonoBehaviour
         return placed[x, y];
     }
 
+    public CellWidthIntent GetCellWidthIntent(int x, int y)
+    {
+        if (x < 0 || x >= width || y < 0 || y >= height || widthIntents == null)
+            return CellWidthIntent.Auto;
+
+        return widthIntents[x, y];
+    }
+
     public void NotifyLayoutChanged()
     {
         if (propGenerator != null)
@@ -357,6 +378,7 @@ public class TileGridGenerator : MonoBehaviour
                 x = x,
                 y = y,
                 isPlaced = placed[x, y],
+                widthIntent = widthIntents[x, y],
                 profileId = isResolved
                     ? GetProfileId(database.tiles[cells[x, y][0]])
                     : string.Empty
@@ -365,7 +387,51 @@ public class TileGridGenerator : MonoBehaviour
         return result;
     }
 
-    public bool RestoreTileLayout(List<SavedTileCell> savedCells)
+    public List<SavedConnectionEdge> CaptureConnectionIntents()
+    {
+        var result = new List<SavedConnectionEdge>();
+        if (!IsInitialized || eastConnectionIntents == null ||
+            southConnectionIntents == null)
+        {
+            return result;
+        }
+
+        for (int x = 1; x < width - 1; x++)
+        for (int y = 1; y < height - 1; y++)
+        {
+            if (x + 1 < width - 1 &&
+                eastConnectionIntents[x, y] != ConnectionIntent.Auto)
+            {
+                result.Add(new SavedConnectionEdge
+                {
+                    fromX = x,
+                    fromY = y,
+                    toX = x + 1,
+                    toY = y,
+                    intent = eastConnectionIntents[x, y]
+                });
+            }
+
+            if (y + 1 < height - 1 &&
+                southConnectionIntents[x, y] != ConnectionIntent.Auto)
+            {
+                result.Add(new SavedConnectionEdge
+                {
+                    fromX = x,
+                    fromY = y,
+                    toX = x,
+                    toY = y + 1,
+                    intent = southConnectionIntents[x, y]
+                });
+            }
+        }
+
+        return result;
+    }
+
+    public bool RestoreTileLayout(
+        List<SavedTileCell> savedCells,
+        List<SavedConnectionEdge> savedConnections = null)
     {
         if (!IsInitialized || savedCells == null)
             return false;
@@ -377,6 +443,7 @@ public class TileGridGenerator : MonoBehaviour
 
         var assignments = new Dictionary<Vector2Int, int>();
         var placedCells = new HashSet<Vector2Int>();
+        var savedWidthIntents = new Dictionary<Vector2Int, CellWidthIntent>();
         foreach (SavedTileCell savedCell in savedCells)
         {
             var position = new Vector2Int(savedCell.x, savedCell.y);
@@ -390,13 +457,54 @@ public class TileGridGenerator : MonoBehaviour
             }
 
             assignments[position] = tileIndex;
+            savedWidthIntents[position] = System.Enum.IsDefined(
+                typeof(CellWidthIntent), savedCell.widthIntent)
+                    ? savedCell.widthIntent
+                    : CellWidthIntent.Auto;
             if (savedCell.isPlaced)
                 placedCells.Add(position);
+        }
+
+        var connectionIntents = new List<SavedConnectionEdge>();
+        var savedEdgeKeys = new HashSet<string>();
+        if (savedConnections != null)
+        {
+            foreach (SavedConnectionEdge edge in savedConnections)
+            {
+                if (edge == null ||
+                    !System.Enum.IsDefined(typeof(ConnectionIntent), edge.intent) ||
+                    edge.intent == ConnectionIntent.Auto)
+                {
+                    continue;
+                }
+
+                var from = new Vector2Int(edge.fromX, edge.fromY);
+                var to = new Vector2Int(edge.toX, edge.toY);
+                if (!IsInteriorCell(from) || !IsInteriorCell(to) ||
+                    !AreCardinalNeighbors(from, to) ||
+                    !placedCells.Contains(from) || !placedCells.Contains(to))
+                {
+                    return false;
+                }
+
+                string edgeKey = GetCanonicalEdgeKey(from, to);
+                if (!savedEdgeKeys.Add(edgeKey))
+                    return false;
+                connectionIntents.Add(edge);
+            }
         }
 
         ClearTraps();
         DestroyInstantiatedGrid();
         InitializeGrid();
+
+        foreach (SavedConnectionEdge edge in connectionIntents)
+        {
+            SetStoredConnectionIntent(
+                new Vector2Int(edge.fromX, edge.fromY),
+                new Vector2Int(edge.toX, edge.toY),
+                edge.intent);
+        }
 
         foreach (KeyValuePair<Vector2Int, int> assignment in assignments)
         {
@@ -404,6 +512,19 @@ public class TileGridGenerator : MonoBehaviour
             cells[position.x, position.y].Clear();
             cells[position.x, position.y].Add(assignment.Value);
             placed[position.x, position.y] = placedCells.Contains(position);
+            widthIntents[position.x, position.y] = savedWidthIntents[position];
+        }
+
+        if (!AssignmentsRespectConnectionIntents(assignments))
+        {
+            Debug.LogWarning(
+                "The saved tile assignments conflict with their connection intents.",
+                this);
+            DestroyInstantiatedGrid();
+            InitializeGrid();
+            InstantiateGrid();
+            NotifyLayoutChanged();
+            return false;
         }
 
         foreach (Vector2Int position in assignments.Keys)
@@ -468,7 +589,8 @@ public class TileGridGenerator : MonoBehaviour
 
         TileSocketProfile upper = database.tiles[cells[x, upperY][0]];
         TileSocketProfile lower = database.tiles[cells[x, lowerY][0]];
-        return upper.southHash == lower.northHash;
+        return upper.southHash == lower.northHash &&
+            HasOpening(upper.southHash);
     }
 
     public bool HasMatchingHorizontalEdge(int leftX, int rightX, int y)
@@ -481,7 +603,8 @@ public class TileGridGenerator : MonoBehaviour
 
         TileSocketProfile left = database.tiles[cells[leftX, y][0]];
         TileSocketProfile right = database.tiles[cells[rightX, y][0]];
-        return left.eastHash == right.westHash;
+        return left.eastHash == right.westHash &&
+            HasOpening(left.eastHash);
     }
 
     public bool TryGetPropSocketWorldPose(
@@ -527,6 +650,317 @@ public class TileGridGenerator : MonoBehaviour
         coordinates = GetGridCoordinates(worldPosition);
         return coordinates.x >= 0 && coordinates.y >= 0 &&
             coordinates.x < width && coordinates.y < height;
+    }
+
+    public ConnectionIntent GetConnectionIntent(Vector2Int from, Vector2Int to)
+    {
+        if (!TryGetStoredEdge(from, to, out Vector2Int owner, out bool eastEdge))
+            return ConnectionIntent.Auto;
+
+        return eastEdge
+            ? eastConnectionIntents[owner.x, owner.y]
+            : southConnectionIntents[owner.x, owner.y];
+    }
+
+    public bool SetConnectionIntentWorldPositions(
+        Vector3 fromWorldPosition,
+        Vector3 toWorldPosition,
+        ConnectionIntent intent)
+    {
+        return SetConnectionIntent(
+            GetGridCoordinates(fromWorldPosition),
+            GetGridCoordinates(toWorldPosition),
+            intent);
+    }
+
+    public bool ToggleConnectionIntentAtWorldPosition(
+        Vector3 worldPosition,
+        float edgeThreshold = 0.28f)
+    {
+        if (!TryGetClosestBuiltEdge(
+                worldPosition, edgeThreshold, out Vector2Int from, out Vector2Int to))
+        {
+            Debug.LogWarning(
+                "Click closer to a wall shared by two built cells to toggle it.",
+                this);
+            return false;
+        }
+
+        ConnectionIntent nextIntent = HasActualSharedOpening(from, to)
+            ? ConnectionIntent.Closed
+            : ConnectionIntent.Open;
+        return SetConnectionIntent(from, to, nextIntent);
+    }
+
+    public bool SetConnectionIntent(
+        Vector2Int from,
+        Vector2Int to,
+        ConnectionIntent intent)
+    {
+        if (!IsInitialized ||
+            !System.Enum.IsDefined(typeof(ConnectionIntent), intent) ||
+            !IsInteriorCell(from) || !IsInteriorCell(to) ||
+            !AreCardinalNeighbors(from, to) ||
+            !placed[from.x, from.y] || !placed[to.x, to.y])
+        {
+            Debug.LogWarning(
+                "Connection edges can only be edited between two adjacent built cells.",
+                this);
+            return false;
+        }
+
+        ConnectionIntent previousIntent = GetConnectionIntent(from, to);
+        if (previousIntent == intent)
+            return true;
+
+        List<int>[,] previousCells = CopyCells();
+        SetStoredConnectionIntent(from, to, intent);
+
+        List<Vector2Int> region = BuildEdgeEditRegion(from, to);
+        var regionSet = new HashSet<Vector2Int>(region);
+        if (!FindBestLocalAssignment(region, regionSet, out var assignments))
+        {
+            SetStoredConnectionIntent(from, to, previousIntent);
+            Debug.LogWarning(
+                $"No tile combination can make the edge from {from} to {to} {intent}.",
+                this);
+            return false;
+        }
+
+        foreach (KeyValuePair<Vector2Int, int> assignment in assignments)
+        {
+            Vector2Int position = assignment.Key;
+            cells[position.x, position.y].Clear();
+            cells[position.x, position.y].Add(assignment.Value);
+            InstantiateCell(position.x, position.y, assignment.Value);
+        }
+
+        foreach (Vector2Int position in region)
+            Propagate(position.x, position.y);
+
+        if (HasContradiction())
+        {
+            cells = previousCells;
+            SetStoredConnectionIntent(from, to, previousIntent);
+            foreach (Vector2Int position in region)
+                InstantiateCurrentCell(position.x, position.y);
+            Debug.LogWarning(
+                $"Changing the edge from {from} to {to} caused a contradiction and was reverted.",
+                this);
+            return false;
+        }
+
+        NotifyLayoutChanged();
+        return true;
+    }
+
+    bool TryGetClosestBuiltEdge(
+        Vector3 worldPosition,
+        float edgeThreshold,
+        out Vector2Int from,
+        out Vector2Int to)
+    {
+        float gridX = (worldPosition.x - origin.x + 0.5f) / generationDirection.x;
+        float gridY = (worldPosition.y - origin.y + 0.5f) / generationDirection.y;
+        from = new Vector2Int(Mathf.RoundToInt(gridX), Mathf.RoundToInt(gridY));
+        to = from;
+
+        float localX = gridX - from.x;
+        float localY = gridY - from.y;
+        edgeThreshold = Mathf.Clamp(edgeThreshold, 0f, 0.49f);
+        if (Mathf.Max(Mathf.Abs(localX), Mathf.Abs(localY)) < edgeThreshold)
+            return false;
+
+        if (Mathf.Abs(localX) >= Mathf.Abs(localY))
+            to.x += localX >= 0f ? 1 : -1;
+        else
+            to.y += localY >= 0f ? 1 : -1;
+
+        return IsInteriorCell(from) && IsInteriorCell(to) &&
+            placed[from.x, from.y] && placed[to.x, to.y];
+    }
+
+    bool HasActualSharedOpening(Vector2Int from, Vector2Int to)
+    {
+        Vector2Int delta = to - from;
+        TileSide fromSide;
+        TileSide toSide;
+        if (delta == Vector2Int.right)
+        {
+            fromSide = TileSide.East;
+            toSide = TileSide.West;
+        }
+        else if (delta == Vector2Int.left)
+        {
+            fromSide = TileSide.West;
+            toSide = TileSide.East;
+        }
+        else if (delta == Vector2Int.up)
+        {
+            fromSide = TileSide.South;
+            toSide = TileSide.North;
+        }
+        else if (delta == Vector2Int.down)
+        {
+            fromSide = TileSide.North;
+            toSide = TileSide.South;
+        }
+        else
+        {
+            return false;
+        }
+
+        return TryGetCellEdgeMask(from.x, from.y, fromSide, out string fromMask) &&
+            TryGetCellEdgeMask(to.x, to.y, toSide, out string toMask) &&
+            MasksShareOpening(fromMask, toMask);
+    }
+
+    List<Vector2Int> BuildEdgeEditRegion(Vector2Int from, Vector2Int to)
+    {
+        var region = new List<Vector2Int> { from, to };
+        Vector2Int delta = to - from;
+        if (delta.x != 0)
+        {
+            AddPlacedRegionCell(region, from + Vector2Int.up);
+            AddPlacedRegionCell(region, to + Vector2Int.up);
+            AddPlacedRegionCell(region, from + Vector2Int.down);
+            AddPlacedRegionCell(region, to + Vector2Int.down);
+        }
+        else
+        {
+            AddPlacedRegionCell(region, from + Vector2Int.left);
+            AddPlacedRegionCell(region, to + Vector2Int.left);
+            AddPlacedRegionCell(region, from + Vector2Int.right);
+            AddPlacedRegionCell(region, to + Vector2Int.right);
+        }
+        return region;
+    }
+
+    void AddPlacedRegionCell(List<Vector2Int> region, Vector2Int position)
+    {
+        if (IsInteriorCell(position) && placed[position.x, position.y] &&
+            !region.Contains(position))
+        {
+            region.Add(position);
+        }
+    }
+
+    static bool AreCardinalNeighbors(Vector2Int from, Vector2Int to)
+    {
+        Vector2Int delta = to - from;
+        return Mathf.Abs(delta.x) + Mathf.Abs(delta.y) == 1;
+    }
+
+    bool IsInteriorCell(Vector2Int position)
+    {
+        return position.x > 0 && position.y > 0 &&
+            position.x < width - 1 && position.y < height - 1;
+    }
+
+    static string GetCanonicalEdgeKey(Vector2Int from, Vector2Int to)
+    {
+        if (to.x < from.x || (to.x == from.x && to.y < from.y))
+            (from, to) = (to, from);
+        return $"{from.x},{from.y}:{to.x},{to.y}";
+    }
+
+    bool TryGetStoredEdge(
+        Vector2Int from,
+        Vector2Int to,
+        out Vector2Int owner,
+        out bool eastEdge)
+    {
+        owner = default;
+        eastEdge = false;
+        if (!AreCardinalNeighbors(from, to) || eastConnectionIntents == null ||
+            southConnectionIntents == null)
+        {
+            return false;
+        }
+
+        Vector2Int delta = to - from;
+        if (delta == Vector2Int.right)
+        {
+            owner = from;
+            eastEdge = true;
+        }
+        else if (delta == Vector2Int.left)
+        {
+            owner = to;
+            eastEdge = true;
+        }
+        else if (delta == Vector2Int.up)
+        {
+            owner = from;
+        }
+        else
+        {
+            owner = to;
+        }
+
+        return owner.x >= 0 && owner.y >= 0 &&
+            owner.x < width && owner.y < height;
+    }
+
+    void SetStoredConnectionIntent(
+        Vector2Int from,
+        Vector2Int to,
+        ConnectionIntent intent)
+    {
+        if (!TryGetStoredEdge(from, to, out Vector2Int owner, out bool eastEdge))
+            return;
+
+        if (eastEdge)
+            eastConnectionIntents[owner.x, owner.y] = intent;
+        else
+            southConnectionIntents[owner.x, owner.y] = intent;
+    }
+
+    void ClearIncidentConnectionIntents(Vector2Int position)
+    {
+        foreach (Vector2Int offset in CardinalOffsets)
+            SetStoredConnectionIntent(position, position + offset, ConnectionIntent.Auto);
+    }
+
+    bool AssignmentsRespectConnectionIntents(
+        Dictionary<Vector2Int, int> assignments)
+    {
+        foreach (KeyValuePair<Vector2Int, int> assignment in assignments)
+        {
+            Vector2Int position = assignment.Key;
+            var eastNeighbor = position + Vector2Int.right;
+            var southNeighbor = position + Vector2Int.up;
+            if (!AssignmentEdgeRespectsIntent(
+                    position, assignment.Value, TileSide.East,
+                    eastNeighbor, assignments) ||
+                !AssignmentEdgeRespectsIntent(
+                    position, assignment.Value, TileSide.South,
+                    southNeighbor, assignments))
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    bool AssignmentEdgeRespectsIntent(
+        Vector2Int position,
+        int tileIndex,
+        TileSide side,
+        Vector2Int neighbor,
+        Dictionary<Vector2Int, int> assignments)
+    {
+        ConnectionIntent intent = GetConnectionIntent(position, neighbor);
+        if (intent == ConnectionIntent.Auto ||
+            !assignments.TryGetValue(neighbor, out int neighborTile))
+        {
+            return true;
+        }
+
+        TileSide opposite = side == TileSide.East ? TileSide.West : TileSide.North;
+        bool expectedOpen = intent == ConnectionIntent.Open;
+        return HasOpening(database.tiles[tileIndex].GetHash(side)) == expectedOpen &&
+            HasOpening(database.tiles[neighborTile].GetHash(opposite)) == expectedOpen;
     }
 
     public bool TryGetCellEdgeMask(int x, int y, TileSide side, out string mask)
@@ -582,11 +1016,18 @@ public class TileGridGenerator : MonoBehaviour
             return false;
         }
 
+        return MasksShareOpening(fromMask, toMask);
+    }
+
+    static bool MasksShareOpening(string fromMask, string toMask)
+    {
+        if (string.IsNullOrEmpty(fromMask) || string.IsNullOrEmpty(toMask))
+            return false;
+
         int sampleCount = Mathf.Min(fromMask.Length, toMask.Length);
         for (int i = 0; i < sampleCount; i++)
             if (fromMask[i] == '1' && toMask[i] == '1')
                 return true;
-
         return false;
     }
 
@@ -647,29 +1088,46 @@ public class TileGridGenerator : MonoBehaviour
         int x, int y,
         int tileIndex)
     {
-        if (instantiated[x, y] != null) Destroy(instantiated[x, y]);
+        if (instantiated[x, y] != null)
+        {
+            instantiated[x, y].SetActive(false);
+            Destroy(instantiated[x, y]);
+        }
         instantiated[x, y] = InstantiateTile(tileIndex, GetWorldPosition(x, y));
     }
     
-    public void ClickWorldPosition(Vector3 worldPosition)
+    public bool ClickWorldPosition(
+        Vector3 worldPosition,
+        CellWidthIntent widthIntent = CellWidthIntent.Auto)
     {
         Vector2Int gridCoordinates = GetGridCoordinates(worldPosition);
-        ClickCell(gridCoordinates.x, gridCoordinates.y);
+        return ClickCell(
+            gridCoordinates.x,
+            gridCoordinates.y,
+            widthIntent);
     }
 
-    public void PlaceGroundWorldPosition(Vector3 worldPosition)
+    public bool PlaceGroundWorldPosition(Vector3 worldPosition)
     {
         Vector2Int gridCoordinates = GetGridCoordinates(worldPosition);
-        PlaceGroundCell(gridCoordinates.x, gridCoordinates.y);
+        return PlaceGroundCell(gridCoordinates.x, gridCoordinates.y);
     }
 
-    public void PlaceGroundCell(int x, int y)
+    public bool PlaceGroundCell(int x, int y)
     {
-        if (x < 0 || x >= width || y < 0 || y >= height || fixedGround[x, y])
-            return;
+        if (x < 0 || x >= width || y < 0 || y >= height ||
+            fixedGround[x, y] || !placed[x, y])
+        {
+            return false;
+        }
 
         List<int>[,] previousCells = CopyCells();
+        ConnectionIntent[,] previousEastConnections =
+            (ConnectionIntent[,])eastConnectionIntents.Clone();
+        ConnectionIntent[,] previousSouthConnections =
+            (ConnectionIntent[,])southConnectionIntents.Clone();
         bool wasPlaced = placed[x, y];
+        CellWidthIntent previousWidthIntent = widthIntents[x, y];
         var region = new List<Vector2Int>();
         for (int dx = -1; dx <= 1; dx++)
         for (int dy = -1; dy <= 1; dy++)
@@ -685,7 +1143,8 @@ public class TileGridGenerator : MonoBehaviour
         cells[x, y].Clear();
         cells[x, y].Add(groundTileIndex);
         placed[x, y] = false;
-        InstantiateCell(x, y, groundTileIndex);
+        widthIntents[x, y] = CellWidthIntent.Auto;
+        ClearIncidentConnectionIntents(new Vector2Int(x, y));
 
         if (region.Count > 0)
         {
@@ -693,12 +1152,12 @@ public class TileGridGenerator : MonoBehaviour
             if (!FindBestLocalAssignment(region, regionSet, out var assignments))
             {
                 cells = previousCells;
+                eastConnectionIntents = previousEastConnections;
+                southConnectionIntents = previousSouthConnections;
                 placed[x, y] = wasPlaced;
-                InstantiateCurrentCell(x, y);
-                foreach (var position in region)
-                    InstantiateCurrentCell(position.x, position.y);
+                widthIntents[x, y] = previousWidthIntent;
                 Debug.LogWarning($"Ground cannot be placed at ({x},{y}) without disconnecting the surrounding layout.");
-                return;
+                return false;
             }
 
             foreach (var assignment in assignments)
@@ -706,7 +1165,6 @@ public class TileGridGenerator : MonoBehaviour
                 Vector2Int position = assignment.Key;
                 cells[position.x, position.y].Clear();
                 cells[position.x, position.y].Add(assignment.Value);
-                InstantiateCell(position.x, position.y, assignment.Value);
             }
         }
 
@@ -714,36 +1172,48 @@ public class TileGridGenerator : MonoBehaviour
         if (HasContradiction())
         {
             cells = previousCells;
+            eastConnectionIntents = previousEastConnections;
+            southConnectionIntents = previousSouthConnections;
             placed[x, y] = wasPlaced;
-            InstantiateCurrentCell(x, y);
-            foreach (var position in region)
-                InstantiateCurrentCell(position.x, position.y);
+            widthIntents[x, y] = previousWidthIntent;
             Debug.LogWarning($"Ground placement at ({x},{y}) caused a contradiction and was reverted.");
-            return;
+            return false;
         }
 
+        // Commit visuals only after the logical solve succeeds. An unbuilt
+        // interior cell uses the neutral placeholder; the ground profile is a
+        // constraint, not a visible replacement dungeon tile.
+        InstantiateCurrentCell(x, y);
+        foreach (Vector2Int position in region)
+            InstantiateCurrentCell(position.x, position.y);
         RemoveTrapAtCell(new Vector2Int(x, y));
         NotifyLayoutChanged();
+        return true;
     }
 
-    public void ClickCell(int x, int y)
+    public bool ClickCell(
+        int x,
+        int y,
+        CellWidthIntent widthIntent = CellWidthIntent.Auto)
     {
         if (x < 0 || x >= width || y < 0 || y >= height)
         {
             Debug.LogWarning($"Cell ({x},{y}) is outside the grid bounds [0-{width - 1}, 0-{height - 1}].");
-            return;
+            return false;
         }
 
         if (fixedGround[x, y])
         {
             Debug.LogWarning($"Cell ({x},{y}) is fixed ground and cannot be replaced.");
-            return;
+            return false;
         }
 
-        if (!TryResolveLocalPlacement(x, y))
+        if (!TryResolveLocalPlacement(x, y, widthIntent))
         {
             Debug.LogWarning($"No local tile combination can connect at ({x},{y}) without changing tiles farther away.");
+            return false;
         }
+        return true;
     }
 
     public void PlaceTrapWorldPosition(
@@ -884,10 +1354,20 @@ public class TileGridGenerator : MonoBehaviour
         return true;
     }
 
-    bool TryResolveLocalPlacement(int x, int y)
+    bool TryResolveLocalPlacement(
+        int x,
+        int y,
+        CellWidthIntent requestedWidthIntent)
     {
         List<int>[,] previousCells = CopyCells();
+        ConnectionIntent[,] previousEastConnections =
+            (ConnectionIntent[,])eastConnectionIntents.Clone();
+        ConnectionIntent[,] previousSouthConnections =
+            (ConnectionIntent[,])southConnectionIntents.Clone();
+        CellWidthIntent previousWidthIntent = widthIntents[x, y];
+        widthIntents[x, y] = requestedWidthIntent;
         var center = new Vector2Int(x, y);
+        ApplyConnectedPlacementIntents(center);
         var region = new List<Vector2Int> { center };
         AddCollapsedNeighbor(region, x, y + 1);
         AddCollapsedNeighbor(region, x, y - 1);
@@ -902,7 +1382,12 @@ public class TileGridGenerator : MonoBehaviour
 
         var regionSet = new HashSet<Vector2Int>(region);
         if (!FindBestLocalAssignment(region, regionSet, out var assignments))
+        {
+            widthIntents[x, y] = previousWidthIntent;
+            eastConnectionIntents = previousEastConnections;
+            southConnectionIntents = previousSouthConnections;
             return false;
+        }
 
         foreach (var assignment in assignments)
         {
@@ -918,6 +1403,9 @@ public class TileGridGenerator : MonoBehaviour
         if (HasContradiction())
         {
             cells = previousCells;
+            widthIntents[x, y] = previousWidthIntent;
+            eastConnectionIntents = previousEastConnections;
+            southConnectionIntents = previousSouthConnections;
             foreach (var position in region)
                 InstantiateCurrentCell(position.x, position.y);
             return false;
@@ -926,6 +1414,18 @@ public class TileGridGenerator : MonoBehaviour
         placed[x, y] = true;
         NotifyLayoutChanged();
         return true;
+    }
+
+    void ApplyConnectedPlacementIntents(Vector2Int center)
+    {
+        foreach (Vector2Int offset in CardinalOffsets)
+        {
+            Vector2Int neighbor = center + offset;
+            if (!IsInteriorCell(neighbor) || !placed[neighbor.x, neighbor.y])
+                continue;
+
+            SetStoredConnectionIntent(center, neighbor, ConnectionIntent.Open);
+        }
     }
 
     List<int>[,] CopyCells()
@@ -949,7 +1449,10 @@ public class TileGridGenerator : MonoBehaviour
     void InstantiateCurrentCell(int x, int y)
     {
         if (instantiated[x, y] != null)
+        {
+            instantiated[x, y].SetActive(false);
             Destroy(instantiated[x, y]);
+        }
 
         if (placed[x, y] && cells[x, y].Count == 1)
         {
@@ -1063,6 +1566,8 @@ public class TileGridGenerator : MonoBehaviour
             if (IsRoomContext(position, region)
                 && GetTileCategory(database.tiles[i]) == TileCategory.Starter)
                 continue;
+            if (!MatchesWidthIntent(position, i, region))
+                continue;
             if (FitsLocalNeighbors(position, i, region, assignments))
                 candidates.Add(i);
         }
@@ -1078,29 +1583,76 @@ public class TileGridGenerator : MonoBehaviour
         Vector2Int position,
         HashSet<Vector2Int> region)
     {
-        while (candidates.Count > 0)
+        candidates.Sort((left, right) =>
         {
-            int bestCandidateScore = int.MinValue;
-            var tiedCandidates = new List<int>();
-            foreach (int candidate in candidates)
+            int scoreComparison = GetCandidateScore(position, right, region)
+                .CompareTo(GetCandidateScore(position, left, region));
+            if (scoreComparison != 0)
+                return scoreComparison;
+
+            int profileComparison = string.CompareOrdinal(
+                GetProfileId(database.tiles[left]),
+                GetProfileId(database.tiles[right]));
+            return profileComparison != 0 ? profileComparison : left.CompareTo(right);
+        });
+        destination.AddRange(candidates);
+    }
+
+    bool MatchesWidthIntent(
+        Vector2Int position,
+        int tileIndex,
+        HashSet<Vector2Int> region)
+    {
+        CellWidthIntent intent = widthIntents[position.x, position.y];
+        if (intent == CellWidthIntent.Auto)
+            return true;
+
+        TileCategory category = GetTileCategory(database.tiles[tileIndex]);
+        if (intent == CellWidthIntent.Narrow)
+            return category == TileCategory.Narrow;
+
+        // A wide room requires a multi-cell footprint. Let early cells use a
+        // provisional compatible profile until the painted topology actually
+        // forms a room; once it does, Wide becomes a hard constraint.
+        return !IsCompleteOpenTwoByTwoRoom(position, region) ||
+            category == TileCategory.Wide;
+    }
+
+    bool IsCompleteOpenTwoByTwoRoom(
+        Vector2Int position,
+        HashSet<Vector2Int> region)
+    {
+        int[] directions = { -1, 1 };
+        foreach (int dx in directions)
+        foreach (int dy in directions)
+        {
+            Vector2Int horizontal = position + new Vector2Int(dx, 0);
+            Vector2Int vertical = position + new Vector2Int(0, dy);
+            Vector2Int diagonal = position + new Vector2Int(dx, dy);
+            if (!IsOccupiedForLocalSolve(horizontal, region) ||
+                !IsOccupiedForLocalSolve(vertical, region) ||
+                !IsOccupiedForLocalSolve(diagonal, region))
             {
-                int candidateScore = GetCandidateScore(position, candidate, region);
-                if (candidateScore > bestCandidateScore)
-                {
-                    bestCandidateScore = candidateScore;
-                    tiedCandidates.Clear();
-                    tiedCandidates.Add(candidate);
-                }
-                else if (candidateScore == bestCandidateScore)
-                {
-                    tiedCandidates.Add(candidate);
-                }
+                continue;
             }
 
-            int selected = tiedCandidates[Random.Range(0, tiedCandidates.Count)];
-            destination.Add(selected);
-            candidates.Remove(selected);
+            if (GetConnectionIntent(position, horizontal) == ConnectionIntent.Open &&
+                GetConnectionIntent(position, vertical) == ConnectionIntent.Open &&
+                GetConnectionIntent(horizontal, diagonal) == ConnectionIntent.Open &&
+                GetConnectionIntent(vertical, diagonal) == ConnectionIntent.Open)
+            {
+                return true;
+            }
         }
+        return false;
+    }
+
+    bool IsOccupiedForLocalSolve(
+        Vector2Int position,
+        HashSet<Vector2Int> region)
+    {
+        return IsInteriorCell(position) &&
+            (region.Contains(position) || placed[position.x, position.y]);
     }
 
     int GetCandidateScore(Vector2Int position, int tileIndex, HashSet<Vector2Int> region)
@@ -1111,6 +1663,11 @@ public class TileGridGenerator : MonoBehaviour
         TileCategory category = GetTileCategory(database.tiles[tileIndex]);
 
         int score = GetOpeningCount(tileIndex);
+        if (widthIntents[position.x, position.y] == CellWidthIntent.Wide &&
+            category == TileCategory.Wide)
+        {
+            score += 3000;
+        }
         if (roomContext)
         {
             if (category == TileCategory.Wide) score += 1000;
@@ -1129,8 +1686,50 @@ public class TileGridGenerator : MonoBehaviour
 
     bool IsRoomContext(Vector2Int position, HashSet<Vector2Int> region)
     {
+        if (TryGetExplicitRoomTopology(position, region, out bool isRoom))
+            return isRoom;
+
         return CountOccupiedNeighbors(position, region, false) >= 2
             && CountOccupiedNeighbors(position, region, true) > 0;
+    }
+
+    bool TryGetExplicitRoomTopology(
+        Vector2Int position,
+        HashSet<Vector2Int> region,
+        out bool isRoom)
+    {
+        bool north = IsExplicitOpenNeighbor(position, Vector2Int.down, region, out bool northSet);
+        bool south = IsExplicitOpenNeighbor(position, Vector2Int.up, region, out bool southSet);
+        bool east = IsExplicitOpenNeighbor(position, Vector2Int.right, region, out bool eastSet);
+        bool west = IsExplicitOpenNeighbor(position, Vector2Int.left, region, out bool westSet);
+        bool hasExplicitIntent = northSet || southSet || eastSet || westSet;
+
+        int openCount = (north ? 1 : 0) + (south ? 1 : 0) +
+            (east ? 1 : 0) + (west ? 1 : 0);
+        bool hasCorner = (north && east) || (east && south) ||
+            (south && west) || (west && north);
+        isRoom = openCount >= 3 || hasCorner;
+        return hasExplicitIntent;
+    }
+
+    bool IsExplicitOpenNeighbor(
+        Vector2Int position,
+        Vector2Int offset,
+        HashSet<Vector2Int> region,
+        out bool hasExplicitIntent)
+    {
+        Vector2Int neighbor = position + offset;
+        bool occupied = IsInteriorCell(neighbor) &&
+            (region.Contains(neighbor) || placed[neighbor.x, neighbor.y]);
+        if (!occupied)
+        {
+            hasExplicitIntent = false;
+            return false;
+        }
+
+        ConnectionIntent intent = GetConnectionIntent(position, neighbor);
+        hasExplicitIntent = intent != ConnectionIntent.Auto;
+        return intent == ConnectionIntent.Open;
     }
 
     int CountOccupiedNeighbors(Vector2Int position, HashSet<Vector2Int> region, bool diagonal)
@@ -1187,6 +1786,11 @@ public class TileGridGenerator : MonoBehaviour
         return count;
     }
 
+    static bool HasOpening(string hash)
+    {
+        return CountOpenings(hash) > 0;
+    }
+
     bool FitsLocalNeighbors(
         Vector2Int position,
         int candidate,
@@ -1212,6 +1816,12 @@ public class TileGridGenerator : MonoBehaviour
         if (neighborPosition.x < 0 || neighborPosition.y < 0
             || neighborPosition.x >= width || neighborPosition.y >= height)
             return true;
+
+        if (!CandidateMatchesConnectionIntent(
+                position, neighborPosition, candidate, offset))
+        {
+            return false;
+        }
 
         if (assignments.TryGetValue(neighborPosition, out int assignedTile))
             return rule[candidate].Contains(assignedTile)
@@ -1240,6 +1850,30 @@ public class TileGridGenerator : MonoBehaviour
         }
 
         return false;
+    }
+
+    bool CandidateMatchesConnectionIntent(
+        Vector2Int position,
+        Vector2Int neighborPosition,
+        int candidate,
+        Vector2Int offset)
+    {
+        ConnectionIntent intent = GetConnectionIntent(position, neighborPosition);
+        if (intent == ConnectionIntent.Auto)
+            return true;
+
+        TileSide side;
+        if (offset == Vector2Int.right)
+            side = TileSide.East;
+        else if (offset == Vector2Int.left)
+            side = TileSide.West;
+        else if (offset == Vector2Int.up)
+            side = TileSide.South;
+        else
+            side = TileSide.North;
+
+        bool isOpen = HasOpening(database.tiles[candidate].GetHash(side));
+        return intent == ConnectionIntent.Open ? isOpen : !isOpen;
     }
 
 }

@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections.Generic;
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
@@ -12,10 +13,13 @@ public class PropSocketAuthoring : MonoBehaviour
     [Tooltip("Sockets in one generated structure must use the same lane ID.")]
     public string laneId = "Default";
 
+    [Tooltip("Additional incoming lane IDs this socket may accept. Most useful for Continue sockets that can serve either Left or Right without duplicating the socket.")]
+    public List<string> compatibleLaneIds = new();
+
     [Tooltip("Selects the role bundle used in this cell, such as Default or Platform. Unlike Lane ID, this may change along a structure run.")]
     public string bundleId = "Default";
 
-    [Min(0f), Tooltip("Relative chance of choosing this Start socket. Ignored for other roles.")]
+    [Min(0f), Tooltip("Relative chance of choosing this Start socket. Set to zero to disable automatic starts. Ignored for other roles.")]
     public float selectionWeight = 1f;
 
     public PropSocketRole role = PropSocketRole.Single;
@@ -23,8 +27,11 @@ public class PropSocketAuthoring : MonoBehaviour
     [Tooltip("Connection direction in the unrotated tile: Start points away from the start, End points toward the incoming structure, and Continue identifies its axis.")]
     public PropSocketDirection direction = PropSocketDirection.South;
 
-    [Tooltip("For Continue sockets, exposes this point as an intermediate NPC ladder entrance/exit. Start and End are always traversal endpoints.")]
+    [Tooltip("Marks a Continue socket as platform-capable and able to expose an intermediate NPC ladder entrance/exit when its platform policy permits. Start and End are always traversal endpoints.")]
     public bool allowsTraversalExit;
+
+    [Tooltip("Controls whether a traversal platform is included during automatic ladder generation. Manual Only keeps the platform bundle available for a future placement tool.")]
+    public PropSocketPlatformPolicy platformPolicy;
 
     void OnDrawGizmosSelected()
     {
@@ -62,9 +69,17 @@ public class PropSocketAuthoring : MonoBehaviour
         string exitLabel = role == PropSocketRole.Continue && allowsTraversalExit
             ? " Exit"
             : string.Empty;
+        string platformLabel = role == PropSocketRole.Continue &&
+            platformPolicy == PropSocketPlatformPolicy.ManualOnly
+                ? " Manual Platform"
+                : string.Empty;
+        string compatibleLabel = compatibleLaneIds != null && compatibleLaneIds.Count > 0
+            ? $" Accepts: {string.Join(",", compatibleLaneIds)}"
+            : string.Empty;
         Handles.Label(
             origin + Vector3.up * 0.12f,
-            $"{structureId} {role} {direction}{exitLabel}\nLane: {laneId} Bundle: {bundleId}{weightLabel}");
+            $"{structureId} {role} {direction}{exitLabel}{platformLabel}\n" +
+            $"Lane: {laneId}{compatibleLabel} Bundle: {bundleId}{weightLabel}");
 #endif
     }
 

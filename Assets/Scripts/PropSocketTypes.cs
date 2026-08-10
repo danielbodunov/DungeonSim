@@ -18,16 +18,24 @@ public enum PropSocketDirection
     West
 }
 
+public enum PropSocketPlatformPolicy
+{
+    Automatic,
+    ManualOnly
+}
+
 [Serializable]
 public class BakedPropSocket
 {
     public string structureId;
     public string laneId = "Default";
+    public List<string> compatibleLaneIds = new();
     public string bundleId = "Default";
     [Min(0f)] public float selectionWeight = 1f;
     public PropSocketRole role;
     public PropSocketDirection direction;
     public bool allowsTraversalExit;
+    public PropSocketPlatformPolicy platformPolicy;
     public Vector3 localPosition;
     public Quaternion localRotation = Quaternion.identity;
 }
@@ -40,6 +48,7 @@ public class GeneratedStructurePiece
     public PropSocketRole role;
     public string laneId;
     public string bundleId;
+    public bool hasTraversalExit;
     public Vector3 worldPosition;
     public BakedPropSocket socket;
 }

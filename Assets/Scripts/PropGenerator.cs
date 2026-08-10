@@ -18,6 +18,7 @@ public class PropGenerator : MonoBehaviour
     GameObject ladderBottomPrefab;
     HashSet<Vector2Int> occupiedPropCells = new();
     List<GameObject> spawnedProps = new();
+    readonly Dictionary<GameObject, string> spawnedLadderProps = new();
     readonly List<GeneratedStructureRun> generatedRuns = new();
     Coroutine pendingGeneration;
     int pendingGenerationSeed;
@@ -97,17 +98,33 @@ public class PropGenerator : MonoBehaviour
     {
         yield return null;
 
-        foreach (var prop in spawnedProps)
+        HashSet<string> unchangedLadderRuns = CaptureUnchangedLadderRunKeys();
+        for (int i = spawnedProps.Count - 1; i >= 0; i--)
         {
+            GameObject prop = spawnedProps[i];
+            bool preserveLadder = prop != null &&
+                spawnedLadderProps.TryGetValue(prop, out string startFingerprint) &&
+                unchangedLadderRuns.Contains(startFingerprint);
+            if (preserveLadder)
+                continue;
+
+            if (prop != null)
+                spawnedLadderProps.Remove(prop);
             if (prop != null)
             {
                 prop.SetActive(false);
                 Destroy(prop);
             }
+            spawnedProps.RemoveAt(i);
         }
-        spawnedProps.Clear();
+
         occupiedPropCells.Clear();
-        generatedRuns.Clear();
+        for (int i = generatedRuns.Count - 1; i >= 0; i--)
+        {
+            if (!IsLadderRunUnchanged(generatedRuns[i]))
+                generatedRuns.RemoveAt(i);
+        }
+        ReservePreservedLadderCells();
         StructureVersion++;
         GenerationSeed = pendingGenerationSeed;
 
@@ -115,6 +132,8 @@ public class PropGenerator : MonoBehaviour
         Random.InitState(GenerationSeed);
         try
         {
+            // Preserved ladder cells are occupied and skipped. Incomplete or
+            // newly available starts are still retried as the dungeon grows.
             PlaceLadders();
             PlaceSingleProps();
         }
@@ -124,6 +143,86 @@ public class PropGenerator : MonoBehaviour
         }
         pendingGeneration = null;
         StructuresRegenerated?.Invoke();
+    }
+
+    HashSet<string> CaptureUnchangedLadderRunKeys()
+    {
+        var keys = new HashSet<string>(System.StringComparer.Ordinal);
+        foreach (GeneratedStructureRun run in generatedRuns)
+        {
+            if (!IsLadderRunUnchanged(run))
+                continue;
+            keys.Add(GetLadderRunKey(run));
+        }
+        return keys;
+    }
+
+    void ReservePreservedLadderCells()
+    {
+        foreach (GeneratedStructureRun run in generatedRuns)
+        {
+            if (run == null || !string.Equals(
+                    run.structureId, ladderStructureId,
+                    System.StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            foreach (GeneratedStructurePiece piece in run.pieces)
+                occupiedPropCells.Add(piece.cell);
+        }
+    }
+
+    bool IsLadderRunUnchanged(GeneratedStructureRun run)
+    {
+        if (run == null || !string.Equals(
+                run.structureId, ladderStructureId,
+                System.StringComparison.OrdinalIgnoreCase) ||
+            run.pieces == null || run.pieces.Count == 0)
+        {
+            return false;
+        }
+
+        foreach (GeneratedStructurePiece piece in run.pieces)
+        {
+            if (!gridGenerator.IsPlacedCell(piece.cell.x, piece.cell.y) ||
+                !string.Equals(
+                    gridGenerator.GetCellProfileId(piece.cell.x, piece.cell.y),
+                    piece.tileProfileId,
+                    System.StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            if (piece.role == PropSocketRole.Continue &&
+                piece.hasTraversalExit != HasUsableTraversalExit(
+                    piece.cell.x, piece.cell.y, piece.socket))
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    string GetLadderRunKey(GeneratedStructureRun run)
+    {
+        GeneratedStructurePiece start = run.pieces[0];
+        return BuildLadderStartFingerprint(
+            start.cell.x,
+            start.cell.y,
+            start.tileProfileId,
+            start.laneId,
+            start.bundleId);
+    }
+
+    static string BuildLadderStartFingerprint(
+        int x,
+        int y,
+        string tileProfileId,
+        string laneId,
+        string bundleId)
+    {
+        return $"{x},{y}|{tileProfileId}|{laneId}|{bundleId}";
     }
 
     void LoadPropPrefabs()
@@ -176,6 +275,7 @@ public class PropGenerator : MonoBehaviour
             foreach (BakedPropSocket startSocket in gridGenerator.GetCellPropSockets(x, y))
             {
                 if (!IsSocket(startSocket, PropSocketRole.Start) ||
+                    startSocket.selectionWeight <= 0f ||
                     gridGenerator.GetRuntimeSocketDirection(startSocket) != PropSocketDirection.South)
                     continue;
 
@@ -203,6 +303,14 @@ public class PropGenerator : MonoBehaviour
             if (generatedRun != null)
                 generatedRuns.Add(generatedRun);
 
+            LadderPiece startPiece = selectedRun[0];
+            string startFingerprint = BuildLadderStartFingerprint(
+                startPiece.x,
+                startPiece.y,
+                gridGenerator.GetCellProfileId(startPiece.x, startPiece.y),
+                startPiece.socket.laneId,
+                startPiece.socket.bundleId);
+
             for (int i = 0; i < selectedRun.Count; i++)
             {
                 GameObject fallbackPrefab = i == 0
@@ -210,7 +318,8 @@ public class PropGenerator : MonoBehaviour
                     : i == selectedRun.Count - 1
                         ? ladderBottomPrefab
                         : ladderMiddlePrefab;
-                PlaceLadderPiece(fallbackPrefab, selectedRun[i]);
+                PlaceLadderPiece(
+                    fallbackPrefab, selectedRun[i], startFingerprint);
             }
         }
 
@@ -385,26 +494,63 @@ public class PropGenerator : MonoBehaviour
         Vector2 alignmentAnchor,
         out float closestDistance)
     {
-        closestDistance = float.PositiveInfinity;
-        BakedPropSocket closest = null;
+        float preferredDistance = float.PositiveInfinity;
+        float fallbackDistance = float.PositiveInfinity;
+        BakedPropSocket preferred = null;
+        BakedPropSocket fallback = null;
         foreach (BakedPropSocket socket in gridGenerator.GetCellPropSockets(x, y))
             if (IsSocket(socket, role) &&
-                string.Equals(socket.laneId, laneId,
-                    System.StringComparison.OrdinalIgnoreCase) &&
                 IsCompatibleDirection(gridGenerator.GetRuntimeSocketDirection(socket), role) &&
                 TryGetLadderAnchorWorldPosition(
                     x, y, socket, out Vector3 position))
             {
                 float distance = Vector2.Distance(
                     alignmentAnchor, new Vector2(position.x, position.z));
-                if (distance < closestDistance)
+                if (distance < fallbackDistance)
                 {
-                    closestDistance = distance;
-                    closest = socket;
+                    fallbackDistance = distance;
+                    fallback = socket;
+                }
+
+                if (SocketAcceptsLane(socket, laneId) &&
+                    distance < preferredDistance)
+                {
+                    preferredDistance = distance;
+                    preferred = socket;
                 }
             }
 
-        return closestDistance <= ladderSocketAlignmentTolerance ? closest : null;
+        if (preferred != null && preferredDistance <= ladderSocketAlignmentTolerance)
+        {
+            closestDistance = preferredDistance;
+            return preferred;
+        }
+
+        closestDistance = fallbackDistance;
+        return fallbackDistance <= ladderSocketAlignmentTolerance ? fallback : null;
+    }
+
+    static bool SocketAcceptsLane(BakedPropSocket socket, string laneId)
+    {
+        if (socket == null)
+            return false;
+        if (string.Equals(
+                socket.laneId, laneId,
+                System.StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        if (socket.compatibleLaneIds == null)
+            return false;
+        foreach (string compatibleLane in socket.compatibleLaneIds)
+            if (string.Equals(
+                    compatibleLane, laneId,
+                    System.StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+        return false;
     }
 
     bool TryGetLadderAnchorWorldPosition(
@@ -474,13 +620,15 @@ public class PropGenerator : MonoBehaviour
                 role = piece.socket.role,
                 laneId = piece.socket.laneId,
                 bundleId = piece.socket.bundleId,
+                hasTraversalExit = HasUsableTraversalExit(
+                    piece.x, piece.y, piece.socket),
                 worldPosition = position,
                 socket = piece.socket
             });
 
             bool isEndpoint = i == 0 || i == run.Count - 1 ||
                 (piece.socket.role == PropSocketRole.Continue &&
-                    piece.socket.allowsTraversalExit);
+                    HasUsableTraversalExit(piece.x, piece.y, piece.socket));
             if (isEndpoint)
             {
                 generated.traversalEndpoints.Add(new GeneratedTraversalEndpoint
@@ -494,6 +642,22 @@ public class PropGenerator : MonoBehaviour
         }
 
         return generated;
+    }
+
+    bool HasUsableTraversalExit(int x, int y, BakedPropSocket socket)
+    {
+        if (socket == null || socket.role != PropSocketRole.Continue ||
+            !socket.allowsTraversalExit ||
+            socket.platformPolicy == PropSocketPlatformPolicy.ManualOnly)
+        {
+            return false;
+        }
+
+        bool connectsLeft = x > 0 &&
+            gridGenerator.HasMatchingHorizontalEdge(x - 1, x, y);
+        bool connectsRight = x + 1 < gridGenerator.GridWidth &&
+            gridGenerator.HasMatchingHorizontalEdge(x, x + 1, y);
+        return connectsLeft || connectsRight;
     }
 
     bool IsSocket(BakedPropSocket socket, PropSocketRole role)
@@ -515,7 +679,10 @@ public class PropGenerator : MonoBehaviour
         };
     }
 
-    void PlaceLadderPiece(GameObject prefab, LadderPiece piece)
+    void PlaceLadderPiece(
+        GameObject prefab,
+        LadderPiece piece,
+        string startFingerprint)
     {
         var cell = new Vector2Int(piece.x, piece.y);
         if (prefab == null || occupiedPropCells.Contains(cell) ||
@@ -526,7 +693,7 @@ public class PropGenerator : MonoBehaviour
         PropDefinition definition = propCatalog?.Find(ladderStructureId);
         int spawned = SpawnResolvedBundle(
             definition, prefab, piece.socket, position, socketRotation,
-            piece.x, piece.y, ladderWorldEulerAngles);
+            piece.x, piece.y, ladderWorldEulerAngles, startFingerprint);
         if (spawned > 0)
             occupiedPropCells.Add(cell);
     }
@@ -539,7 +706,8 @@ public class PropGenerator : MonoBehaviour
         Quaternion socketRotation,
         int x,
         int y,
-        Vector3? fallbackRotation = null)
+        Vector3? fallbackRotation = null,
+        string ladderStartFingerprint = null)
     {
         Quaternion baseRotation = definition != null
             ? (definition.useSocketRotation ? socketRotation : Quaternion.identity)
@@ -548,6 +716,8 @@ public class PropGenerator : MonoBehaviour
 
         PropPieceBundle bundle = definition?.GetBundle(
             socket.laneId, socket.role, socket.bundleId);
+        bool ladderOnlyContinue = IsSocket(socket, PropSocketRole.Continue) &&
+            !HasUsableTraversalExit(x, y, socket);
         int count = 0;
         if (bundle != null)
         {
@@ -555,18 +725,25 @@ public class PropGenerator : MonoBehaviour
             {
                 if (item == null || item.prefab == null)
                     continue;
+                if (ladderOnlyContinue && item.prefab != ladderMiddlePrefab)
+                    continue;
 
                 Vector3 itemPosition = position + baseRotation * item.localPosition;
                 Quaternion itemRotation = baseRotation * Quaternion.Euler(item.localRotation);
-                SpawnProp(item.prefab, itemPosition, itemRotation, x, y, socket);
+                SpawnProp(
+                    item.prefab, itemPosition, itemRotation, x, y, socket,
+                    ladderStartFingerprint);
                 count++;
             }
-            return count;
+            if (count > 0)
+                return count;
         }
 
         if (fallbackPrefab != null)
         {
-            SpawnProp(fallbackPrefab, position, baseRotation, x, y, socket);
+            SpawnProp(
+                fallbackPrefab, position, baseRotation, x, y, socket,
+                ladderStartFingerprint);
             count++;
         }
         return count;
@@ -578,12 +755,15 @@ public class PropGenerator : MonoBehaviour
         Quaternion rotation,
         int x,
         int y,
-        BakedPropSocket socket)
+        BakedPropSocket socket,
+        string ladderStartFingerprint)
     {
         GameObject prop = Instantiate(prefab, position, rotation, transform);
         prop.name = $"{prefab.name} [{x},{y}] {socket.laneId}/{socket.bundleId} on {gridGenerator.GetCellProfileId(x, y)}";
         if (prop.GetComponentInChildren<DungeonLightReceiver>(true) == null)
             prop.AddComponent<DungeonLightReceiver>();
         spawnedProps.Add(prop);
+        if (!string.IsNullOrEmpty(ladderStartFingerprint))
+            spawnedLadderProps[prop] = ladderStartFingerprint;
     }
 }

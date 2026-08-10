@@ -1,8 +1,5 @@
 using UnityEngine;
-using System.Collections;
 using System.Collections.Generic;
-using UnityEditor;
-using Unity.VisualScripting;
 
 public class TilePlacement : MonoBehaviour
 {
@@ -35,9 +32,13 @@ public class TilePlacement : MonoBehaviour
     private Vector3Int? lastDragCell;
     private bool buildingEnabled = true;
     private bool removingTraps;
+    private bool editingEdges;
+    private CellWidthIntent widthIntent = CellWidthIntent.Auto;
 
     public bool BuildingEnabled => buildingEnabled;
     public bool IsRemovingTraps => removingTraps;
+    public bool IsEditingEdges => editingEdges;
+    public CellWidthIntent WidthIntent => widthIntent;
     public int SelectedObjectId => selectedObjectIndex >= 0 &&
         database != null && selectedObjectIndex < database.objectsData.Count
             ? database.objectsData[selectedObjectIndex].ID
@@ -90,6 +91,19 @@ public class TilePlacement : MonoBehaviour
         inputManager.OnExit += StopPlacement;
     }
 
+    public void StartEdgeToggle()
+    {
+        if (!buildingEnabled)
+            return;
+
+        StopPlacement();
+        editingEdges = true;
+        gridVisualization.SetActive(true);
+        cellIndicator.SetActive(true);
+        inputManager.OnClicked += PlaceStructure;
+        inputManager.OnExit += StopPlacement;
+    }
+
 
     private void PlaceStructure()
     {
@@ -102,6 +116,12 @@ public class TilePlacement : MonoBehaviour
         }
 
         Vector3 mousePosition = inputManager.GetSelectedMapPosition();
+        if (editingEdges)
+        {
+            tileGridGenerator.ToggleConnectionIntentAtWorldPosition(mousePosition);
+            return;
+        }
+
         Vector3Int gridPosition = grid.WorldToCell(mousePosition);
         PlaceAtCell(gridPosition);
     }
@@ -138,17 +158,31 @@ public class TilePlacement : MonoBehaviour
         ObjectData selectedObject = database.objectsData[selectedObjectIndex];
         Debug.Log($"Placing {selectedObject.Name} (ID {selectedObject.ID}) at grid position ({gridPosition.x}, {gridPosition.y})");
         if (selectedObject.PlacementType == ObjectPlacementType.Trap)
+        {
             tileGridGenerator.PlaceTrapWorldPosition(
                 cellCenter, selectedObject.Prefab, selectedObject.ID);
+            lastDragCell = gridPosition;
+        }
         else
-            tileGridGenerator.ClickWorldPosition(cellCenter);
-        lastDragCell = gridPosition;
+        {
+            if (tileGridGenerator.ClickWorldPosition(
+                    cellCenter, widthIntent))
+            {
+                lastDragCell = gridPosition;
+            }
+        }
     }
-    
+
+    public void SetWidthIntent(CellWidthIntent intent)
+    {
+        widthIntent = intent;
+    }
+
     public void StopPlacement()
     {
         selectedObjectIndex = -1;
         removingTraps = false;
+        editingEdges = false;
         gridVisualization.SetActive(false);
         cellIndicator.SetActive(false);
         inputManager.OnClicked -= PlaceStructure;
@@ -160,7 +194,8 @@ public class TilePlacement : MonoBehaviour
 
     private void Update()
     {
-        if (!buildingEnabled || (!removingTraps && selectedObjectIndex < 0))
+        if (!buildingEnabled ||
+            (!removingTraps && !editingEdges && selectedObjectIndex < 0))
         { 
             return; 
         }
@@ -169,6 +204,11 @@ public class TilePlacement : MonoBehaviour
         Vector3Int gridPosition = grid.WorldToCell(mousePosition);
         mouseIndicator.transform.position = mousePosition;
         cellIndicator.transform.position = grid.GetCellCenterWorld(gridPosition);
+
+        // Wall toggles are discrete clicks handled by PlaceStructure. Keeping
+        // them out of the held-button path prevents one click toggling twice.
+        if (editingEdges)
+            return;
 
         if (!inputManager.LeftClick)
         {
