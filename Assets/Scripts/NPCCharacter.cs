@@ -68,6 +68,7 @@ public class NPCCharacter : MonoBehaviour
     public bool IsDead => currentHealth <= 0;
 
     public event Action<NPCCharacter> ProgressChanged;
+    public event Action<NPCCharacter, int> Damaged;
     public event Action<NPCCharacter> Died;
 
     public void ApplyRecord(NPCCharacterRecord record)
@@ -143,7 +144,15 @@ public class NPCCharacter : MonoBehaviour
     {
         if (amount <= 0 || IsDead)
             return;
-        SetHealth(currentHealth - amount);
+
+        int previousHealth = currentHealth;
+        currentHealth = Mathf.Clamp(currentHealth - amount, 0, maxHealth);
+        int appliedDamage = previousHealth - currentHealth;
+        ProgressChanged?.Invoke(this);
+        if (appliedDamage > 0)
+            Damaged?.Invoke(this, appliedDamage);
+        if (previousHealth > 0 && currentHealth <= 0)
+            Died?.Invoke(this);
     }
 
     public void GainExperience(int amount)

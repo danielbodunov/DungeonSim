@@ -33,6 +33,8 @@ public class NPCTraversal : MonoBehaviour
     [SerializeField, Min(0.01f)] float moveSpeed = 2f;
     [SerializeField, Min(0.01f), Tooltip("Movement speed while climbing ladders. Defaults to 80% of Move Speed.")]
     float ladderSpeed = 1.6f;
+    [SerializeField, Tooltip("World-space Z offset from the generated ladder anchor. Use this to place NPCs slightly in front of the visible ladder while climbing.")]
+    float ladderTraversalZOffset = 0.3f;
     [SerializeField] bool patrolAutomatically = true;
     [SerializeField, Min(0f)] float waitAtDestination = 1f;
 
@@ -49,11 +51,23 @@ public class NPCTraversal : MonoBehaviour
     [SerializeField, Range(2, 12)] int validationSamples = 5;
     [SerializeField, Min(0.01f)] float groundProbeHeight = 0.75f;
     [SerializeField, Min(0.01f)] float groundProbeDistance = 1.5f;
+    [SerializeField, Min(0f), Tooltip("Checks slightly to either side of the NPC so narrow seams between colliders are treated as continuous ground.")]
+    float groundProbeHalfWidth = 0.08f;
     [SerializeField, Min(0f), Tooltip("How far above the expected route height a valid floor may be. This prevents roof colliders from being selected.")]
     float maxSurfaceRise = 0.1f;
     [SerializeField, Min(0f)] float maxStepHeight = 0.3f;
     [SerializeField, Range(0f, 89f)] float maxWalkableSlope = 50f;
     [SerializeField, Min(0f)] float groundOffset;
+
+    [Header("Fall Recovery")]
+    [SerializeField, Min(0f), Tooltip("How long an NPC remains stunned after landing from an unintended fall.")]
+    float fallRecoveryDelay = 0.75f;
+    [SerializeField, Min(0.1f), Tooltip("Maximum distance below the NPC to search for a recovery floor.")]
+    float fallRecoveryProbeDepth = 20f;
+    [SerializeField, Min(0f), Tooltip("Falls shorter than this do not deal damage.")]
+    float fallDamageFreeDistance = 0.5f;
+    [SerializeField, Min(0f), Tooltip("Damage per world unit beyond the free fall distance.")]
+    float fallDamagePerUnit = 1f;
 
     readonly Dictionary<Vector2Int, List<RouteEdge>> graph = new();
     readonly RaycastHit[] groundHits = new RaycastHit[16];
@@ -83,17 +97,26 @@ public class NPCTraversal : MonoBehaviour
     }
     public IReadOnlyList<Vector3> DebugWalkableSamples => debugWalkableSamples;
     public IReadOnlyList<Vector3> DebugRejectedSamples => debugRejectedSamples;
+    internal float MaximumUnplannedDrop => maxStepHeight;
+    internal float FallRecoveryDelay => fallRecoveryDelay;
     public event System.Action<NPCCharacter> AdventurerDied;
+    public event System.Action<NPCTraversalAgent, Vector2Int, bool> AdventurerCellEntered;
 
     internal void NotifyAdventurerDied(NPCCharacter character)
     {
         AdventurerDied?.Invoke(character);
     }
 
-    internal void NotifyCellEntered(NPCTraversalAgent visitor, Vector2Int cell)
+    internal void NotifyCellEntered(
+        NPCTraversalAgent visitor,
+        Vector2Int cell,
+        bool firstVisit)
     {
-        if (visitor != null)
-            grid?.NotifyNpcEnteredCell(visitor.Character, cell);
+        if (visitor == null)
+            return;
+
+        AdventurerCellEntered?.Invoke(visitor, cell, firstVisit);
+        grid?.NotifyNpcEnteredCell(visitor.Character, cell);
     }
 
     void Awake()
@@ -207,34 +230,49 @@ public class NPCTraversal : MonoBehaviour
 
     public bool TryGetWalkableGround(Vector3 expectedPosition, out RaycastHit hit)
     {
-        Vector3 origin = expectedPosition + Vector3.up * groundProbeHeight;
-        int hitCount = Physics.RaycastNonAlloc(
-            origin,
-            Vector3.down,
-            groundHits,
-            groundProbeHeight + groundProbeDistance,
-            walkableLayers,
-            QueryTriggerInteraction.Ignore);
-
         hit = default;
         bool found = false;
         float closestHeightDifference = float.PositiveInfinity;
-        for (int i = 0; i < hitCount; i++)
+        int horizontalSamples = groundProbeHalfWidth > 0f ? 3 : 1;
+        for (int sample = 0; sample < horizontalSamples; sample++)
         {
-            RaycastHit candidate = groundHits[i];
-            float heightDifference = candidate.point.y - expectedPosition.y;
-            if (heightDifference > maxSurfaceRise ||
-                heightDifference < -groundProbeDistance ||
-                Vector3.Angle(candidate.normal, Vector3.up) > maxWalkableSlope)
-                continue;
+            float horizontalOffset = sample switch
+            {
+                1 => -groundProbeHalfWidth,
+                2 => groundProbeHalfWidth,
+                _ => 0f
+            };
+            Vector3 origin = expectedPosition +
+                Vector3.right * horizontalOffset +
+                Vector3.up * groundProbeHeight;
+            int hitCount = Physics.RaycastNonAlloc(
+                origin,
+                Vector3.down,
+                groundHits,
+                groundProbeHeight + groundProbeDistance,
+                walkableLayers,
+                QueryTriggerInteraction.Ignore);
 
-            float absoluteDifference = Mathf.Abs(heightDifference);
-            if (absoluteDifference >= closestHeightDifference)
-                continue;
+            for (int i = 0; i < hitCount; i++)
+            {
+                RaycastHit candidate = groundHits[i];
+                if (candidate.collider.GetComponentInParent<NPCTraversalAgent>() != null)
+                    continue;
 
-            closestHeightDifference = absoluteDifference;
-            hit = candidate;
-            found = true;
+                float heightDifference = candidate.point.y - expectedPosition.y;
+                if (heightDifference > maxSurfaceRise ||
+                    heightDifference < -groundProbeDistance ||
+                    Vector3.Angle(candidate.normal, Vector3.up) > maxWalkableSlope)
+                    continue;
+
+                float absoluteDifference = Mathf.Abs(heightDifference);
+                if (absoluteDifference >= closestHeightDifference)
+                    continue;
+
+                closestHeightDifference = absoluteDifference;
+                hit = candidate;
+                found = true;
+            }
         }
 
         return found;
@@ -246,6 +284,82 @@ public class NPCTraversal : MonoBehaviour
             return expectedPosition;
         expectedPosition.y = hit.point.y + groundOffset;
         return expectedPosition;
+    }
+
+    internal bool TryGetFallRecoveryLanding(
+        Vector3 fallOrigin,
+        out Vector2Int cell,
+        out Vector3 landingPosition,
+        out float fallDistance)
+    {
+        cell = default;
+        landingPosition = fallOrigin;
+        fallDistance = 0f;
+        RaycastHit bestHit = default;
+        bool found = false;
+        float nearestDrop = float.PositiveInfinity;
+        int horizontalSamples = groundProbeHalfWidth > 0f ? 3 : 1;
+        for (int sample = 0; sample < horizontalSamples; sample++)
+        {
+            float horizontalOffset = sample switch
+            {
+                1 => -groundProbeHalfWidth,
+                2 => groundProbeHalfWidth,
+                _ => 0f
+            };
+            Vector3 origin = fallOrigin +
+                Vector3.right * horizontalOffset +
+                Vector3.up * groundProbeHeight;
+            int hitCount = Physics.RaycastNonAlloc(
+                origin,
+                Vector3.down,
+                groundHits,
+                groundProbeHeight + fallRecoveryProbeDepth,
+                walkableLayers,
+                QueryTriggerInteraction.Ignore);
+
+            for (int i = 0; i < hitCount; i++)
+            {
+                RaycastHit candidate = groundHits[i];
+                if (candidate.collider.GetComponentInParent<NPCTraversalAgent>() != null ||
+                    candidate.point.y > fallOrigin.y + maxSurfaceRise ||
+                    Vector3.Angle(candidate.normal, Vector3.up) > maxWalkableSlope)
+                {
+                    continue;
+                }
+
+                float drop = Mathf.Max(0f, fallOrigin.y - candidate.point.y);
+                if (drop >= nearestDrop)
+                    continue;
+                nearestDrop = drop;
+                bestHit = candidate;
+                found = true;
+            }
+        }
+
+        if (!found)
+            return false;
+
+        landingPosition = fallOrigin;
+        landingPosition.y = bestHit.point.y + groundOffset;
+        fallDistance = nearestDrop;
+        if (grid.TryWorldToCell(landingPosition, out Vector2Int landedCell) &&
+            graph.ContainsKey(landedCell))
+        {
+            cell = landedCell;
+            return true;
+        }
+
+        return TryGetClosestCellAnchor(landingPosition, out cell, out _);
+    }
+
+    internal int CalculateFallDamage(float fallDistance)
+    {
+        float damagingDistance = Mathf.Max(
+            0f, fallDistance - fallDamageFreeDistance);
+        return damagingDistance > 0f
+            ? Mathf.Max(1, Mathf.CeilToInt(damagingDistance * fallDamagePerUnit))
+            : 0;
     }
 
     void AddTwoWayEdge(Vector2Int a, Vector2Int b)
@@ -264,21 +378,20 @@ public class NPCTraversal : MonoBehaviour
 
         Vector3 aEntry = GetLadderEntryAtWalkingHeight(a);
         Vector3 bEntry = GetLadderEntryAtWalkingHeight(b);
-        Vector3 aFloor = GetGroundedPosition(
-            grid.GetCellWorldPosition(a.cell.x, a.cell.y));
-        Vector3 bFloor = GetGroundedPosition(
-            grid.GetCellWorldPosition(b.cell.x, b.cell.y));
 
         graph[a.cell].Add(new RouteEdge
         {
             destination = b.cell,
-            waypoints = new List<Vector3> { aEntry, bEntry, bFloor },
+            // Stop at the ladder exit. If the route continues, its next edge
+            // can lead straight toward that destination instead of snapping to
+            // the center of this cell first.
+            waypoints = new List<Vector3> { aEntry, bEntry },
             isLadder = true
         });
         graph[b.cell].Add(new RouteEdge
         {
             destination = a.cell,
-            waypoints = new List<Vector3> { bEntry, aEntry, aFloor },
+            waypoints = new List<Vector3> { bEntry, aEntry },
             isLadder = true
         });
         ladderConnectionCount++;
@@ -290,11 +403,13 @@ public class NPCTraversal : MonoBehaviour
         // Socket X/Z identifies the ladder lane. Its authored Y may sit at the
         // tile center, so floor probing supplies the actual entry height.
         expected.x = endpoint.worldPosition.x;
-        expected.z = endpoint.worldPosition.z;
+        expected.z = endpoint.worldPosition.z + ladderTraversalZOffset;
         return GetGroundedPosition(expected);
     }
 
-    public NPCTraversalAgent SpawnAdventurer(NPCCharacterRecord characterRecord = null)
+    public NPCTraversalAgent SpawnAdventurer(
+        NPCCharacterRecord characterRecord = null,
+        bool beginVisit = true)
     {
         if (npcPrefab == null)
         {
@@ -327,6 +442,8 @@ public class NPCTraversal : MonoBehaviour
             patrolAutomatically, waitAtDestination,
             movementStaminaCost, ladderStaminaMultiplier,
             taskStaminaCostPerSecond);
+        if (beginVisit)
+            agent.BeginDungeonVisit();
         return agent;
     }
 
@@ -693,7 +810,6 @@ public class NPCTraversalAgent : MonoBehaviour
         if (character == null)
             character = gameObject.AddComponent<NPCCharacter>();
         character.Died += OnCharacterDied;
-        BeginDungeonVisit();
     }
 
     void OnDestroy()
@@ -788,7 +904,17 @@ public class NPCTraversalAgent : MonoBehaviour
                 Vector3 next = Vector3.MoveTowards(
                     transform.position, target, segmentSpeed * Time.deltaTime);
                 if (!isLadderSegment)
-                    next = navigation.GetGroundedPosition(next);
+                {
+                    Vector3 groundedNext = navigation.GetGroundedPosition(next);
+                    if (transform.position.y - groundedNext.y >
+                        navigation.MaximumUnplannedDrop)
+                    {
+                        yield return RecoverFromUnexpectedFall(
+                            next, transform.position.y);
+                        yield break;
+                    }
+                    next = groundedNext;
+                }
                 float distanceMoved = Vector3.Distance(transform.position, next);
                 transform.position = next;
                 if (!returningHome && character != null)
@@ -817,21 +943,62 @@ public class NPCTraversalAgent : MonoBehaviour
         StartNextExplorationStep();
     }
 
+    IEnumerator RecoverFromUnexpectedFall(
+        Vector3 fallPosition,
+        float fallStartHeight)
+    {
+        activeRoute = null;
+        nextWaypointIndex = -1;
+
+        Vector3 fallOrigin = fallPosition;
+        fallOrigin.y = fallStartHeight;
+        if (navigation.TryGetFallRecoveryLanding(
+            fallOrigin,
+            out Vector2Int landedCell,
+            out Vector3 landingPosition,
+            out float fallDistance))
+        {
+            transform.position = landingPosition;
+            currentCell = landedCell;
+            int damage = navigation.CalculateFallDamage(fallDistance);
+            if (damage > 0 && character != null && !character.IsDead)
+            {
+                NPCActionResolver.ResolveDamage(
+                    character,
+                    this,
+                    damage,
+                    transform.position + Vector3.up * 0.35f);
+            }
+        }
+
+        if (character == null || character.IsDead)
+            yield break;
+
+        if (navigation.FallRecoveryDelay > 0f)
+            yield return new WaitForSeconds(navigation.FallRecoveryDelay);
+
+        movement = null;
+        if (!visitInProgress || character == null || character.IsDead)
+            yield break;
+
+        RecordArrival(currentCell);
+        StartNextExplorationStep();
+    }
+
     void RecordArrival(Vector2Int cell)
     {
         if (!visitInProgress)
             return;
 
-        navigation?.NotifyCellEntered(this, cell);
         if (character == null || character.IsDead)
             return;
 
         bool firstVisit = visitedCells.Add(cell);
         if (firstVisit)
-        {
-            if (character != null)
-                character.RecordCellExplored();
-        }
+            character.RecordCellExplored();
+        navigation?.NotifyCellEntered(this, cell, firstVisit);
+        if (character.IsDead)
+            return;
         CellEntered?.Invoke(this, cell, firstVisit);
     }
 
