@@ -48,17 +48,7 @@ Use a three-digit sequence for entries created on the same day, beginning with `
 
 ## Open issues and follow-ups
 
-### KI-2026-08-10-001 - No explicit stranded state after route destruction
-
-- **Discovered:** 2026-08-10
-- **Status:** Confirmed
-- **Area:** NPC traversal and dungeon editing
-- **Discovered while:** Implementing `t001-NPC-Traversal-Memory`
-- **Description:** If dungeon editing removes every familiar route from an active NPC to the entrance, familiar-only return planning fails but the NPC has no explicit stranded behavior or player-facing state.
-- **Impact:** An adventurer can remain idle in the dungeon after its remembered return route is destroyed.
-- **Evidence:** `NPCTraversalAgent.StartNextExplorationStep` can reject the familiar-only route and has no stranded-state transition when the current cell is not the start cell.
-- **Suggested follow-up:** Add the stranded/recovery state described in the NPC behavior design, including debug and player-facing feedback.
-- **Scope note:** The current ticket prevents unknown return shortcuts and preserves memory through graph rebuilds; defining stranded recovery is a separate behavior phase.
+No issues have been recorded yet.
 
 ## Resolved or closed issues
 
