@@ -115,6 +115,7 @@ List<BakedPropSocket> BakePropSockets(GameObject prefab, int rotationIndex)
             laneId = string.IsNullOrWhiteSpace(authoredSocket.laneId)
                 ? "Default"
                 : authoredSocket.laneId.Trim(),
+            compatibleLaneIds = BakeCompatibleLaneIds(authoredSocket),
             bundleId = string.IsNullOrWhiteSpace(authoredSocket.bundleId)
                 ? "Default"
                 : authoredSocket.bundleId.Trim(),
@@ -122,12 +123,36 @@ List<BakedPropSocket> BakePropSockets(GameObject prefab, int rotationIndex)
             role = authoredSocket.role,
             direction = RotateDirection(authoredSocket.direction, rotationIndex),
             allowsTraversalExit = authoredSocket.allowsTraversalExit,
+            platformPolicy = authoredSocket.platformPolicy,
             localPosition = prefab.transform.InverseTransformPoint(authoredSocket.transform.position),
             localRotation = Quaternion.Inverse(prefab.transform.rotation) * authoredSocket.transform.rotation
         });
     }
 
     return bakedSockets;
+}
+
+List<string> BakeCompatibleLaneIds(PropSocketAuthoring authoredSocket)
+{
+    var result = new List<string>();
+    var seen = new HashSet<string>(System.StringComparer.OrdinalIgnoreCase);
+    string primaryLane = string.IsNullOrWhiteSpace(authoredSocket.laneId)
+        ? "Default"
+        : authoredSocket.laneId.Trim();
+    seen.Add(primaryLane);
+
+    if (authoredSocket.compatibleLaneIds == null)
+        return result;
+
+    foreach (string lane in authoredSocket.compatibleLaneIds)
+    {
+        if (string.IsNullOrWhiteSpace(lane))
+            continue;
+        string normalized = lane.Trim();
+        if (seen.Add(normalized))
+            result.Add(normalized);
+    }
+    return result;
 }
 
 PropSocketDirection RotateDirection(PropSocketDirection direction, int clockwiseRotations)
