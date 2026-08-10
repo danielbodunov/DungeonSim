@@ -13,12 +13,17 @@ This directory records choices that materially constrain future design or implem
 | [0005](0005-adventurer-aura-and-defeat.md) | One Aura resource funds building and levels; NPC defeat is non-permanent | 2026-08-09 |
 | [0006](0006-configurable-enemy-pursuit.md) | Spawned-enemy pursuit boundaries are configurable | 2026-08-09 |
 | [0007](0007-boss-session-lockout.md) | A looted boss seals for the session and returns without diminished base reward | 2026-08-09 |
+| [0009](0009-phase-based-lighting.md) | Expansion uses uniform lighting; Exploring restores atmospheric lighting | 2026-08-09 |
+| [0010](0010-selection-inspection-and-camera-focus.md) | Selecting NPCs, traps, and spawners opens an inspector and focuses the camera | 2026-08-09 |
+| [0011](0011-progression-interface-structure.md) | The HUD shows progression and Aura; tiers and technologies use separate menus | 2026-08-09 |
+| [0012](0012-main-menu-game-entry.md) | Game entry uses Continue, New Game, Load Game, and Options | 2026-08-09 |
+| [0013](0013-shared-ui-theme.md) | All UI consumes a shared semantic theme asset | 2026-08-09 |
 
 ## Proposed decisions
 
 | ID | Proposal | Date |
 | --- | --- | --- |
-| [0008](0008-vertical-tier-section-shape.md) | Tier sections descend with heights of 3, 4, 5, 6, and 7 floors | 2026-08-09 |
+| [0008](0008-vertical-tier-section-shape.md) | Start with three sections of 3, 4, and 5 floors; allow later extension | 2026-08-09 |
 
 ## Candidate decisions still to resolve
 
@@ -28,6 +33,8 @@ This directory records choices that materially constrain future design or implem
 | What light, projectiles, and area effects cross a depth transition | Open | [World design](../Design/World_Generation_and_Building.md#open-design-questions) |
 | NPC Z variation uses authored local movement lanes | Proposed | [NPC depth movement](../Design/NPC_Behavior.md#depth-aware-movement-within-cells) |
 | What route knowledge party members share | Open | [Party design](../Design/NPC_Behavior.md#social-encounters-and-parties) |
+| Which high-contrast atmospheric lighting style to adopt | Open | [Visual design](../Design/Visual_and_Interaction_Design.md#stylized-atmospheric-lighting) |
+| Whether level progress uses spendable Aura or lifetime progression | Open | [Progression HUD](../Design/Visual_and_Interaction_Design.md#progression-hud) |
 
 ## Decision record format
 

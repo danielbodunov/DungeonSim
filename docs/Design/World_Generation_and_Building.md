@@ -47,6 +47,8 @@ CURRENT TECHNICAL BASELINE
 - Tile socket profiles constrain which neighboring tile profiles can connect.
 - Prop sockets provide authored locations for objects within a resolved tile.
 - NPC routes are built from horizontal openings and ladder connections.
+- Prototype-generated ladder runs are preserved across unrelated edits, but the
+  complete run is rebuilt if any participating cell changes tile profile.
 - Lighting is sampled over the two-dimensional cell grid and spreads through
   valid cell connections.
 - Traps currently occupy one built cell.
@@ -91,6 +93,9 @@ Suggested data direction:
 - Save the stable object ID, owning cell, socket ID, orientation, and any linked
   endpoint socket. Do not rely on prefab names or world position alone.
 - Rebuild NPC navigation only after a placement transaction succeeds.
+- A ladder Continue socket has one primary lane for bundle selection and may
+  declare compatible incoming lane IDs. For example, a centered continuation
+  can accept both Left and Right without duplicating the authored socket.
 
 
 WIDE AND NARROW CELL CONTROL
@@ -106,6 +111,11 @@ Chosen placement modes:
 - Auto: store automatic intent, then choose wide or narrow from local density and
   connection needs whenever the affected neighborhood is resolved.
 - Wide: constrain newly resolved cells to wide-compatible tile profiles.
+
+Because wide profiles represent multi-cell rooms, the first cells of a Wide
+brush stroke may temporarily resolve with compatible starter or narrow visuals.
+Once the painted/open-edge topology forms a valid room footprint, the affected
+neighborhood re-resolves to wide profiles as one local transaction.
 - Narrow: constrain newly resolved cells to narrow-compatible tile profiles.
 
 The mode should be visible in the build palette and changeable before painting.
@@ -134,6 +144,34 @@ Possible Auto heuristic:
   marked as rooms.
 - Treat this only as a starting rule; authored constraints and player overrides
   remain authoritative.
+
+
+CELL CONNECTION INTENT
+----------------------
+
+Occupied neighboring cells are not automatically the same passage. Store an
+independent intent on every shared cardinal edge:
+
+- Auto: the local solver may choose an open connection or a wall.
+- Open: both resolved tile profiles must expose compatible openings.
+- Closed: both resolved tile profiles must expose walls on the shared edge.
+
+Normal cell painting opens toward adjacent built cells. Passage separation is a
+direct wall-editing action rather than a separate painting mode, keeping the
+palette and placement rules predictable.
+
+The Toggle Wall tool operates with one click near the boundary shared by two
+built cells. A currently open boundary becomes Closed; a wall becomes Open. The
+affected local footprint, including the two possible room cells on either side,
+is re-resolved together. This lets removing enough internal walls turn Auto or
+Wide-intent cells into a wide room. Explicit Narrow intent remains authoritative.
+An invalid edge edit is rejected atomically, leaving both the tile profiles and
+prior edge intent unchanged. Removing a cell clears all incident edge intents.
+
+Connection intent is saved separately from resolved prefab/profile IDs. Older
+saves default missing intent data to Auto. Navigation and light transmission use
+the resolved socket openings, so an explicitly closed edge also acts as a pathing
+and lighting wall without a second source of truth.
 
 
 MULTI-CELL STRUCTURES

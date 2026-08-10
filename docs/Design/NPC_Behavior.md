@@ -86,8 +86,6 @@ Desired behavior:
   of interest is present.
 - Award exploration experience when a new cell is entered, without requiring a
   visible stop.
-- Record the corresponding pending Adventurer Aura event for the dungeon without
-  conflating it with the NPC's personal experience.
 - Continue spending movement stamina while walking and additional stamina while
   climbing.
 - Replan when the intended route becomes invalid or a meaningful event occurs.
@@ -323,16 +321,8 @@ Fallback behavior if no familiar return route exists:
 - First choice: reverse the NPC's breadcrumb history until a familiar route to
   the entrance is restored.
 - If the route was destroyed or made impassable during exploration, mark the NPC
-  as stranded. Do not silently use an unknown route.
-- Start a configurable stranded timer while periodically checking whether the
-  familiar route has become usable again.
-- When the timer expires, forcibly return the NPC outside the dungeon. This is an
-  explicit recovery outcome, not navigation through unknown cells.
-
-Traversal objects cannot be edited during an active adventurer run, so ordinary
-player building should not create this state. The fallback still protects against
-dynamic blockers, destroyed encounter geometry, save recovery, and future systems
-that can invalidate a route.
+  as stranded and use a future stranded/recovery behavior. Do not silently use an
+  unknown route.
 
 Why connections must be remembered:
 
@@ -361,27 +351,6 @@ Future consideration:
   around early.
 
 
-VISIT COMPLETION, DEFEAT, AND AURA SETTLEMENT
----------------------------------------------
-
-Qualifying dungeon events accumulate pending Adventurer Aura during the visit.
-The dungeon receives that pending Aura when the NPC reaches one of these terminal
-visit outcomes:
-
-- Leaves through the dungeon entrance normally.
-- Is defeated inside the dungeon.
-- Is forcibly returned outside after the stranded timer expires.
-
-Defeat is not permanent character death. The NPC stops participating in the
-current run, returns to the outside population, and may later revisit after any
-future recovery or scheduling rules are satisfied. Defeat may grant an additional
-level-scaled Aura reward before the visit ledger is settled.
-
-Settlement must be idempotent: an NPC visit has one stable visit ID and may pay
-out only once, even if defeat, cleanup, forced return, and dungeon closure happen
-close together.
-
-
 PROPOSED IMPLEMENTATION PHASES
 ------------------------------
 
@@ -403,8 +372,6 @@ Phase 3 - Familiar return path
 - Add pathfinding restricted to the NPC's familiar connections.
 - Retain breadcrumb history as a safe fallback.
 - Prevent all global-graph shortcuts during return.
-- Add a visible stranded state, configurable timeout, periodic route retry, and
-  forced return outside when recovery fails.
 
 Phase 4 - Investigation framework
 
@@ -416,8 +383,6 @@ Phase 5 - Trait-driven decisions
 
 - Connect attributes, equipment, experience, and playstyle to detection,
   investigation, combat, trap resolution, and retreat decisions.
-- Settle each visit's pending Adventurer Aura once on exit, defeat, or forced
-  return, with defeat remaining non-permanent.
 
 Phase 6 - Depth-aware local routes
 
@@ -452,8 +417,6 @@ DEBUG VISUALS TO ADD
 - Current behavior state
 - Current investigation target
 - Reason for stopping or retreating
-- Stranded duration, retry state, and forced-return timeout
-- Visit ID, pending Aura, and settlement state
 - Selected local Z lane and lane alternatives
 - Last trap check, modifiers, probability, and result
 - Party ID, leader, goal, formation slot, and separation distance
@@ -470,12 +433,8 @@ INITIAL ACCEPTANCE CRITERIA
 - After stamina reaches zero, the NPC returns using only connections it traversed.
 - An untraveled shortcut to the entrance is never selected for the return route.
 - If the familiar route is unavailable, the NPC is reported as stranded instead
-  of gaining unexplained dungeon knowledge, retries until its timeout, and is then
-  forcibly returned outside.
-- The dungeon closes after all scheduled NPCs have exited, been defeated, or been
-  forcibly returned.
-- Exit, non-permanent defeat, and forced return each settle the visit's pending
-  Adventurer Aura exactly once.
+  of gaining unexplained dungeon knowledge.
+- The dungeon closes after all scheduled NPCs have exited or died.
 - NPCs use authored Z variation without clipping through tile geometry or changing
   depth planes without a valid transition.
 - A triggered trap resolves one dodge check whose chance is influenced primarily
@@ -488,61 +447,66 @@ INITIAL ACCEPTANCE CRITERIA
   granting members unexplained route knowledge.
 
 
-INCORPORATED CROSS-SYSTEM DECISIONS
------------------------------------
-
-- Traversal editing is locked during an active adventurer run.
-- A stranded NPC retries its familiar route, then is visibly returned outside
-  after a configurable timeout rather than learning an unknown route.
-- NPC defeat ends the visit but is not permanent character death.
-- Pending Adventurer Aura is settled once on exit, defeat, or forced return.
-
-See [Design Decisions](../Decisions/README.md) for the corresponding records.
-
-
 OPEN DESIGN QUESTIONS
 ---------------------
 
 1. Can NPCs see into adjacent cells before entering them? If so, what information
    can be learned without traversing the connection?
+   - maybe we add a perception trait for them that helps decide this. in general, if there are no doors or other barriers, they can see into the next cell, unless they have a relatively low perception.
 
 2. Should one traversal teach both directions of a route in all cases?
+  - for now yes
 
 3. Should ordinary intersections cause a short decision animation without fully
    stopping movement?
+   - Yes, stopping shortly would be fine too.
 
 4. Should NPCs share discoveries with one another during or between visits?
+ - As a later goal for adding these intersocial aspects, that would be a nice add. It would also be nice to see a log of interactions, or general events when clicking on an adventurer.
 
 5. Does dungeon knowledge reset every visit, every dungeon rebuild, or persist
-   as part of the adventurer's long-term memory?
+   as part of the adventurer's long-term memory? 
+   - it should persist until the explorer encounters an unexpected cell. In forks where ther was one opttion they've explored and one they haven't, there should be a somewhat random choice for which they follow this time around (only when traveling into the dungeon)
 
-6. Should cautious NPCs reserve enough stamina to walk home, or should return
+6. What happens when editing changes or removes an NPC's remembered return route?
+  - see question answer 5
+
+7. Should cautious NPCs reserve enough stamina to walk home, or should return
    travel remain free once stamina reaches zero?
+   - yes I like this idea. In the future, id like to force them to enter a "camping out" state in the dungeon where a small tent apears with 'zzzz' indicator above until they get enought stamina to exit the dugneon. For now we should just cause the npcs to walk slower if they are out of stamina.
 
-7. Which first encounter type should be used to test investigation behavior:
+8. Which first encounter type should be used to test investigation behavior:
    treasure, traps, enemies, or a neutral point of interest?
+   - lets add a puzzle door that takes a set amount of investigation that progresses its unlocking
 
-8. Should Z-lane choice be mostly random variation, personality-driven, or chosen
+9. Should Z-lane choice be mostly random variation, personality-driven, or chosen
    tactically from hazards and points of interest?
+   - mostly random unless there isn't a walkable floor under that lane. This would be handing for cases like visually broken ledges or thin bridges that are only centered.
+   I would say for cases like long corridors, the npc would most likely maintain the same lane if available
 
-9. Can an undetected trap still be reflex-dodged, and can a successful dodge
+10. Can an undetected trap still be reflex-dodged, and can a successful dodge
     avoid all damage or only reduce it?
+    -Id like for strength to reduce it, but dodging avoid all together.
+    
 
-10. What minimum and maximum dodge chances should apply regardless of attributes?
+11. What minimum and maximum dodge chances should apply regardless of attributes?
+    -something low like 5 to 10%
 
-11. Which actions deserve player-facing popups, and should routine exploration
+12. Which actions deserve player-facing popups, and should routine exploration
     experience remain silent?
+    - invesitigating, attacks, out of stamina (exhausted) and general abrupt interactions should have popups. Routine exploration should be silent.
 
-12. Which trait should govern social success if charisma is not added?
+13. Which trait should govern social success if charisma is not added?
+    - lets add charisma for this
 
-13. What is the maximum party size, and can an NPC join a party already in
+14. What is the maximum party size, and can an NPC join a party already in
     progress?
+    - maximum of 3, and yes
 
-14. Does a party share discoveries automatically, during mingling, or only after
+15. Does a party share discoveries automatically, during mingling, or only after
     leaving the dungeon?
+    - automatically, and they should generally move together like a pod.
 
-15. When one party member wants to retreat, does the party follow, split, or vote
+16. When one party member wants to retreat, does the party follow, split, or vote
     according to its leader and personalities?
-
-16. How long is the stranded timeout, and does forced return impose recovery time
-    or any Adventurer Aura penalty?
+    - id be open to leader and personalities contributing in the future, but for now we can split (or just combine the whole groups stamina into one "bar")

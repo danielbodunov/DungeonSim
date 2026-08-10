@@ -2,7 +2,11 @@
 
 This directory is for prioritized, actionable work rather than the full pool of design ideas.
 
-No implementation phase has been promoted to an active TODO yet. The current candidate roadmaps are:
+## Active milestone
+
+- [Initial building and adventurer vertical slices](2026-08-09-initial-vertical-slices.md)
+
+The broader candidate roadmaps remain:
 
 - [NPC behavior implementation phases](../Design/NPC_Behavior.md#proposed-implementation-phases)
 - [World generation and building implementation phases](../Design/World_Generation_and_Building.md#proposed-implementation-phases)

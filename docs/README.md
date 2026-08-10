@@ -8,11 +8,13 @@ This directory is the starting point for DungeonSim's game and system documentat
 - [`TODO/`](TODO/README.md) contains work that has been selected for implementation. Speculative ideas stay in Design until they are prioritized.
 - [`Decisions/`](Decisions/README.md) records important choices and the alternatives that were considered.
 - [`features/`](features/README.md) is the concise feature catalog and links each feature to its detailed design and implementation status.
+- [`Logs/`](Logs/2026-08-09.md) contains dated summaries of completed design and implementation work.
 
 ## Current focus
 
 - [NPC behavior design](Design/NPC_Behavior.md)
 - [World generation and building design](Design/World_Generation_and_Building.md)
+- [Visual and interaction design](Design/Visual_and_Interaction_Design.md)
 
 ## Documentation workflow
 
