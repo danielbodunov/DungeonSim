@@ -3,7 +3,7 @@
 ## Tracking
 
 - **ID:** t002
-- **Status:** Awaiting Unity Validation
+- **Status:** Complete
 - **Milestone:** Expedition Loop
 - **Depends on:** t001 — NPC Traversal Memory
 - **Blocks:** t003 — Point-of-Interest Foundation
@@ -91,7 +91,7 @@ A specialized entrance tile is useful authored content, but the semantic entranc
 - Added an entrance gizmo to the existing NPC traversal debug view.
 - Added an `Entrance/Single` socket to the walkable `Narrow_Straight_I` orientation.
 - Added a placeable entrance prefab, build-palette definition, removal tool, and save data.
-- Source validation is complete; the manual Unity scenario below remains pending.
+- Source validation and the manual Unity scenario below were completed successfully on 2026-08-11.
 
 ## Manual Test Scenario
 

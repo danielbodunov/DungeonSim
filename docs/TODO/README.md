@@ -19,12 +19,13 @@ Only the next few tickets should normally be elaborated here. Later planned work
 
 ## Awaiting Unity Validation
 
-- [t002 - Dungeon Entrance / Adventurer Spawn Contract](t002-Dungeon-Entrance.md)
+None currently recorded here.
 
 ## Completed / Existing Work
 
 - [Initial building and adventurer vertical slices](2026-08-09-initial-vertical-slices.md)
 - [t001 — NPC Traversal Memory](t001-NPC-Traversal-Memory.md)
+- [t002 — Dungeon Entrance / Adventurer Spawn Contract](t002-Dungeon-Entrance.md)
 
 ## Roadmaps
 
