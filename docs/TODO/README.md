@@ -1,27 +1,68 @@
 # Implementation TODO
 
-This directory is for prioritized, actionable work rather than the full pool of design ideas.
+This directory is the working queue for prioritized, actionable tickets. Broader sequencing and future work belong in `docs/Roadmap/`; enduring behavior and architecture belong in `docs/Design/`.
 
-## Active milestone
+## In Progress
+
+None.
+
+## Ready
+
+- [t002 — Dungeon Entrance / Adventurer Spawn Contract](t002-Dungeon-Entrance.md)
+
+## Planned / Near-Term
+
+- [t003 — Point-of-Interest Foundation](t003-Point-of-Interest-Foundation.md)
+- [t004 — Treasure Prop + Treasure Socket](t004-Treasure-Prop.md)
+
+Only the next few tickets should normally be elaborated here. Later planned work remains at roadmap level until earlier implementation provides enough information to specify it accurately.
+
+## Awaiting Unity Validation
+
+None currently recorded here.
+
+## Completed / Existing Work
 
 - [Initial building and adventurer vertical slices](2026-08-09-initial-vertical-slices.md)
-- [t001 - NPC traversal memory](t001-NPC-Traversal-Memory.md)
+- [t001 — NPC Traversal Memory](t001-NPC-Traversal-Memory.md)
 
-## Issue tracking
+## Roadmaps
 
-- [Known issues and follow-ups](Known_Issues_and_followups.md) records incidental issues discovered during active work without automatically expanding that work's scope.
+- [Core Gameplay Loop Roadmap](../Roadmap/Core-Gameplay-Loop.md) — vertical slices and planned tickets t002–t020.
+- [Roadmap index and planning rules](../Roadmap/README.md)
 
-The broader candidate roadmaps remain:
+## Issue Tracking
 
-- [NPC behavior implementation phases](../Design/NPC_Behavior.md#proposed-implementation-phases)
-- [World generation and building implementation phases](../Design/World_Generation_and_Building.md#proposed-implementation-phases)
+- [Known issues and follow-ups](Known_Issues_and_followups.md) records incidental issues discovered during active work without automatically expanding the current ticket's scope.
 
-When work is selected, create a focused Markdown file here with:
+## Design References
 
-- Scope and expected outcome
-- Dependencies and relevant design/decision links
-- A checklist of verifiable tasks
+- [NPC behavior](../Design/NPC_Behavior.md)
+- [World generation and building](../Design/World_Generation_and_Building.md)
+
+## Ticket Lifecycle
+
+Use stable ticket IDs (`t###`). Never renumber or reuse an ID, even if a ticket is cancelled or priorities change.
+
+Standard statuses:
+
+- Planned
+- Ready
+- In Progress
+- Awaiting Unity Validation
+- Complete
+- Blocked
+- Cancelled
+
+When roadmap work becomes actionable, create a focused Markdown ticket here containing:
+
+- Tracking metadata (ID, status, milestone, dependencies/blockers)
+- Summary and desired behavior
+- Requirements
 - Acceptance criteria
-- Status or completion date
+- Relevant systems / implementation context
+- Ticket-specific constraints
+- Manual Unity validation scenario where appropriate
+- Explicit out-of-scope items
 
-Completed work should be removed from the active checklist or moved to a clearly labeled completed section so this directory remains useful as a working queue.
+Branches, commits, PRs, known issues, and design discussions should reference the stable ticket ID when practical.
