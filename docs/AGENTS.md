@@ -586,3 +586,36 @@ The PR description should include:
 Before creating the PR, review the final diff and confirm that no unrelated changes are included.
 
 Return the PR link in the final response.
+
+## Ticket Documentation Maintenance
+
+The active ticket documentation is part of the implementation deliverable.
+
+While working on a ticket:
+
+* Keep the current ticket file in `docs/TODO/` synchronized with the actual implementation state.
+* Update its status when work meaningfully changes state, for example:
+
+  * `Ready` → `In Progress`
+  * `In Progress` → `Awaiting Unity Validation`
+  * `Awaiting Unity Validation` → `Complete`
+  * or `Blocked` when work cannot proceed.
+* Update acceptance criteria only to reflect what was actually completed or validated.
+* Record implementation notes, limitations, manual validation requirements, and related follow-up issues when they materially affect the ticket.
+* Do not mark Unity validation complete unless Unity was actually tested.
+* Keep `docs/TODO/README.md` synchronized with the ticket's current queue/status placement when appropriate.
+* When a ticket is complete, move or classify it as completed according to the existing TODO index structure.
+
+Do not:
+
+* change the scope of the ticket after implementation begins unless explicitly requested;
+* silently rewrite acceptance criteria to match the implementation;
+* change roadmap priorities;
+* renumber ticket IDs;
+* create speculative future tickets merely because additional work is possible;
+* modify unrelated ticket files;
+* reorganize planning documentation as part of feature work.
+
+If an unrelated issue is discovered, record it through the established known-issue/follow-up process rather than modifying unrelated tickets or expanding the current ticket.
+
+Roadmap changes should only be made when the completed ticket materially invalidates or clarifies planned sequencing. If that occurs, report the suggested roadmap change in the post-implementation report instead of editing the roadmap unless explicitly authorized.
