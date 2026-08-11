@@ -38,3 +38,8 @@ MonoBehaviour:
     <Size>k__BackingField: {x: 1, y: 1}
     <Prefab>k__BackingField: {fileID: 1001, guid: 5c39c4ab8a0e44398b0ec97618835a79, type: 3}
     <PlacementType>k__BackingField: 1
+  - <Name>k__BackingField: Dungeon Entrance
+    <ID>k__BackingField: 5
+    <Size>k__BackingField: {x: 1, y: 1}
+    <Prefab>k__BackingField: {fileID: 1001, guid: ac13f74274c6481e904013b2ef8af8de, type: 3}
+    <PlacementType>k__BackingField: 2

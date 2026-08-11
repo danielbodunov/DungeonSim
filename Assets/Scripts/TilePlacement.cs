@@ -32,11 +32,13 @@ public class TilePlacement : MonoBehaviour
     private Vector3Int? lastDragCell;
     private bool buildingEnabled = true;
     private bool removingTraps;
+    private bool removingEntrance;
     private bool editingEdges;
     private CellWidthIntent widthIntent = CellWidthIntent.Auto;
 
     public bool BuildingEnabled => buildingEnabled;
     public bool IsRemovingTraps => removingTraps;
+    public bool IsRemovingEntrance => removingEntrance;
     public bool IsEditingEdges => editingEdges;
     public CellWidthIntent WidthIntent => widthIntent;
     public int SelectedObjectId => selectedObjectIndex >= 0 &&
@@ -85,6 +87,19 @@ public class TilePlacement : MonoBehaviour
 
         StopPlacement();
         removingTraps = true;
+        gridVisualization.SetActive(true);
+        cellIndicator.SetActive(true);
+        inputManager.OnClicked += PlaceStructure;
+        inputManager.OnExit += StopPlacement;
+    }
+
+    public void StartEntranceRemoval()
+    {
+        if (!buildingEnabled)
+            return;
+
+        StopPlacement();
+        removingEntrance = true;
         gridVisualization.SetActive(true);
         cellIndicator.SetActive(true);
         inputManager.OnClicked += PlaceStructure;
@@ -155,6 +170,13 @@ public class TilePlacement : MonoBehaviour
             return;
         }
 
+        if (removingEntrance)
+        {
+            tileGridGenerator.RemoveEntranceWorldPosition(cellCenter);
+            lastDragCell = gridPosition;
+            return;
+        }
+
         ObjectData selectedObject = database.objectsData[selectedObjectIndex];
         Debug.Log($"Placing {selectedObject.Name} (ID {selectedObject.ID}) at grid position ({gridPosition.x}, {gridPosition.y})");
         if (selectedObject.PlacementType == ObjectPlacementType.Trap)
@@ -162,6 +184,14 @@ public class TilePlacement : MonoBehaviour
             tileGridGenerator.PlaceTrapWorldPosition(
                 cellCenter, selectedObject.Prefab, selectedObject.ID);
             lastDragCell = gridPosition;
+        }
+        else if (selectedObject.PlacementType == ObjectPlacementType.Entrance)
+        {
+            if (tileGridGenerator.PlaceEntranceWorldPosition(
+                    cellCenter, selectedObject.Prefab, selectedObject.ID))
+            {
+                lastDragCell = gridPosition;
+            }
         }
         else
         {
@@ -182,6 +212,7 @@ public class TilePlacement : MonoBehaviour
     {
         selectedObjectIndex = -1;
         removingTraps = false;
+        removingEntrance = false;
         editingEdges = false;
         gridVisualization.SetActive(false);
         cellIndicator.SetActive(false);
@@ -195,7 +226,8 @@ public class TilePlacement : MonoBehaviour
     private void Update()
     {
         if (!buildingEnabled ||
-            (!removingTraps && !editingEdges && selectedObjectIndex < 0))
+            (!removingTraps && !removingEntrance &&
+             !editingEdges && selectedObjectIndex < 0))
         { 
             return; 
         }

@@ -4,6 +4,7 @@ using System.Collections.Generic;
 public class TileGridGenerator : MonoBehaviour
 {
     const string GroundTileName = "Ground_Full_X";
+    const string EntranceStructureId = "Entrance";
     static readonly Vector2Int[] CardinalOffsets =
     {
         Vector2Int.up,
@@ -41,6 +42,12 @@ public class TileGridGenerator : MonoBehaviour
     readonly Dictionary<Vector2Int, int> placedTrapObjectIds = new();
     readonly Dictionary<Vector2Int, string> placedTrapPrefabNames = new();
     Transform trapContainer;
+    DungeonEntrance placedEntrance;
+    GameObject placedEntranceInstance;
+    Vector2Int placedEntranceCell;
+    int placedEntranceObjectId = -1;
+    string placedEntrancePrefabName;
+    Transform entranceContainer;
 
     public event System.Action LayoutChanged;
 
@@ -345,10 +352,34 @@ public class TileGridGenerator : MonoBehaviour
 
     public void NotifyLayoutChanged()
     {
+        RefreshPlacedEntrance();
         if (propGenerator != null)
             propGenerator.GenerateProps();
 
         LayoutChanged?.Invoke();
+    }
+
+    void RefreshPlacedEntrance()
+    {
+        if (placedEntrance == null)
+            return;
+
+        BakedPropSocket socket = FindEntranceSocket(
+            placedEntranceCell.x, placedEntranceCell.y);
+        if (!IsPlacedCell(placedEntranceCell.x, placedEntranceCell.y) ||
+            socket == null || !TryGetPropSocketWorldPose(
+                placedEntranceCell.x,
+                placedEntranceCell.y,
+                socket,
+                out Vector3 position,
+                out Quaternion rotation))
+        {
+            ClearEntrance();
+            return;
+        }
+
+        placedEntranceInstance.transform.SetPositionAndRotation(position, rotation);
+        placedEntrance.Bind(this, placedEntranceCell);
     }
 
     public void RegenerateProps(int generationSeed)
@@ -495,6 +526,7 @@ public class TileGridGenerator : MonoBehaviour
         }
 
         ClearTraps();
+        ClearEntrance();
         DestroyInstantiatedGrid();
         InitializeGrid();
 
@@ -650,6 +682,177 @@ public class TileGridGenerator : MonoBehaviour
         coordinates = GetGridCoordinates(worldPosition);
         return coordinates.x >= 0 && coordinates.y >= 0 &&
             coordinates.x < width && coordinates.y < height;
+    }
+
+    public bool TryGetDungeonEntrance(out DungeonEntrance entrance)
+    {
+        if (placedEntrance != null)
+        {
+            entrance = placedEntrance;
+            return true;
+        }
+
+        entrance = null;
+        if (!IsInitialized)
+            return false;
+
+        for (int y = 0; y < height; y++)
+        for (int x = 0; x < width; x++)
+        {
+            if (!placed[x, y] || instantiated[x, y] == null)
+                continue;
+
+            DungeonEntrance[] markers =
+                instantiated[x, y].GetComponentsInChildren<DungeonEntrance>(true);
+            for (int i = 0; i < markers.Length; i++)
+            {
+                DungeonEntrance marker = markers[i];
+                marker.Bind(this, new Vector2Int(x, y));
+                if (entrance != null)
+                {
+                    Debug.LogError(
+                        $"Dungeon entrance is ambiguous: both cells {entrance.Cell} " +
+                        $"and ({x}, {y}) contain entrance markers.", this);
+                    entrance = null;
+                    return false;
+                }
+
+                entrance = marker;
+            }
+        }
+
+        return entrance != null;
+    }
+
+    public bool PlaceEntranceWorldPosition(
+        Vector3 worldPosition,
+        GameObject entrancePrefab,
+        int objectId = -1)
+    {
+        Vector2Int coordinates = GetGridCoordinates(worldPosition);
+        return PlaceEntranceCell(
+            coordinates.x, coordinates.y, entrancePrefab, objectId);
+    }
+
+    public bool RemoveEntranceWorldPosition(Vector3 worldPosition)
+    {
+        Vector2Int coordinates = GetGridCoordinates(worldPosition);
+        return RemoveEntranceAtCell(coordinates);
+    }
+
+    public bool PlaceEntranceCell(
+        int x,
+        int y,
+        GameObject entrancePrefab,
+        int objectId = -1)
+    {
+        if (entrancePrefab == null)
+        {
+            Debug.LogWarning(
+                "An entrance prefab must be assigned before it can be placed.", this);
+            return false;
+        }
+
+        if (x < 0 || x >= width || y < 0 || y >= height || !placed[x, y])
+        {
+            Debug.LogWarning(
+                $"Entrances can only be placed on a built dungeon tile. " +
+                $"Cell ({x},{y}) is not available.", this);
+            return false;
+        }
+
+        if (placedEntrance != null)
+        {
+            Debug.LogWarning(
+                $"The dungeon already has an entrance at {placedEntranceCell}. " +
+                "Remove it before placing another.", this);
+            return false;
+        }
+
+        BakedPropSocket socket = FindEntranceSocket(x, y);
+        if (socket == null || !TryGetPropSocketWorldPose(
+                x, y, socket, out Vector3 position, out Quaternion rotation))
+        {
+            Debug.LogWarning(
+                $"Cell ({x},{y}) does not provide a compatible entrance socket.", this);
+            return false;
+        }
+
+        if (entranceContainer == null)
+        {
+            var container = new GameObject("Placed Entrance");
+            container.transform.SetParent(transform, false);
+            entranceContainer = container.transform;
+        }
+
+        GameObject instance = Instantiate(
+            entrancePrefab, position, rotation, entranceContainer);
+        DungeonEntrance entrance = instance.GetComponentInChildren<DungeonEntrance>(true);
+        if (entrance == null)
+        {
+            Debug.LogWarning(
+                $"Entrance prefab '{entrancePrefab.name}' needs a DungeonEntrance component.",
+                entrancePrefab);
+            Destroy(instance);
+            return false;
+        }
+
+        placedEntrance = entrance;
+        placedEntranceInstance = instance;
+        placedEntranceCell = new Vector2Int(x, y);
+        placedEntranceObjectId = objectId;
+        placedEntrancePrefabName = entrancePrefab.name;
+        placedEntrance.Bind(this, placedEntranceCell);
+        LayoutChanged?.Invoke();
+        return true;
+    }
+
+    public SavedEntrance CaptureEntranceLayout()
+    {
+        if (placedEntrance == null)
+            return null;
+
+        return new SavedEntrance
+        {
+            x = placedEntranceCell.x,
+            y = placedEntranceCell.y,
+            objectId = placedEntranceObjectId,
+            prefabName = placedEntrancePrefabName
+        };
+    }
+
+    public void ClearEntrance()
+    {
+        if (placedEntranceInstance != null)
+            Destroy(placedEntranceInstance);
+        placedEntrance = null;
+        placedEntranceInstance = null;
+        placedEntranceCell = default;
+        placedEntranceObjectId = -1;
+        placedEntrancePrefabName = null;
+    }
+
+    BakedPropSocket FindEntranceSocket(int x, int y)
+    {
+        foreach (BakedPropSocket socket in GetCellPropSockets(x, y))
+            if (socket != null && socket.role == PropSocketRole.Single &&
+                string.Equals(
+                    socket.structureId, EntranceStructureId,
+                    System.StringComparison.OrdinalIgnoreCase))
+            {
+                return socket;
+            }
+        return null;
+    }
+
+    bool RemoveEntranceAtCell(Vector2Int cell)
+    {
+        if (placedEntrance == null || placedEntranceCell != cell)
+            return false;
+
+        ClearEntrance();
+        LayoutChanged?.Invoke();
+        return true;
     }
 
     public ConnectionIntent GetConnectionIntent(Vector2Int from, Vector2Int to)
@@ -1187,6 +1390,8 @@ public class TileGridGenerator : MonoBehaviour
         foreach (Vector2Int position in region)
             InstantiateCurrentCell(position.x, position.y);
         RemoveTrapAtCell(new Vector2Int(x, y));
+        if (placedEntrance != null && placedEntranceCell == new Vector2Int(x, y))
+            ClearEntrance();
         NotifyLayoutChanged();
         return true;
     }

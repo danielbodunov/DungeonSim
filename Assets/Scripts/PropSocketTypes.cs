@@ -24,6 +24,16 @@ public enum PropSocketPlatformPolicy
     ManualOnly
 }
 
+[Flags]
+public enum PropSocketRotationMask
+{
+    Rotation0 = 1 << 0,
+    Rotation90 = 1 << 1,
+    Rotation180 = 1 << 2,
+    Rotation270 = 1 << 3,
+    All = Rotation0 | Rotation90 | Rotation180 | Rotation270
+}
+
 [Serializable]
 public class BakedPropSocket
 {

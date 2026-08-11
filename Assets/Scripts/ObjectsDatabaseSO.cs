@@ -12,7 +12,8 @@ public class ObjectsDatabaseSO : ScriptableObject
 public enum ObjectPlacementType
 {
     DungeonTile,
-    Trap
+    Trap,
+    Entrance
 }
 
 [Serializable]

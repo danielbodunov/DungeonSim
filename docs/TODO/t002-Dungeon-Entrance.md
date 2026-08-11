@@ -3,7 +3,7 @@
 ## Tracking
 
 - **ID:** t002
-- **Status:** Ready
+- **Status:** Awaiting Unity Validation
 - **Milestone:** Expedition Loop
 - **Depends on:** t001 — NPC Traversal Memory
 - **Blocks:** t003 — Point-of-Interest Foundation
@@ -16,7 +16,7 @@ Feature
 
 Establish one authoritative semantic dungeon entrance that defines where adventurers enter, spawn, return to, and exit the dungeon.
 
-Use a specialized starter/entrance tile as the initial authored implementation, but do not make a specific tile type the permanent gameplay contract. The entrance should be represented by a dedicated component/socket or equivalent semantic marker hosted by a valid tile.
+Use a placeable entrance object hosted by a compatible tile socket. `Narrow_Straight_I` provides the first validation socket, but neither NPC behavior nor the entrance contract should depend on that concrete tile type.
 
 ## Current Behavior
 
@@ -24,9 +24,9 @@ NPC traversal can remember an entrance/start cell and return through familiar co
 
 ## Desired Behavior
 
-A dungeon can expose an entrance through a semantic authored object. NPC systems can query that entrance to determine the logical entrance cell and appropriate spawn/entry/exit transform without special-casing one concrete tile prefab.
+A dungeon can expose an entrance through a semantic, player-placed object. NPC systems can query that entrance to determine the logical entrance cell and appropriate spawn/entry/exit transform without special-casing one concrete tile prefab.
 
-The first content implementation may be a specialized starter tile containing the entrance marker.
+The entrance can be placed from the build palette on a compatible entrance socket. The first validation socket is authored on the walkable orientation of `Narrow_Straight_I` because `Starter_X` is not a walkable expedition threshold.
 
 ## Requirements
 
@@ -34,7 +34,9 @@ The first content implementation may be a specialized starter tile containing th
 - Associate the entrance with its containing dungeon cell.
 - Provide an authored NPC spawn/entry transform.
 - Provide the information required for an NPC returning home to resolve at the same logical entrance.
-- Support a specialized starter tile as the initial host without requiring all future entrances to use that tile type.
+- Support a valid walkable tile as the initial host without requiring all future entrances to use that tile type.
+- Allow the entrance object to be placed and removed through the building interface.
+- Preserve the placed entrance in dungeon saves.
 - Integrate with existing NPC start/return concepts rather than creating a parallel navigation system.
 - Expose enough debug information to verify which entrance/cell is active if this is not already obvious through existing tooling.
 
@@ -46,7 +48,9 @@ The ticket is complete when:
 - An NPC visit can begin from the entrance's authored spawn/entry position.
 - The NPC's entrance/start cell is derived from the entrance contract rather than a hard-coded tile identity.
 - Familiar return behavior can target the same logical entrance.
-- The initial specialized starter tile can host the entrance implementation.
+- The initial `Narrow_Straight_I` validation tile can host the entrance implementation.
+- The build palette can place one entrance on a compatible socket and reject incompatible cells or a second entrance.
+- The placed entrance can be removed and survives a save/load round trip.
 - Future tile prefabs could host an entrance without changing NPC traversal architecture.
 - Existing unrelated generation and NPC traversal behavior remains unchanged.
 
@@ -79,14 +83,27 @@ Preferred conceptual separation:
 
 A specialized entrance tile is useful authored content, but the semantic entrance component/socket should be the system contract.
 
+### Implementation Status
+
+- Added a reusable `DungeonEntrance` component whose transform defines the authored entry/exit pose.
+- Added runtime resolution from a placed tile instance to its containing grid cell.
+- Updated NPC spawning and familiar return behavior to use the resolved entrance while preserving the previous spawn selection as a compatibility fallback for content without a marker.
+- Added an entrance gizmo to the existing NPC traversal debug view.
+- Added an `Entrance/Single` socket to the walkable `Narrow_Straight_I` orientation.
+- Added a placeable entrance prefab, build-palette definition, removal tool, and save data.
+- Source validation is complete; the manual Unity scenario below remains pending.
+
 ## Manual Test Scenario
 
-1. Generate or construct a dungeon containing the starter entrance tile.
-2. Spawn/start an adventurer visit.
-3. Verify the adventurer begins at the authored entrance location and records the correct entrance cell.
-4. Allow the adventurer to traverse several cells.
-5. Trigger normal return behavior.
-6. Verify the adventurer follows familiar routing back to the same logical entrance and resolves the exit there.
+1. Generate or construct a dungeon containing a horizontal `Narrow_Straight_I` tile.
+2. Select **Dungeon Entrance** from the build palette and place it on that tile.
+3. Verify an incompatible cell and a second entrance placement are rejected.
+4. Spawn/start an adventurer visit.
+5. Verify the adventurer begins at the authored entrance location and records the correct entrance cell.
+6. Allow the adventurer to traverse several cells, then trigger normal return behavior.
+7. Verify the adventurer follows familiar routing back to the same logical entrance and resolves the exit there.
+8. Save and load the dungeon, then verify the entrance is restored on the same socket.
+9. Use **Remove Entrance** and verify the entrance is cleared.
 
 ## Out of Scope
 

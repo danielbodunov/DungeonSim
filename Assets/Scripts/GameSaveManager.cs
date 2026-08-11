@@ -73,7 +73,8 @@ public class GameSaveManager : MonoBehaviour
             livingAdventurers = gameplayLoop.CaptureLivingAdventurers(),
             tileCells = tileGrid.CaptureTileLayout(),
             connectionEdges = tileGrid.CaptureConnectionIntents(),
-            traps = tileGrid.CaptureTrapLayout()
+            traps = tileGrid.CaptureTrapLayout(),
+            entrance = tileGrid.CaptureEntranceLayout()
         };
 
         string savePath = GetNamedSavePath(saveName);
@@ -176,12 +177,14 @@ public class GameSaveManager : MonoBehaviour
         List<SavedConnectionEdge> previousConnections =
             tileGrid.CaptureConnectionIntents();
         List<SavedTrapCell> previousTraps = tileGrid.CaptureTrapLayout();
+        SavedEntrance previousEntrance = tileGrid.CaptureEntranceLayout();
         int previousPropSeed = tileGrid.PropGenerationSeed;
         if (!tileGrid.RestoreTileLayout(save.tileCells, save.connectionEdges))
         {
             if (tileGrid.RestoreTileLayout(previousTiles, previousConnections))
             {
                 RestoreTraps(previousTraps);
+                RestoreEntrance(previousEntrance);
                 tileGrid.RegenerateProps(previousPropSeed);
             }
             return ReportFailure(
@@ -197,13 +200,16 @@ public class GameSaveManager : MonoBehaviour
             save.livingAdventurers);
 
         int restoredTraps = RestoreTraps(save.traps);
+        bool restoredEntrance = RestoreEntrance(save.entrance);
         tileGrid.RegenerateProps(save.propGenerationSeed);
         string displayName = string.IsNullOrWhiteSpace(save.saveName)
             ? Path.GetFileNameWithoutExtension(savePath)
             : save.saveName;
         return ReportSuccess(
             $"Loaded '{displayName}': {save.tileCells.Count} cells, " +
-            $"{restoredTraps} traps, and {gameplayLoop.AdventurerRoster.Count} adventurers.");
+            $"{restoredTraps} traps, " +
+            $"{(restoredEntrance ? "an entrance" : "no entrance")}, and " +
+            $"{gameplayLoop.AdventurerRoster.Count} adventurers.");
     }
 
     SaveSlotInfo ReadSaveSlot(string path, string fallbackName = null)
@@ -332,6 +338,31 @@ public class GameSaveManager : MonoBehaviour
             }
         }
         return restored;
+    }
+
+    bool RestoreEntrance(SavedEntrance entrance)
+    {
+        tileGrid.ClearEntrance();
+        if (entrance == null)
+            return false;
+
+        GameObject prefab = FindObjectPrefab(entrance.objectId);
+        if (prefab == null && !string.IsNullOrWhiteSpace(entrance.prefabName))
+        {
+            prefab = Resources.Load<GameObject>($"Props/{entrance.prefabName}")
+                ?? Resources.Load<GameObject>(entrance.prefabName);
+        }
+
+        if (prefab != null && tileGrid.PlaceEntranceCell(
+                entrance.x, entrance.y, prefab, entrance.objectId))
+        {
+            return true;
+        }
+
+        Debug.LogWarning(
+            $"Could not restore entrance '{entrance.prefabName}' at " +
+            $"({entrance.x},{entrance.y}).", this);
+        return false;
     }
 
     GameObject FindObjectPrefab(int objectId)

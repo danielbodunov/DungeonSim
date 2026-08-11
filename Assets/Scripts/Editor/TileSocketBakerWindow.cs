@@ -109,6 +109,15 @@ List<BakedPropSocket> BakePropSockets(GameObject prefab, int rotationIndex)
     var bakedSockets = new List<BakedPropSocket>();
     foreach (var authoredSocket in prefab.GetComponentsInChildren<PropSocketAuthoring>(true))
     {
+        PropSocketRotationMask rotation =
+            (PropSocketRotationMask)(1 << rotationIndex);
+        PropSocketRotationMask allowedRotations =
+            authoredSocket.allowedTileRotations == 0
+                ? PropSocketRotationMask.All
+                : authoredSocket.allowedTileRotations;
+        if ((allowedRotations & rotation) == 0)
+            continue;
+
         bakedSockets.Add(new BakedPropSocket
         {
             structureId = authoredSocket.structureId.Trim(),

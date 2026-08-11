@@ -52,11 +52,30 @@ CURRENT TECHNICAL BASELINE
 - Lighting is sampled over the two-dimensional cell grid and spreads through
   valid cell connections.
 - Traps currently occupy one built cell.
+- One authoritative dungeon entrance can be placed on a compatible authored
+  prop socket and is persisted independently from the host tile.
 - Player build intent supports Auto, Narrow, and Wide cells, plus explicit shared
   wall toggles that re-resolve the affected local region.
 
 These are useful foundations, but multi-cell structures and background depth
 will require explicit data rather than being inferred only from cell position.
+
+
+DUNGEON ENTRANCE PLACEMENT
+--------------------------
+
+- The entrance is a placeable gameplay object, not an intrinsic property of a
+  concrete tile prefab.
+- Compatible tiles expose an `Entrance` single-prop socket at a walkable entry
+  pose. The initial validation socket is on the horizontal `Narrow_Straight_I`.
+- The player places or removes the entrance from the build palette during the
+  Expansion phase.
+- Exactly one entrance is authoritative. Placement rejects a second entrance
+  until the existing one is removed.
+- NPC spawn, familiar return, debug display, and save/load resolve through the
+  placed entrance object and its owning cell.
+- Re-resolving the host cell must preserve and reposition the entrance only when
+  a compatible socket remains; otherwise the placement is removed.
 
 
 MANUAL TRAVERSAL PLACEMENT

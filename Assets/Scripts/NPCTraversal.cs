@@ -99,6 +99,7 @@ public class NPCTraversal : MonoBehaviour
     readonly RaycastHit[] groundHits = new RaycastHit[16];
     readonly List<Vector3> debugWalkableSamples = new();
     readonly List<Vector3> debugRejectedSamples = new();
+    DungeonEntrance activeEntrance;
     NPCTraversalAgent agent;
     readonly List<NPCTraversalAgent> agents = new();
     int floorConnectionCount;
@@ -130,6 +131,7 @@ public class NPCTraversal : MonoBehaviour
     }
     public IReadOnlyList<Vector3> DebugWalkableSamples => debugWalkableSamples;
     public IReadOnlyList<Vector3> DebugRejectedSamples => debugRejectedSamples;
+    public DungeonEntrance ActiveEntrance => activeEntrance;
     internal float MaximumUnplannedDrop => maxStepHeight;
     internal float FallRecoveryDelay => fallRecoveryDelay;
     public event System.Action<NPCCharacter> AdventurerDied;
@@ -175,6 +177,8 @@ public class NPCTraversal : MonoBehaviour
 
     void OnEnable()
     {
+        if (grid != null)
+            grid.LayoutChanged += ResolveEntranceAfterLayoutChange;
         if (props != null)
             props.StructuresRegenerated += RebuildNavigation;
     }
@@ -188,13 +192,21 @@ public class NPCTraversal : MonoBehaviour
 
     void OnDisable()
     {
+        if (grid != null)
+            grid.LayoutChanged -= ResolveEntranceAfterLayoutChange;
         if (props != null)
             props.StructuresRegenerated -= RebuildNavigation;
+    }
+
+    void ResolveEntranceAfterLayoutChange()
+    {
+        ResolveEntrance();
     }
 
     void RebuildNavigation()
     {
         BuildGraph();
+        ResolveEntrance();
         PruneDestroyedAgents();
         for (int i = 0; i < agents.Count; i++)
             agents[i].RefreshNavigation(this);
@@ -463,7 +475,10 @@ public class NPCTraversal : MonoBehaviour
             return null;
         }
 
-        if (!TryFindSpawnPose(out Vector2Int start, out Vector3 spawnPosition))
+        if (!TryFindSpawnPose(
+            out Vector2Int start,
+            out Vector3 spawnPosition,
+            out Quaternion spawnRotation))
         {
             Debug.LogWarning(
                 "NPCTraversal could not find a placed entrance cell with a walkable floor.",
@@ -471,7 +486,7 @@ public class NPCTraversal : MonoBehaviour
             return null;
         }
 
-        GameObject instance = Instantiate(npcPrefab, spawnPosition, Quaternion.identity);
+        GameObject instance = Instantiate(npcPrefab, spawnPosition, spawnRotation);
         if (instance.GetComponentInChildren<DungeonLightReceiver>(true) == null)
             instance.AddComponent<DungeonLightReceiver>();
         NPCCharacter character = instance.GetComponent<NPCCharacter>();
@@ -484,7 +499,7 @@ public class NPCTraversal : MonoBehaviour
             agent = instance.AddComponent<NPCTraversalAgent>();
         agents.Add(agent);
         agent.Configure(
-            this, start, moveSpeed, ladderSpeed,
+            this, start, spawnPosition, moveSpeed, ladderSpeed,
             patrolAutomatically, waitAtDestination,
             movementStaminaCost, ladderStaminaMultiplier,
             taskStaminaCostPerSecond);
@@ -525,8 +540,31 @@ public class NPCTraversal : MonoBehaviour
             agent = agents[agents.Count - 1];
     }
 
-    bool TryFindSpawnPose(out Vector2Int start, out Vector3 position)
+    bool TryFindSpawnPose(
+        out Vector2Int start,
+        out Vector3 position,
+        out Quaternion rotation)
     {
+        rotation = Quaternion.identity;
+        if (ResolveEntrance())
+        {
+            start = activeEntrance.Cell;
+            if (!graph.ContainsKey(start))
+            {
+                Debug.LogWarning(
+                    $"Dungeon entrance cell {start} is not part of the NPC navigation graph.",
+                    activeEntrance);
+                position = default;
+                return false;
+            }
+
+            rotation = activeEntrance.EntryRotation;
+            return TryGetEntranceFloorPosition(
+                activeEntrance.EntryPosition, true, out position);
+        }
+
+        // Legacy fallback preserves existing scenes and custom tile sets that
+        // have not yet authored a semantic DungeonEntrance marker.
         if (useManualStartCell && graph.ContainsKey(manualStartCell) &&
             TryGetEntranceFloorPosition(manualStartCell, true, out position))
         {
@@ -560,6 +598,12 @@ public class NPCTraversal : MonoBehaviour
         return false;
     }
 
+    bool ResolveEntrance()
+    {
+        activeEntrance = null;
+        return grid != null && grid.TryGetDungeonEntrance(out activeEntrance);
+    }
+
     bool TryFindOrderedSpawn(
         List<Vector2Int> orderedCells,
         bool requireConnection,
@@ -588,6 +632,12 @@ public class NPCTraversal : MonoBehaviour
         Vector2Int cell, bool allowDeepFloor, out Vector3 position)
     {
         Vector3 anchor = grid.GetCellWorldPosition(cell.x, cell.y);
+        return TryGetEntranceFloorPosition(anchor, allowDeepFloor, out position);
+    }
+
+    bool TryGetEntranceFloorPosition(
+        Vector3 anchor, bool allowDeepFloor, out Vector3 position)
+    {
         anchor.x += spawnOffset.x;
         anchor.z += spawnOffset.z;
 
@@ -815,6 +865,7 @@ public class NPCTraversalAgent : MonoBehaviour
     NPCCharacter character;
     Vector2Int startCell;
     Vector2Int currentCell;
+    Vector3 homePosition;
     float speed;
     float climbSpeed;
     bool autoPatrol;
@@ -840,6 +891,7 @@ public class NPCTraversalAgent : MonoBehaviour
     public NPCCharacter Character => character;
     public Vector2Int StartCell => startCell;
     public Vector2Int CurrentCell => currentCell;
+    public Vector3 HomePosition => homePosition;
     public IReadOnlyCollection<Vector2Int> VisitedCells => visitedCells;
     public IReadOnlyCollection<NPCTraversalConnection> FamiliarConnections => familiarConnections;
     public float RemainingStamina => character != null ? character.CurrentStamina : 0f;
@@ -853,6 +905,7 @@ public class NPCTraversalAgent : MonoBehaviour
     public void Configure(
         NPCTraversal owner,
         Vector2Int startCell,
+        Vector3 entrancePosition,
         float moveSpeed,
         float ladderMoveSpeed,
         bool patrol,
@@ -864,6 +917,7 @@ public class NPCTraversalAgent : MonoBehaviour
         navigation = owner;
         this.startCell = startCell;
         currentCell = startCell;
+        homePosition = entrancePosition;
         speed = moveSpeed;
         climbSpeed = ladderMoveSpeed;
         autoPatrol = patrol;
@@ -957,6 +1011,8 @@ public class NPCTraversalAgent : MonoBehaviour
         activeRoute = new List<Vector3>();
         foreach (NPCTraversal.RouteStep step in steps)
             activeRoute.AddRange(step.waypoints);
+        if (familiarOnly && destination == startCell)
+            activeRoute.Add(homePosition);
         nextWaypointIndex = activeRoute.Count > 0 ? 0 : -1;
         movement = StartCoroutine(FollowRoute(steps));
         return true;
@@ -1012,6 +1068,12 @@ public class NPCTraversalAgent : MonoBehaviour
             if (!returningHome && waitTime > 0f && character.CurrentStamina > 0f &&
                 navigation.ShouldInvestigate(this, currentCell))
                 yield return SpendStaminaWhileWaiting(waitTime);
+        }
+
+        if (returningHome && currentCell == startCell)
+        {
+            nextWaypointIndex = Mathf.Max(0, activeRoute.Count - 1);
+            yield return MoveToHomePosition();
         }
 
         activeRoute = null;
@@ -1120,7 +1182,29 @@ public class NPCTraversalAgent : MonoBehaviour
         // Already home, or the graph changed so home can no longer be reached.
         // Only a successful return counts as a completed dungeon visit.
         if (currentCell == startCell)
-            CompleteDungeonVisit();
+            movement = StartCoroutine(ReturnFromEntranceCell());
+    }
+
+    IEnumerator ReturnFromEntranceCell()
+    {
+        activeRoute = new List<Vector3> { homePosition };
+        nextWaypointIndex = 0;
+        yield return MoveToHomePosition();
+        activeRoute = null;
+        nextWaypointIndex = -1;
+        movement = null;
+        CompleteDungeonVisit();
+    }
+
+    IEnumerator MoveToHomePosition()
+    {
+        while ((transform.position - homePosition).sqrMagnitude > 0.0001f)
+        {
+            Vector3 next = Vector3.MoveTowards(
+                transform.position, homePosition, speed * Time.deltaTime);
+            transform.position = navigation.GetGroundedPosition(next);
+            yield return null;
+        }
     }
 
     IEnumerator SpendStaminaWhileWaiting(float duration)

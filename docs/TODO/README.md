@@ -8,7 +8,7 @@ None.
 
 ## Ready
 
-- [t002 — Dungeon Entrance / Adventurer Spawn Contract](t002-Dungeon-Entrance.md)
+None.
 
 ## Planned / Near-Term
 
@@ -19,7 +19,7 @@ Only the next few tickets should normally be elaborated here. Later planned work
 
 ## Awaiting Unity Validation
 
-None currently recorded here.
+- [t002 - Dungeon Entrance / Adventurer Spawn Contract](t002-Dungeon-Entrance.md)
 
 ## Completed / Existing Work
 
