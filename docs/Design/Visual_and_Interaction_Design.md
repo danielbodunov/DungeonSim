@@ -47,9 +47,13 @@ CURRENT TECHNICAL BASELINE
 - `GameplayLoopController` already exposes Expansion and Exploring phases.
 - `DungeonLightingManager` owns ambient color, a grid light texture, static and
   dynamic contributions, and Legacy, Smooth2x, and Smooth4x quality presets.
-- `CameraFollow` supports smooth panning and zoom but currently follows itself by
-  default and has no explicit focus-session API.
+- `CameraFollow` supports smooth panning and distance-based perspective dolly
+  zoom without changing field of view, but has no explicit focus-session API.
 - `GameplayLoopUI` creates the current HUD and build palette at runtime.
+- The build palette exposes Auto, Narrow, Wide, and Toggle Wall controls, but the
+  tools do not yet provide object-footprint previews or wall-edge hover tooltips.
+- NPC dodge, damage, and defeat outcomes can create short-lived world-space
+  action feedback popups.
 - `GameplayLoopUI` currently contains hard-coded colors and dimensions, so a theme
   asset will need to replace those values gradually.
 - Adventurer Aura, pending visit Aura, and dungeon level are already available to
@@ -164,6 +168,38 @@ Initial theme variants to plan for:
 
 The theme controls presentation only. It must not contain gameplay costs, unlock
 rules, localized text, or button behavior.
+
+
+BUILD PLACEMENT PREVIEWS AND EDGE AFFORDANCES
+---------------------------------------------
+
+Placement preview behavior:
+
+- Hovering a buildable cell shows a highlighted preview before placing a dungeon
+  tile, trap, or spawner.
+- Multi-cell or adjacency-based objects highlight their complete affected
+  footprint rather than only the anchor cell.
+- Valid previews use the shared theme's valid-placement treatment; invalid or
+  blocked previews use its invalid-placement treatment and explain the reason.
+- The preview updates immediately when the hovered cell, selected buildable,
+  orientation, cost, unlock state, or local tile solution changes.
+- Preview validation and committed placement consume the same authoritative
+  result so the highlight cannot promise a placement that the click rejects.
+
+Toggle Wall hover behavior:
+
+- While the Toggle Wall tool is active, highlight the nearest editable shared
+  edge rather than highlighting an entire cell.
+- Show a compact tooltip next to the pointer describing the pending action:
+  `Add Wall` for an open edge or `Remove Wall` for a closed edge.
+- If the edge cannot be changed, show an unavailable treatment and a concise
+  reason, such as requiring two adjacent built cells or having no valid local
+  tile solution.
+- Offset the tooltip from the pointer so it does not obscure the edge, clamp it
+  within the screen, and hide it immediately when no eligible edge is hovered or
+  the tool is exited.
+- Use shared UI-theme tokens for tooltip surfaces, text, valid highlights,
+  invalid highlights, and unavailable states.
 
 
 PHASE-BASED LIGHTING
@@ -438,8 +474,12 @@ Phase 3 - Lighting presentation modes
 - Connect mode changes to `GameplayLoopController`.
 - Add a short shader blend and verify that the normal light field remains intact.
 
-Phase 4 - Selection foundation
+Phase 4 - Build interaction feedback and selection foundation
 
+- Add highlighted placement previews for dungeon tiles, traps, and spawners.
+- Add shared-edge highlighting and pointer-following Add Wall/Remove Wall
+  tooltips for the Toggle Wall tool.
+- Make preview and commit share one validation result.
 - Define a common selectable/inspectable contract.
 - Add pointer selection, deselection, highlight state, and selection priority.
 - Implement NPC, trap, and spawner detail providers.
@@ -501,6 +541,10 @@ INITIAL ACCEPTANCE CRITERIA
 - The top HUD shows dungeon level, progress toward the next level, banked Aura,
   and pending Aura during a visit.
 - Placement preview shows cost and projected remaining Aura before committing.
+- Dungeon tiles, traps, and spawners show a valid or invalid highlighted footprint
+  before placement.
+- Toggle Wall hover highlights the affected shared edge and shows an Add Wall or
+  Remove Wall tooltip beside the pointer.
 - The Tier menu presents three linear dungeon tiers.
 - The technology tree presents separate Trap, Spawner, and Decor branches.
 - Progression purchases are disabled during Exploring.

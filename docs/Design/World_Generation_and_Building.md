@@ -52,6 +52,8 @@ CURRENT TECHNICAL BASELINE
 - Lighting is sampled over the two-dimensional cell grid and spreads through
   valid cell connections.
 - Traps currently occupy one built cell.
+- Player build intent supports Auto, Narrow, and Wide cells, plus explicit shared
+  wall toggles that re-resolve the affected local region.
 
 These are useful foundations, but multi-cell structures and background depth
 will require explicit data rather than being inferred only from cell position.
@@ -172,6 +174,37 @@ Connection intent is saved separately from resolved prefab/profile IDs. Older
 saves default missing intent data to Auto. Navigation and light transmission use
 the resolved socket openings, so an explicitly closed edge also acts as a pathing
 and lighting wall without a second source of truth.
+
+
+UNDERGROUND BOUNDARY FRAMING
+----------------------------
+
+Problem:
+
+The visible dungeon can end against open grid space on one horizontal side,
+which weakens the impression that rooms and corridors are carved underground.
+
+Desired behavior:
+
+- Generate solid ground framing along both the left and right sides of the usable
+  grid, not only on the side currently reached by generation.
+- Keep the framing visually continuous with ceiling, floor, and filled-cell
+  materials so the dungeon reads as embedded in surrounding earth.
+- Treat boundary ground as non-buildable support/background unless a dedicated
+  entrance or expansion rule explicitly opens it.
+- Preserve intentional entrances and exits rather than sealing them with the
+  framing pass.
+- Keep boundary generation deterministic and independent from player-painted
+  interior width and connection intent.
+
+Initial implementation direction:
+
+- Add a boundary-framing pass after grid dimensions and entrance locations are
+  known but before interactive placement begins.
+- Resolve left and right framing from explicit boundary rules rather than relying
+  on incidental wave-function-collapse neighbors.
+- Validate the smallest and largest supported grid sizes and camera framing so
+  both sides remain visible without exposing empty space.
 
 
 MULTI-CELL STRUCTURES
@@ -392,13 +425,26 @@ Phase 2 - Manual traversal palette
 - Snap previews to compatible authored sockets.
 - Save placed traversal objects and rebuild navigation after changes.
 
-Phase 3 - Wide/narrow intent
+Phase 3 - Wide/narrow intent (Implemented baseline; preview work remains)
 
 - Add Auto, Wide, and Narrow placement modes.
 - Store cell-width intent independently from the resolved profile.
 - Re-resolve only the deterministic local Auto neighborhood after nearby edits;
   never rewrite an explicit Wide or Narrow choice.
 - Add safe previewed conversion for existing cells.
+
+Phase 3B - Cell connection intent (Implemented; awaiting play-mode validation)
+
+- Store Auto, Open, and Closed intent on shared cardinal edges.
+- Toggle walls with one edge click and atomically re-resolve the local footprint.
+- Save connection intent independently from resolved tile profiles.
+
+Phase 3A - Underground boundary framing
+
+- Generate deterministic solid ground on the left and right grid boundaries.
+- Preserve authored entrances and future expansion openings.
+- Verify visual continuity at floors, ceilings, corners, and every supported grid
+  size.
 
 Phase 4 - Progression and economy
 
@@ -436,6 +482,8 @@ INITIAL ACCEPTANCE CRITERIA
 - The player can request Auto, Wide, or Narrow construction and explicit choices
   survive regeneration and save/load.
 - Invalid conversions explain why they cannot be completed and change nothing.
+- Solid ground frames both horizontal sides of the usable grid without sealing
+  intentional entrances or expansion openings.
 - A multi-cell structure reserves its full rotated footprint and cannot overlap
   another reservation.
 - Placing a multi-cell structure pays once and atomically builds all required

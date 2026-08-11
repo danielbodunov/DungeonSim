@@ -36,19 +36,25 @@ CORE PRINCIPLES
    and other meaningful outcomes.
 
 
-CURRENT BEHAVIOR TO REVISIT
----------------------------
+CURRENT IMPLEMENTED BASELINE
+----------------------------
 
-- NPCs wait at every destination cell. This makes ordinary exploration appear
-  hesitant and interrupts movement even when nothing is present.
+- NPCs move through ordinary destination cells without an unconditional wait.
+  A pause occurs only when the explicit investigation decision hook approves it.
+- Cell-entry experience is awarded as each route edge completes, while walking
+  and climbing retain their separate stamina costs.
+- Each NPC records visited cells and physically traversed connections. Planning
+  or rebuilding the global navigation graph does not grant route knowledge.
+- Return routing is restricted to familiar connections, so an untraversed global
+  shortcut cannot be selected deliberately.
+- Debug gizmos expose the active NPC's visited cells, familiar connections,
+  active route, and next waypoint.
 
-- The navigation system remembers visited cells, but return routing currently
-  uses the complete navigation graph. This can allow an NPC to return through a
-  route it has never personally explored.
+Current follow-up:
 
-- Exploration memory is primarily cell-based. A familiar return route requires
-  remembering connections/edges as well. Knowing two cells does not necessarily
-  mean the NPC knows every route between those cells.
+- Exploration target selection is too deterministic at junctions. NPCs tend to
+  choose the same branch, which makes exploration appear scripted even when
+  multiple unknown routes are available.
 
 
 PROPOSED HIGH-LEVEL STATE FLOW
@@ -101,6 +107,38 @@ Implementation direction:
     * or the stamina/retreat threshold.
 - Record cell entry as the NPC crosses each cell boundary, rather than only when
   the full route finishes.
+
+
+JUNCTION CHOICE AND FRONTIER PRIORITY
+-------------------------------------
+
+Desired behavior:
+
+- At a junction, prefer connections that lead toward cells or branches the NPC
+  has not explored.
+- When several unexplored choices are reasonable, make a weighted random choice
+  so different NPCs and visits do not always follow the same route.
+- Avoid branches the NPC has fully explored and confirmed as dead ends unless an
+  investigation target, return route, or other explicit goal requires them.
+- Do not treat a merely unseen branch as a dead end. Dead-end knowledge must come
+  from the NPC's own explored cells and familiar connections.
+- Keep familiar-return routing goal-directed and safe; random exploration choices
+  must never introduce an unknown shortcut while retreating.
+- Preserve a chosen branch long enough to prevent frame-to-frame indecision or
+  visible oscillation at the junction.
+
+Implementation direction:
+
+- Classify outgoing junction connections as unexplored, partially explored,
+  familiar-through-route, or fully explored dead end.
+- Give unexplored branches the highest exploration weight, partially explored
+  branches a smaller weight, and known exhausted dead ends a weight of zero or a
+  small fallback weight.
+- Make the random choice once per decision point using the project's controlled
+  random source, then retain that choice until traversal, invalidation, or a
+  meaningful behavior-state change.
+- Expose the candidate classifications, weights, and selected reason in debug
+  output so repeated path choice can be diagnosed.
 
 
 DEPTH-AWARE MOVEMENT WITHIN CELLS
@@ -354,24 +392,33 @@ Future consideration:
 PROPOSED IMPLEMENTATION PHASES
 ------------------------------
 
-Phase 1 - Continuous movement
+Phase 1 - Continuous movement (Implemented; awaiting play-mode validation)
 
 - Remove unconditional per-cell waiting.
 - Preserve cell-entry experience and stamina costs.
 - Add an explicit investigation decision hook.
 - Verify continuous movement across floor and ladder routes.
 
-Phase 2 - Personal route memory
+Phase 2 - Personal route memory (Implemented; awaiting play-mode validation)
 
 - Record each connection when it is physically traversed.
 - Expose visited cells and familiar connections for debugging.
 - Ensure route rebuilding does not automatically grant new knowledge.
 
-Phase 3 - Familiar return path
+Phase 3 - Familiar return path (Partially implemented)
 
 - Add pathfinding restricted to the NPC's familiar connections.
 - Retain breadcrumb history as a safe fallback.
 - Prevent all global-graph shortcuts during return.
+- Add an explicit stranded state when editing destroys every familiar route.
+
+Phase 3A - Junction choice and frontier priority
+
+- Classify outgoing paths using personal exploration memory.
+- Prefer unexplored branches and vary equivalent choices with controlled random
+  weighting.
+- Avoid fully explored dead ends unless they serve a current goal.
+- Add debug output for candidates, weights, and the selected branch.
 
 Phase 4 - Investigation framework
 
@@ -407,12 +454,18 @@ Phase 8 - Social encounters and parties
 - Decide and implement explicit knowledge sharing.
 
 
-DEBUG VISUALS TO ADD
---------------------
+DEBUG VISUALS
+-------------
 
-- Visited cells for the selected NPC
-- Familiar/traversed connections for the selected NPC
-- Current exploration route
+Implemented:
+
+- Visited cells for the active NPC
+- Familiar/traversed connections for the active NPC
+- Current exploration route and next waypoint
+
+Still to add:
+
+- Junction candidates, exploration classifications, weights, and selected reason
 - Planned familiar return route
 - Current behavior state
 - Current investigation target
@@ -432,6 +485,9 @@ INITIAL ACCEPTANCE CRITERIA
 - An investigation-worthy target causes a visible stop.
 - After stamina reaches zero, the NPC returns using only connections it traversed.
 - An untraveled shortcut to the entrance is never selected for the return route.
+- Equivalent unexplored junction branches do not always resolve to the same path.
+- A fully explored dead-end branch is avoided during ordinary exploration unless
+  a current goal requires entering it.
 - If the familiar route is unavailable, the NPC is reported as stranded instead
   of gaining unexplained dungeon knowledge.
 - The dungeon closes after all scheduled NPCs have exited or died.
