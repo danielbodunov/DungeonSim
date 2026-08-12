@@ -3,7 +3,7 @@
 ## Tracking
 
 - **ID:** t003
-- **Status:** Planned
+- **Status:** Complete
 - **Milestone:** Expedition Loop
 - **Depends on:** t002 — Dungeon Entrance / Adventurer Spawn Contract
 - **Blocks:** t004 — Treasure Prop + Treasure Socket
@@ -80,6 +80,22 @@ Investigate:
 - Combat encounters
 - Social encounters
 - Personality-driven POI evaluation
+
+## Implementation Status
+
+- Added a composable `DungeonPointOfInterest` component with a stable type and
+  optional identifier, interaction position, investigation duration, containing
+  cell, and available/resolved state.
+- Added a cell-indexed POI registry and query API to `TileGridGenerator`.
+- Available POIs now activate the existing explicit NPC investigation step and
+  provide its duration without introducing treasure-specific traversal logic.
+- Availability changes remain independent from presentation; resolving a POI
+  does not destroy or hide its object.
+- Runtime source validation and the manual Unity scenario were completed
+  successfully on 2026-08-11.
+- The interaction position is exposed to investigation consumers. NPC approach
+  movement toward that position is deferred to follow-up behavior work; the
+  current traversal pauses at its cell-arrival position.
 
 ## Git
 
