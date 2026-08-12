@@ -140,6 +140,9 @@ public class NPCTraversal : MonoBehaviour
 
     internal bool ShouldInvestigate(NPCTraversalAgent visitor, Vector2Int cell)
     {
+        if (grid != null && grid.TryGetAvailablePointOfInterest(cell, out _))
+            return true;
+
         if (InvestigationDecisionRequested == null)
             return false;
 
@@ -148,6 +151,14 @@ public class NPCTraversal : MonoBehaviour
             if (decision(visitor, cell))
                 return true;
         return false;
+    }
+
+    internal float GetInvestigationDuration(Vector2Int cell, float fallback)
+    {
+        return grid != null &&
+            grid.TryGetAvailablePointOfInterest(cell, out var pointOfInterest)
+                ? pointOfInterest.InvestigationDuration
+                : fallback;
     }
 
     internal void NotifyAdventurerDied(NPCCharacter character)
@@ -1079,9 +1090,14 @@ public class NPCTraversalAgent : MonoBehaviour
             currentCell = step.to;
             RecordArrival(currentCell);
 
-            if (!returningHome && waitTime > 0f && character.CurrentStamina > 0f &&
+            if (!returningHome && character.CurrentStamina > 0f &&
                 navigation.ShouldInvestigate(this, currentCell))
-                yield return SpendStaminaWhileWaiting(waitTime);
+            {
+                float investigationDuration =
+                    navigation.GetInvestigationDuration(currentCell, waitTime);
+                if (investigationDuration > 0f)
+                    yield return SpendStaminaWhileWaiting(investigationDuration);
+            }
         }
 
         if (returningHome && currentCell == startCell)

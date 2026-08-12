@@ -39,6 +39,8 @@ public class TileGridGenerator : MonoBehaviour
     ConnectionIntent[,] eastConnectionIntents;
     ConnectionIntent[,] southConnectionIntents;
     readonly Dictionary<Vector2Int, CellTrap> placedTraps = new();
+    readonly Dictionary<Vector2Int, List<DungeonPointOfInterest>> pointsOfInterest =
+        new();
     readonly Dictionary<Vector2Int, int> placedTrapObjectIds = new();
     readonly Dictionary<Vector2Int, string> placedTrapPrefabNames = new();
     Transform trapContainer;
@@ -684,6 +686,70 @@ public class TileGridGenerator : MonoBehaviour
         coordinates = GetGridCoordinates(worldPosition);
         return coordinates.x >= 0 && coordinates.y >= 0 &&
             coordinates.x < width && coordinates.y < height;
+    }
+
+    public IReadOnlyList<DungeonPointOfInterest> GetPointsOfInterest(
+        Vector2Int cell,
+        bool availableOnly = true)
+    {
+        if (!pointsOfInterest.TryGetValue(cell, out var registered))
+            return System.Array.Empty<DungeonPointOfInterest>();
+
+        var result = new List<DungeonPointOfInterest>(registered.Count);
+        for (int i = registered.Count - 1; i >= 0; i--)
+        {
+            DungeonPointOfInterest point = registered[i];
+            if (point == null || !point.IsBound || point.Cell != cell)
+            {
+                registered.RemoveAt(i);
+                continue;
+            }
+
+            if (!availableOnly || point.IsAvailable)
+                result.Add(point);
+        }
+
+        if (registered.Count == 0)
+            pointsOfInterest.Remove(cell);
+        return result;
+    }
+
+    public bool TryGetAvailablePointOfInterest(
+        Vector2Int cell,
+        out DungeonPointOfInterest pointOfInterest)
+    {
+        IReadOnlyList<DungeonPointOfInterest> available =
+            GetPointsOfInterest(cell, true);
+        pointOfInterest = available.Count > 0 ? available[0] : null;
+        return pointOfInterest != null;
+    }
+
+    internal void RegisterPointOfInterest(DungeonPointOfInterest pointOfInterest)
+    {
+        if (pointOfInterest == null || pointOfInterest.Grid != this)
+            return;
+
+        Vector2Int cell = pointOfInterest.Cell;
+        if (!pointsOfInterest.TryGetValue(cell, out var registered))
+        {
+            registered = new List<DungeonPointOfInterest>();
+            pointsOfInterest[cell] = registered;
+        }
+
+        if (!registered.Contains(pointOfInterest))
+            registered.Add(pointOfInterest);
+    }
+
+    internal void UnregisterPointOfInterest(
+        DungeonPointOfInterest pointOfInterest)
+    {
+        if (pointOfInterest == null ||
+            !pointsOfInterest.TryGetValue(pointOfInterest.Cell, out var registered))
+            return;
+
+        registered.Remove(pointOfInterest);
+        if (registered.Count == 0)
+            pointsOfInterest.Remove(pointOfInterest.Cell);
     }
 
     public bool TryGetDungeonEntrance(out DungeonEntrance entrance)

@@ -24,7 +24,7 @@ Establish an authoritative semantic dungeon entrance/spawn contract. Place the e
 Depends on: t001
 
 ### t003 — Point-of-Interest Foundation
-**Status:** Planned
+**Status:** Complete
 
 Create the minimum common investigation-target model needed for treasure and future meaningful cell interactions. Avoid building a generalized encounter framework beyond current needs.
 
