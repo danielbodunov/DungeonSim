@@ -3,7 +3,7 @@
 ## Tracking
 
 - **ID:** t002
-- **Status:** Complete
+- **Status:** Awaiting Unity Validation
 - **Milestone:** Expedition Loop
 - **Depends on:** t001 — NPC Traversal Memory
 - **Blocks:** t003 — Point-of-Interest Foundation
@@ -37,6 +37,8 @@ The entrance can be placed from the build palette on a compatible entrance socke
 - Support a valid walkable tile as the initial host without requiring all future entrances to use that tile type.
 - Allow the entrance object to be placed and removed through the building interface.
 - Preserve the placed entrance in dungeon saves.
+- Display a fallback entrance prop at the existing default NPC spawn as soon as
+  the dungeon contains a tile and no manually placed entrance exists.
 - Integrate with existing NPC start/return concepts rather than creating a parallel navigation system.
 - Expose enough debug information to verify which entrance/cell is active if this is not already obvious through existing tooling.
 
@@ -51,6 +53,8 @@ The ticket is complete when:
 - The initial `Narrow_Straight_I` validation tile can host the entrance implementation.
 - The build palette can place one entrance on a compatible socket and reject incompatible cells or a second entrance.
 - The placed entrance can be removed and survives a save/load round trip.
+- An entrance-less dungeon displays the entrance prop at its default NPC spawn,
+  and a manually placed entrance replaces that fallback.
 - Future tile prefabs could host an entrance without changing NPC traversal architecture.
 - Existing unrelated generation and NPC traversal behavior remains unchanged.
 
@@ -91,7 +95,12 @@ A specialized entrance tile is useful authored content, but the semantic entranc
 - Added an entrance gizmo to the existing NPC traversal debug view.
 - Added an `Entrance/Single` socket to the walkable `Narrow_Straight_I` orientation.
 - Added a placeable entrance prefab, build-palette definition, removal tool, and save data.
-- Source validation and the manual Unity scenario below were completed successfully on 2026-08-11.
+- Added a transient fallback entrance that appears at the default adventurer
+  spawn after the first tile is built, yields to manual placement, and is
+  regenerated rather than serialized.
+- The original socket-placement scenario was validated successfully on 2026-08-11.
+- Runtime source compilation passes for the fallback entrance extension; its
+  additional Unity scenario remains to be validated.
 
 ## Manual Test Scenario
 
@@ -104,6 +113,12 @@ A specialized entrance tile is useful authored content, but the semantic entranc
 7. Verify the adventurer follows familiar routing back to the same logical entrance and resolves the exit there.
 8. Save and load the dungeon, then verify the entrance is restored on the same socket.
 9. Use **Remove Entrance** and verify the entrance is cleared.
+10. In an empty dungeon, place any tile and verify an entrance prop appears at
+    the default NPC spawn without requiring an entrance socket.
+11. Place a manual entrance on a compatible socket and verify it replaces the
+    fallback; remove it and verify the fallback returns.
+12. Save and load a dungeon without a manual entrance and verify exactly one
+    fallback entrance is regenerated at the default spawn.
 
 ## Out of Scope
 

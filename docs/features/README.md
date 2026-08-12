@@ -11,7 +11,7 @@ This is a compact view of planned DungeonSim features. Detailed behavior and rat
 | NPC action feedback popups | In Progress | [Action Feedback](../Design/NPC_Behavior.md#short-lived-action-feedback-ui) |
 | Non-permanent NPC defeat and visit settlement | In Progress | [Visit Completion](../Design/NPC_Behavior.md#visit-completion-defeat-and-aura-settlement) |
 | NPC mingling and parties | Planning | [Social Encounters](../Design/NPC_Behavior.md#social-encounters-and-parties) |
-| Socket-based dungeon entrance placement | Implemented | [Dungeon Entrance Placement](../Design/World_Generation_and_Building.md#dungeon-entrance-placement) |
+| Socket-based dungeon entrance placement | In Progress | [Dungeon Entrance Placement](../Design/World_Generation_and_Building.md#dungeon-entrance-placement) |
 | Manual ladder and platform placement | Planning | [Manual Traversal](../Design/World_Generation_and_Building.md#manual-traversal-placement) |
 | Auto, wide, and narrow cell construction | In Progress | [Cell Width Control](../Design/World_Generation_and_Building.md#wide-and-narrow-cell-control) |
 | Editable shared walls and local tile re-resolution | Implemented | [Connection Intent](../Design/World_Generation_and_Building.md#cell-connection-intent) |
