@@ -93,6 +93,17 @@ MonoBehaviour:
     platformPolicy: 0
     localPosition: {x: 0, y: 0, z: 0}
     localRotation: {x: 0, y: 0, z: -0.7071066, w: -0.70710707}
+  - structureId: Treasure
+    laneId: Default
+    compatibleLaneIds: []
+    bundleId: Default
+    selectionWeight: 1
+    role: 3
+    direction: 2
+    allowsTraversalExit: 0
+    platformPolicy: 0
+    localPosition: {x: 0.24, y: -0.25, z: 0}
+    localRotation: {x: 0, y: 0, z: 0, w: 1}
   - structureId: Ladder
     laneId: Right
     compatibleLaneIds: []

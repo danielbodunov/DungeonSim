@@ -13,6 +13,7 @@ This is a compact view of planned DungeonSim features. Detailed behavior and rat
 | NPC mingling and parties | Planning | [Social Encounters](../Design/NPC_Behavior.md#social-encounters-and-parties) |
 | Socket-based dungeon entrance placement | In Progress | [Dungeon Entrance Placement](../Design/World_Generation_and_Building.md#dungeon-entrance-placement) |
 | Cell-indexed point-of-interest foundation | Implemented | [t003 — Point-of-Interest Foundation](../TODO/t003-Point-of-Interest-Foundation.md) |
+| Authored treasure prop and socket | Implemented | [t004 — Treasure Prop + Treasure Socket](../TODO/t004-Treasure-Prop.md) |
 | Manual ladder and platform placement | Planning | [Manual Traversal](../Design/World_Generation_and_Building.md#manual-traversal-placement) |
 | Auto, wide, and narrow cell construction | In Progress | [Cell Width Control](../Design/World_Generation_and_Building.md#wide-and-narrow-cell-control) |
 | Editable shared walls and local tile re-resolution | Implemented | [Connection Intent](../Design/World_Generation_and_Building.md#cell-connection-intent) |
