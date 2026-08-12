@@ -47,6 +47,7 @@ public class TileGridGenerator : MonoBehaviour
     Vector2Int placedEntranceCell;
     int placedEntranceObjectId = -1;
     string placedEntrancePrefabName;
+    bool placedEntranceIsFallback;
     Transform entranceContainer;
 
     public event System.Action LayoutChanged;
@@ -307,6 +308,7 @@ public class TileGridGenerator : MonoBehaviour
     public Vector2 GridOrigin => origin;
     public Vector2 GridGenerationDirection => generationDirection;
     public bool IsInitialized => cells != null && instantiated != null && placed != null;
+    public bool HasManualEntrance => placedEntrance != null && !placedEntranceIsFallback;
     public int PropGenerationSeed => propGenerator != null
         ? propGenerator.SaveGenerationSeed
         : 0;
@@ -761,7 +763,7 @@ public class TileGridGenerator : MonoBehaviour
             return false;
         }
 
-        if (placedEntrance != null)
+        if (placedEntrance != null && !placedEntranceIsFallback)
         {
             Debug.LogWarning(
                 $"The dungeon already has an entrance at {placedEntranceCell}. " +
@@ -777,6 +779,9 @@ public class TileGridGenerator : MonoBehaviour
                 $"Cell ({x},{y}) does not provide a compatible entrance socket.", this);
             return false;
         }
+
+        if (placedEntranceIsFallback)
+            ClearEntrance();
 
         if (entranceContainer == null)
         {
@@ -802,6 +807,7 @@ public class TileGridGenerator : MonoBehaviour
         placedEntranceCell = new Vector2Int(x, y);
         placedEntranceObjectId = objectId;
         placedEntrancePrefabName = entrancePrefab.name;
+        placedEntranceIsFallback = false;
         placedEntrance.Bind(this, placedEntranceCell);
         LayoutChanged?.Invoke();
         return true;
@@ -809,7 +815,7 @@ public class TileGridGenerator : MonoBehaviour
 
     public SavedEntrance CaptureEntranceLayout()
     {
-        if (placedEntrance == null)
+        if (placedEntrance == null || placedEntranceIsFallback)
             return null;
 
         return new SavedEntrance
@@ -830,6 +836,70 @@ public class TileGridGenerator : MonoBehaviour
         placedEntranceCell = default;
         placedEntranceObjectId = -1;
         placedEntrancePrefabName = null;
+        placedEntranceIsFallback = false;
+    }
+
+    public bool EnsureFallbackEntrance(Vector2Int cell, Vector3 position)
+    {
+        if (placedEntrance != null && !placedEntranceIsFallback)
+            return false;
+
+        if (!IsPlacedCell(cell.x, cell.y))
+        {
+            if (placedEntranceIsFallback)
+                ClearEntrance();
+            return false;
+        }
+
+        if (placedEntranceIsFallback && placedEntranceCell == cell)
+        {
+            placedEntranceInstance.transform.SetPositionAndRotation(
+                position, Quaternion.identity);
+            placedEntrance.Bind(this, cell);
+            return true;
+        }
+
+        if (placedEntranceIsFallback)
+            ClearEntrance();
+
+        GameObject entrancePrefab =
+            Resources.Load<GameObject>("Props/DungeonEntrance");
+        if (entrancePrefab == null)
+        {
+            Debug.LogWarning(
+                "The fallback entrance prefab could not be loaded from " +
+                "Resources/Props/DungeonEntrance.", this);
+            return false;
+        }
+
+        if (entranceContainer == null)
+        {
+            var container = new GameObject("Placed Entrance");
+            container.transform.SetParent(transform, false);
+            entranceContainer = container.transform;
+        }
+
+        GameObject instance = Instantiate(
+            entrancePrefab, position, Quaternion.identity, entranceContainer);
+        DungeonEntrance entrance =
+            instance.GetComponentInChildren<DungeonEntrance>(true);
+        if (entrance == null)
+        {
+            Debug.LogWarning(
+                "The fallback entrance prefab needs a DungeonEntrance component.",
+                entrancePrefab);
+            Destroy(instance);
+            return false;
+        }
+
+        placedEntrance = entrance;
+        placedEntranceInstance = instance;
+        placedEntranceCell = cell;
+        placedEntranceObjectId = -1;
+        placedEntrancePrefabName = entrancePrefab.name;
+        placedEntranceIsFallback = true;
+        placedEntrance.Bind(this, cell);
+        return true;
     }
 
     BakedPropSocket FindEntranceSocket(int x, int y)

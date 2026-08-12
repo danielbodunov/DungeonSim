@@ -200,13 +200,13 @@ public class NPCTraversal : MonoBehaviour
 
     void ResolveEntranceAfterLayoutChange()
     {
-        ResolveEntrance();
+        EnsureDefaultEntrance();
     }
 
     void RebuildNavigation()
     {
         BuildGraph();
-        ResolveEntrance();
+        EnsureDefaultEntrance();
         PruneDestroyedAgents();
         for (int i = 0; i < agents.Count; i++)
             agents[i].RefreshNavigation(this);
@@ -563,8 +563,37 @@ public class NPCTraversal : MonoBehaviour
                 activeEntrance.EntryPosition, true, out position);
         }
 
-        // Legacy fallback preserves existing scenes and custom tile sets that
-        // have not yet authored a semantic DungeonEntrance marker.
+        // Compatibility fallback for layouts that have not yet had a chance to
+        // display their default semantic entrance.
+        return TryFindLegacySpawnPose(out start, out position);
+    }
+
+    bool ResolveEntrance()
+    {
+        activeEntrance = null;
+        return grid != null && grid.TryGetDungeonEntrance(out activeEntrance);
+    }
+
+    void EnsureDefaultEntrance()
+    {
+        if (grid == null)
+            return;
+
+        if (grid.HasManualEntrance || grid.PlacedCellCount == 0)
+        {
+            ResolveEntrance();
+            return;
+        }
+
+        if (!TryFindLegacySpawnPose(out Vector2Int cell, out Vector3 position))
+            return;
+
+        grid.EnsureFallbackEntrance(cell, position);
+        ResolveEntrance();
+    }
+
+    bool TryFindLegacySpawnPose(out Vector2Int start, out Vector3 position)
+    {
         if (useManualStartCell && graph.ContainsKey(manualStartCell) &&
             TryGetEntranceFloorPosition(manualStartCell, true, out position))
         {
@@ -578,30 +607,15 @@ public class NPCTraversal : MonoBehaviour
             Vector3 aWorld = grid.GetCellWorldPosition(a.x, a.y);
             Vector3 bWorld = grid.GetCellWorldPosition(b.x, b.y);
             int horizontal = aWorld.x.CompareTo(bWorld.x);
-            if (horizontal != 0)
-                return horizontal;
-            // If cells share the same horizontal position, prefer the highest.
-            return bWorld.y.CompareTo(aWorld.y);
+            return horizontal != 0
+                ? horizontal
+                : bWorld.y.CompareTo(aWorld.y);
         });
 
-        // Prefer a connected node on a floor near its navigation anchor. Floor
-        // openings can otherwise raycast to a much lower surface that belongs to
-        // a different navigation level, leaving the spawned NPC isolated.
-        if (TryFindOrderedSpawn(orderedCells, true, false, out start, out position) ||
+        return TryFindOrderedSpawn(orderedCells, true, false, out start, out position) ||
             TryFindOrderedSpawn(orderedCells, false, false, out start, out position) ||
             TryFindOrderedSpawn(orderedCells, true, true, out start, out position) ||
-            TryFindOrderedSpawn(orderedCells, false, true, out start, out position))
-            return true;
-
-        start = new Vector2Int(-1, -1);
-        position = default;
-        return false;
-    }
-
-    bool ResolveEntrance()
-    {
-        activeEntrance = null;
-        return grid != null && grid.TryGetDungeonEntrance(out activeEntrance);
+            TryFindOrderedSpawn(orderedCells, false, true, out start, out position);
     }
 
     bool TryFindOrderedSpawn(
