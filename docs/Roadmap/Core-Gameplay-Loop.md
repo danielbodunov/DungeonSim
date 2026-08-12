@@ -31,7 +31,7 @@ Create the minimum common investigation-target model needed for treasure and fut
 Depends on: t002
 
 ### t004 — Treasure Prop + Treasure Socket
-**Status:** Planned
+**Status:** Complete
 
 Allow authored treasure props to occupy appropriate sockets, expose themselves as points of interest, carry a reward value, and transition from unresolved to resolved state.
 

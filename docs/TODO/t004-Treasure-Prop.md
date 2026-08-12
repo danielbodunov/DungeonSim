@@ -3,7 +3,7 @@
 ## Tracking
 
 - **ID:** t004
-- **Status:** Planned
+- **Status:** Complete
 - **Milestone:** Expedition Loop
 - **Depends on:** t003 — Point-of-Interest Foundation
 - **Blocks:** t005 — NPC Treasure Discovery & Investigation
@@ -96,6 +96,23 @@ This allows treasure to appear in a treasure room, corridor alcove, shrine, guar
 - Procedural treasure placement
 - Treasure rarity/itemization
 - Trapped/guarded treasure
+
+## Implementation Status
+
+- Added a composable `TreasureProp` component with configurable prototype reward
+  value and a resolve-once public interaction path.
+- Reused `DungeonPointOfInterest` as the authoritative unresolved state, so a
+  resolved treasure remains visible but is no longer returned by available-POI
+  queries.
+- Added a prototype resolved tint using renderer property blocks, avoiding
+  runtime material duplication and keeping the test visual independent of final
+  treasure art.
+- Authored a reusable `Treasure/Single` socket on `Narrow_Cap` rotation 0 and
+  placed the prototype chest at that location for validation.
+- No procedural treasure generation, NPC treasure-seeking, or reward settlement
+  was added.
+- Runtime source validation and the manual Unity scenario were completed
+  successfully on 2026-08-12.
 
 ## Git
 
