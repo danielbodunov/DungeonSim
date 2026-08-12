@@ -4,7 +4,7 @@ using System.Collections.Generic;
 [Serializable]
 public class DungeonSaveData
 {
-    public const int CurrentVersion = 4;
+    public const int CurrentVersion = 5;
 
     public int version = CurrentVersion;
     public string saveName;
@@ -20,6 +20,7 @@ public class DungeonSaveData
     public List<SavedTileCell> tileCells = new();
     public List<SavedConnectionEdge> connectionEdges = new();
     public List<SavedTrapCell> traps = new();
+    public SavedEntrance entrance;
 }
 
 [Serializable]
@@ -34,6 +35,15 @@ public class SavedTileCell
 
 [Serializable]
 public class SavedTrapCell
+{
+    public int x;
+    public int y;
+    public int objectId = -1;
+    public string prefabName;
+}
+
+[Serializable]
+public class SavedEntrance
 {
     public int x;
     public int y;

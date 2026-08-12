@@ -38,6 +38,7 @@ public class GameplayLoopUI : MonoBehaviour
     RectTransform saveListContent;
     bool wasPausedBeforeSaveMenu;
     Image removeTrapButtonImage;
+    Image removeEntranceButtonImage;
     Image toggleWallButtonImage;
     readonly Dictionary<float, Image> speedButtonImages = new();
     readonly Dictionary<int, Image> paletteButtonImages = new();
@@ -178,7 +179,7 @@ public class GameplayLoopUI : MonoBehaviour
     {
         RectTransform panel = CreatePanel(
             "Expansion Palette", parent, new Vector2(0.5f, 0f), new Vector2(0.5f, 0f),
-            new Vector2(0.5f, 0f), new Vector2(1180f, 196f), new Vector2(0f, 18f), Panel);
+            new Vector2(0.5f, 0f), new Vector2(1520f, 196f), new Vector2(0f, 18f), Panel);
         expansionPalette = panel.gameObject;
         CreateLabel(panel, "BUILD PALETTE", 18, new Vector2(14f, -10f), new Vector2(170f, 28f));
         CreateLabel(panel, "CELL WIDTH", 14, new Vector2(205f, -13f), new Vector2(105f, 26f));
@@ -220,6 +221,12 @@ public class GameplayLoopUI : MonoBehaviour
             () => placement?.StartTrapRemoval());
         removeTrapButtonImage = removeTrap.GetComponent<Image>();
         removeTrap.gameObject.AddComponent<LayoutElement>().preferredWidth = 140f;
+
+        Button removeEntrance = CreateButton(
+            row, "Remove Entrance", Vector2.zero, new Vector2(160f, 62f),
+            () => placement?.StartEntranceRemoval());
+        removeEntranceButtonImage = removeEntrance.GetComponent<Image>();
+        removeEntrance.gameObject.AddComponent<LayoutElement>().preferredWidth = 160f;
 
         Button cancel = CreateButton(row, "Cancel Build", Vector2.zero, new Vector2(130f, 62f),
             () => placement?.StopPlacement());
@@ -606,6 +613,10 @@ public class GameplayLoopUI : MonoBehaviour
 
         if (removeTrapButtonImage != null)
             removeTrapButtonImage.color = placement != null && placement.IsRemovingTraps
+                ? Accent
+                : ButtonColor;
+        if (removeEntranceButtonImage != null)
+            removeEntranceButtonImage.color = placement != null && placement.IsRemovingEntrance
                 ? Accent
                 : ButtonColor;
 

@@ -33,6 +33,9 @@ public class PropSocketAuthoring : MonoBehaviour
     [Tooltip("Controls whether a traversal platform is included during automatic ladder generation. Manual Only keeps the platform bundle available for a future placement tool.")]
     public PropSocketPlatformPolicy platformPolicy;
 
+    [Tooltip("Tile rotations for which this socket is valid. Use this when rotating a tile changes whether the authored surface is walkable.")]
+    public PropSocketRotationMask allowedTileRotations = PropSocketRotationMask.All;
+
     void OnDrawGizmosSelected()
     {
         if (!NPCTraversalDebug.SocketVisualsEnabled)

@@ -64,3 +64,16 @@ Use a three-digit sequence for entries created on the same day, beginning with `
 
 Move entries here when their status becomes `Resolved` or `Won't Fix`. Preserve the original discovery information and add the resolution date, verification, or reason for closure.
 
+### KI-2026-08-11-001 - Shared entrance host creates multiple markers
+
+- **Discovered:** 2026-08-11
+- **Status:** Resolved
+- **Area:** Dungeon entrance authoring and tile generation
+- **Discovered while:** Implementing `t002-Dungeon-Entrance`
+- **Description:** Hosting the temporary entrance marker directly on `Narrow_Straight_I` caused every placed instance of that shared prefab to contain an entrance marker.
+- **Impact:** A dungeon with more than one `Narrow_Straight_I` instance had an ambiguous entrance and NPC spawning was rejected.
+- **Evidence:** `TileGridGenerator.TryGetDungeonEntrance` found markers under every placed tile instance and rejected the result when a second marker was found.
+- **Suggested follow-up:** Completed by replacing the baked marker with an entrance socket and a separately placed authoritative entrance object.
+- **Scope note:** The requested socket-placement revision brought the resolution into t002 scope.
+- **Resolved:** 2026-08-11; shared tiles now expose compatible placement sockets without becoming entrances themselves.
+

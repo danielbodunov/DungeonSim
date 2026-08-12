@@ -17,9 +17,9 @@ Ticket IDs are stable. Do not renumber or reuse them if priorities change.
 **Milestone outcome:** An adventurer can enter through an authored entrance, explore, discover treasure, resolve it, return through familiar space, and settle the expedition reward.
 
 ### t002 — Dungeon Entrance / Adventurer Spawn Contract
-**Status:** Ready
+**Status:** Awaiting Unity Validation
 
-Establish an authoritative semantic dungeon entrance/spawn contract. Use a specialized starter tile as initial authored content, but make the entrance component/socket—not the tile type—the gameplay contract.
+Establish an authoritative semantic dungeon entrance/spawn contract. Place the entrance object through a compatible authored socket, with the component/socket—not the host tile type—as the gameplay contract.
 
 Depends on: t001
 

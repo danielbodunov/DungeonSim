@@ -111,3 +111,14 @@ MonoBehaviour:
     platformPolicy: 0
     localPosition: {x: 0, y: -0.20000003, z: 0}
     localRotation: {x: 0, y: 0, z: -0.7071066, w: -0.70710707}
+  - structureId: Entrance
+    laneId: Default
+    compatibleLaneIds: []
+    bundleId: Default
+    selectionWeight: 1
+    role: 3
+    direction: 3
+    allowsTraversalExit: 0
+    platformPolicy: 0
+    localPosition: {x: 0, y: -0.3, z: 0}
+    localRotation: {x: 0, y: 0, z: 0, w: 1}

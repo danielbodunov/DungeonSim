@@ -20,6 +20,7 @@ public class NPCTraversalDebug : MonoBehaviour
     bool showSocketVisuals = true;
 
     [Header("NPC Debug Visuals")]
+    [SerializeField] bool showDungeonEntrance = true;
     [SerializeField] bool showVisitedCells = true;
     [SerializeField] bool showFamiliarConnections = true;
     [SerializeField] bool showActivePath = true;
@@ -63,6 +64,8 @@ public class NPCTraversalDebug : MonoBehaviour
             if (showRejectedSamples)
                 DrawSamples(traversal.DebugRejectedSamples, new Color(1f, 0.1f, 0.1f, 0.9f));
         }
+        if (showDungeonEntrance)
+            DrawDungeonEntrance();
         if (showVisitedCells)
             DrawVisitedCells();
         if (showFamiliarConnections)
@@ -71,6 +74,19 @@ public class NPCTraversalDebug : MonoBehaviour
             DrawActivePath();
         if (showNextTarget)
             DrawNextTarget();
+    }
+
+    void DrawDungeonEntrance()
+    {
+        DungeonEntrance entrance = traversal.ActiveEntrance;
+        if (entrance == null || !entrance.IsBound)
+            return;
+
+        Vector3 entry = entrance.EntryPosition;
+        Vector3 cell = traversal.GetCellWorldPosition(entrance.Cell);
+        Gizmos.color = new Color(0.15f, 1f, 0.9f, 1f);
+        Gizmos.DrawWireSphere(entry, markerRadius * 3f);
+        Gizmos.DrawLine(cell, entry);
     }
 
     void DrawVisitedCells()
