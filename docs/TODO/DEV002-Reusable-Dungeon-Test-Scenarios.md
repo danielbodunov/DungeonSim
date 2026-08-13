@@ -2,7 +2,7 @@
 
 ## Tracking
 - **ID:** DEV002
-- **Status:** Awaiting Unity Validation
+- **Status:** Complete
 - **Depends on:** DEV001
 - **Blocks:** DEV003; t007
 
@@ -40,8 +40,9 @@ Do not create a parallel dungeon implementation or automated test runner in this
 - `dotnet build Assembly-CSharp-Editor.csproj --nologo` completed with 0 errors after including the new Editor source in the generated project for the focused compile. The one warning is pre-existing in `TileSocketBakerWindow.cs` (`CS0414`).
 - Focused call-path review confirmed scenario replay uses the production layout, trap, entrance, floor-prop, and procedural-prop APIs rather than duplicating dungeon reconstruction.
 - Serialization review confirmed the asset records tile profile IDs/rotations, connection and width intents, placement identity and prefab references, floor-prop resolved state, metadata, grid dimensions, and the procedural generation seed.
+- Manual Unity validation was completed on 2026-08-13. All steps below passed, including capture/save-new, load, reset, intentional update, treasure interaction, repeated replay, and trap regression coverage.
 
-## Manual Unity Validation
+## Manual Unity Validation Performed
 
 1. Enter Play Mode in the normal dungeon scene and build a layout containing rotated tiles, an entrance, at least one trap, and treasure on a compatible cell without a treasure socket.
 2. Open `Tools > Dungeon Test Scenarios`, enter a name, description, and intended test purpose, choose **Capture Current Dungeon**, then **Save Captured Scenario As New...**.
