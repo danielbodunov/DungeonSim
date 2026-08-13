@@ -1,6 +1,6 @@
 # Implementation TODO
 
-This directory is the working queue for prioritized, actionable tickets. Broader sequencing and future work belong in `docs/Roadmap/`; enduring behavior and architecture belong in `docs/Design/`.
+This directory is the working queue for prioritized, actionable tickets. Broader sequencing belongs in `docs/Roadmap/`; enduring game/system direction belongs in `docs/Design/`.
 
 ## In Progress
 
@@ -10,12 +10,16 @@ None.
 
 - [t005 — NPC Treasure Discovery & Investigation](t005-NPC-Treasure-Investigation.md)
 
-## Planned / Near-Term
+## Planned / Near-Term — Sinister Dungeon Expedition
 
-- [t006 — NPC Carried Treasure / Visit Reward](t006-NPC-Carried-Treasure.md)
-- [t007 — Expedition Vertical Slice Validation](t007-Expedition-Vertical-Slice-Validation.md)
+- [t006 — Treasure Pickup & Ownership](t006-NPC-Carried-Treasure.md)
+- [t007 — Adventurer Loot Drop & Dungeon Recovery](t007-Expedition-Vertical-Slice-Validation.md)
+- [t008 — Successful Escape & Lost Treasure](t008-Successful-Escape-Lost-Treasure.md)
+- [t009 — Soul / Aura Harvesting Foundation](t009-Soul-Aura-Harvesting.md)
+- [t010 — Expedition Outcomes](t010-Expedition-Outcomes.md)
+- [t011 — Sinister Dungeon Vertical Slice Validation](t011-Sinister-Dungeon-Vertical-Slice.md)
 
-Only the next few tickets should normally be elaborated here. Later planned work remains at roadmap level until earlier implementation provides enough information to specify it accurately.
+These tickets establish the revised core fantasy before more sophisticated exploration/economy work: treasure is dungeon-owned bait, adventurers can steal it, death can recover loot and harvest Aura, and escape can carry dungeon value away.
 
 ## Awaiting Unity Validation
 
@@ -31,21 +35,22 @@ None.
 
 ## Roadmaps
 
-- [Core Gameplay Loop Roadmap](../Roadmap/Core-Gameplay-Loop.md) — vertical slices and planned tickets t002–t020.
+- [Core Gameplay Loop Roadmap](../Roadmap/Core-Gameplay-Loop.md)
 - [Roadmap index and planning rules](../Roadmap/README.md)
+
+## Design References
+
+- [Core game direction](../Design/Core_Game_Direction.md) — player fantasy, treasure-as-bait, Aura, adventurer outcomes, emergent stories, and future raid-mode boundary.
+- [NPC behavior](../Design/NPC_Behavior.md)
+- [World generation and building](../Design/World_Generation_and_Building.md)
 
 ## Issue Tracking
 
 - [Known issues and follow-ups](Known_Issues_and_followups.md) records incidental issues discovered during active work without automatically expanding the current ticket's scope.
 
-## Design References
-
-- [NPC behavior](../Design/NPC_Behavior.md)
-- [World generation and building](../Design/World_Generation_and_Building.md)
-
 ## Ticket Lifecycle
 
-Use stable ticket IDs (`t###`). Never renumber or reuse an ID, even if a ticket is cancelled or priorities change.
+Use stable ticket IDs (`t###`). Never renumber or reuse an ID once assigned, even when roadmap priorities change.
 
 Standard statuses:
 
@@ -57,15 +62,6 @@ Standard statuses:
 - Blocked
 - Cancelled
 
-When roadmap work becomes actionable, create a focused Markdown ticket here containing:
-
-- Tracking metadata (ID, status, milestone, dependencies/blockers)
-- Summary and desired behavior
-- Requirements
-- Acceptance criteria
-- Relevant systems / implementation context
-- Ticket-specific constraints
-- Manual Unity validation scenario where appropriate
-- Explicit out-of-scope items
+When roadmap work becomes actionable, create a focused Markdown ticket here containing tracking metadata, desired behavior, requirements, acceptance criteria, relevant implementation context, constraints, manual validation, and explicit out-of-scope items.
 
 Branches, commits, PRs, known issues, and design discussions should reference the stable ticket ID when practical.
