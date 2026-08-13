@@ -8,21 +8,24 @@ None.
 
 ## Ready
 
-None.
+- [t005 — NPC Treasure Discovery & Investigation](t005-NPC-Treasure-Investigation.md)
 
 ## Planned / Near-Term
 
+- [t006 — NPC Carried Treasure / Visit Reward](t006-NPC-Carried-Treasure.md)
+- [t007 — Expedition Vertical Slice Validation](t007-Expedition-Vertical-Slice-Validation.md)
 
 Only the next few tickets should normally be elaborated here. Later planned work remains at roadmap level until earlier implementation provides enough information to specify it accurately.
 
 ## Awaiting Unity Validation
 
-- [t002 — Dungeon Entrance / Adventurer Spawn Contract](t002-Dungeon-Entrance.md)
+None.
 
 ## Completed / Existing Work
 
 - [Initial building and adventurer vertical slices](2026-08-09-initial-vertical-slices.md)
 - [t001 — NPC Traversal Memory](t001-NPC-Traversal-Memory.md)
+- [t002 — Dungeon Entrance / Adventurer Spawn Contract](t002-Dungeon-Entrance.md)
 - [t003 — Point-of-Interest Foundation](t003-Point-of-Interest-Foundation.md)
 - [t004 — Treasure Prop + Treasure Socket](t004-Treasure-Prop.md)
 
