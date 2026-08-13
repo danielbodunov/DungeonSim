@@ -73,6 +73,10 @@ The layout restore lifecycle now synchronously clears generated instances, runs,
 
 Run the cross-layout regression sequence above in the Unity Editor. Confirm the Console contains no restore warning for Dungeon B's floor prop and verify generated content respects the restored cell in both transition directions.
 
+## Future Placement Positions
+
+The initial one-floor-prop-per-cell rule is intentionally conservative and should not be treated as the final placement model. Future content may require several ordinary props in one cell. When that need becomes concrete, extend the system toward multiple placement records per cell using local offsets, footprints, generic anchors, or a similarly bounded approach rather than adding content-specific sockets solely to work around the one-prop limit. Topology-sensitive content should continue to use dedicated sockets or equivalent authored constraints where alignment and traversal semantics require them.
+
 ## Git
 
 Implementation branch: `feature/DEV001-generic-prop-placement`
