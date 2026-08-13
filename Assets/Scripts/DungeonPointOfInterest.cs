@@ -9,6 +9,11 @@ public enum DungeonPointOfInterestType
     Door
 }
 
+public interface IDungeonPointOfInterestInteraction
+{
+    bool TryCompleteInvestigation(DungeonPointOfInterest pointOfInterest);
+}
+
 /// <summary>
 /// Cell-bound gameplay marker for content an adventurer may investigate.
 /// Visual feedback and rewards subscribe to its state changes separately.
@@ -78,6 +83,22 @@ public sealed class DungeonPointOfInterest : MonoBehaviour
     public void Resolve() => SetAvailable(false);
 
     public void ResetAvailability() => SetAvailable(true);
+
+    public bool TryCompleteInvestigation()
+    {
+        if (!IsAvailable)
+            return false;
+
+        MonoBehaviour[] components = GetComponents<MonoBehaviour>();
+        for (int i = 0; i < components.Length; i++)
+            if (components[i] is IDungeonPointOfInterestInteraction interaction &&
+                interaction.TryCompleteInvestigation(this))
+            {
+                return true;
+            }
+
+        return false;
+    }
 
     internal void Bind(TileGridGenerator owningGrid, Vector2Int owningCell)
     {

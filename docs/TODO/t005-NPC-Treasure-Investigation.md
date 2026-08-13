@@ -3,7 +3,7 @@
 ## Tracking
 
 - **ID:** t005
-- **Status:** Ready
+- **Status:** Complete
 - **Milestone:** Expedition Loop
 - **Depends on:** t004 — Treasure Prop + Treasure Socket
 - **Blocks:** t006 — NPC Carried Treasure / Visit Reward
@@ -100,6 +100,21 @@ If investigation can be interrupted/cancelled in the current architecture, treas
 - Multiple-POI prioritization policy
 - Treasure rarity or inventory
 - Final treasure animation/art
+
+## Implementation Status
+
+- Added a generic POI investigation-completion contract so traversal retains a
+  concrete target without depending on treasure-specific types.
+- NPCs select the available POI only after physically entering its cell, use
+  that target's configured investigation duration, and complete it only after
+  the stamina-backed wait finishes successfully.
+- `TreasureProp` implements the POI completion contract and retains ownership of
+  resolve-once state and its existing resolved visual.
+- Interrupted or stamina-exhausted investigations leave treasure available;
+  resolved treasure is excluded by the existing available-POI query and cannot
+  trigger a second investigation.
+- Runtime compilation, focused source validation, and the manual Unity scenario
+  were completed successfully on 2026-08-12.
 
 ## Git
 

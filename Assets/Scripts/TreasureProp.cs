@@ -4,7 +4,7 @@ using UnityEngine;
 /// <summary>Prototype treasure content composed with a dungeon POI.</summary>
 [DisallowMultipleComponent]
 [RequireComponent(typeof(DungeonPointOfInterest))]
-public sealed class TreasureProp : MonoBehaviour
+public sealed class TreasureProp : MonoBehaviour, IDungeonPointOfInterestInteraction
 {
     [SerializeField, Min(0)] int rewardValue = 10;
     [SerializeField] Color resolvedTint = new(0.35f, 0.35f, 0.35f, 1f);
@@ -43,6 +43,12 @@ public sealed class TreasureProp : MonoBehaviour
         ApplyVisualState();
         Resolved?.Invoke(this);
         return true;
+    }
+
+    public bool TryCompleteInvestigation(
+        DungeonPointOfInterest investigatedPointOfInterest)
+    {
+        return investigatedPointOfInterest == pointOfInterest && TryResolve();
     }
 
     public void SetRewardValue(int value)
