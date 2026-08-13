@@ -3,7 +3,7 @@
 ## Tracking
 
 - **ID:** t006
-- **Status:** Planned
+- **Status:** Complete
 - **Milestone:** Sinister Dungeon Expedition Loop
 - **Depends on:** t005 — NPC Treasure Discovery & Investigation
 - **Blocks:** t007 — Adventurer Loot Drop & Dungeon Recovery
@@ -67,6 +67,23 @@ Treasure is a resource the dungeon risks in order to entice adventurers deeper. 
 - Soul/Aura harvesting
 - Treasure-driven retreat decisions
 - Inventory UI
+
+## Implementation Status
+
+- Added a visit-local `CarriedDungeonTreasure` custody snapshot containing the
+  treasure identity, value, source cell, and dungeon-bait origin.
+- Exposed the carried list, count, and total value on `NPCTraversalAgent`; the
+  serialized runtime list is also visible in the Inspector for debugging and
+  is available to the existing death/visit-completion callbacks before despawn.
+- Extended the generic POI completion contract with the investigating agent so
+  `TreasureProp` can transfer custody without adding treasure-specific logic to
+  traversal's discovery flow.
+- Treasure resolution and custody transfer occur together exactly once after a
+  successful investigation. Interrupted investigation performs neither action.
+- A fresh visit clears visit-local custody without resetting resolved world
+  treasure, and pickup does not modify Aura or player currency.
+- Runtime compilation, focused source validation, and the manual Unity scenario
+  were completed successfully on 2026-08-12.
 
 ## Git
 

@@ -897,6 +897,7 @@ public class NPCTraversalAgent : MonoBehaviour
     int nextWaypointIndex = -1;
     readonly HashSet<Vector2Int> visitedCells = new();
     readonly HashSet<NPCTraversalConnection> familiarConnections = new();
+    [SerializeField] List<CarriedDungeonTreasure> carriedDungeonTreasure = new();
     float movementStaminaCost;
     float ladderStaminaMultiplier;
     float taskStaminaCostPerSecond;
@@ -916,6 +917,19 @@ public class NPCTraversalAgent : MonoBehaviour
     public Vector3 HomePosition => homePosition;
     public IReadOnlyCollection<Vector2Int> VisitedCells => visitedCells;
     public IReadOnlyCollection<NPCTraversalConnection> FamiliarConnections => familiarConnections;
+    public IReadOnlyList<CarriedDungeonTreasure> CarriedDungeonTreasure =>
+        carriedDungeonTreasure;
+    public int CarriedDungeonTreasureCount => carriedDungeonTreasure.Count;
+    public int CarriedDungeonTreasureValue
+    {
+        get
+        {
+            int total = 0;
+            for (int i = 0; i < carriedDungeonTreasure.Count; i++)
+                total += carriedDungeonTreasure[i].Value;
+            return total;
+        }
+    }
     public float RemainingStamina => character != null ? character.CurrentStamina : 0f;
     public bool IsReturningHome => returningHome;
     public bool VisitInProgress => visitInProgress;
@@ -947,6 +961,7 @@ public class NPCTraversalAgent : MonoBehaviour
         movementStaminaCost = staminaCostPerUnit;
         ladderStaminaMultiplier = ladderCostMultiplier;
         taskStaminaCostPerSecond = taskCostPerSecond;
+        carriedDungeonTreasure ??= new List<CarriedDungeonTreasure>();
         character = GetComponent<NPCCharacter>();
         if (character == null)
             character = gameObject.AddComponent<NPCCharacter>();
@@ -1003,6 +1018,7 @@ public class NPCTraversalAgent : MonoBehaviour
 
         visitedCells.Clear();
         familiarConnections.Clear();
+        carriedDungeonTreasure.Clear();
         if (character == null)
             return false;
         character.ResetVisitResources();
@@ -1106,7 +1122,7 @@ public class NPCTraversalAgent : MonoBehaviour
                     investigationTarget.IsAvailable &&
                     investigationTarget.Cell == currentCell)
                 {
-                    investigationTarget.TryCompleteInvestigation();
+                    investigationTarget.TryCompleteInvestigation(this);
                 }
             }
         }
@@ -1170,6 +1186,29 @@ public class NPCTraversalAgent : MonoBehaviour
 
         RecordArrival(currentCell);
         StartNextExplorationStep();
+    }
+
+    public bool TryTakeTreasure(TreasureProp treasure)
+    {
+        if (!visitInProgress || treasure == null || treasure.IsResolved)
+            return false;
+
+        DungeonPointOfInterest pointOfInterest = treasure.PointOfInterest;
+        if (pointOfInterest == null || !pointOfInterest.IsAvailable ||
+            pointOfInterest.Cell != currentCell || !treasure.TryResolve())
+        {
+            return false;
+        }
+
+        string treasureId = string.IsNullOrWhiteSpace(pointOfInterest.TargetId)
+            ? treasure.name
+            : pointOfInterest.TargetId;
+        carriedDungeonTreasure.Add(new CarriedDungeonTreasure(
+            treasureId,
+            treasure.RewardValue,
+            pointOfInterest.Cell,
+            true));
+        return true;
     }
 
     void RecordArrival(Vector2Int cell)

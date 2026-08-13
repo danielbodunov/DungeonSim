@@ -15,6 +15,7 @@ This is a compact view of planned DungeonSim features. Detailed behavior and rat
 | Cell-indexed point-of-interest foundation | Implemented | [t003 — Point-of-Interest Foundation](../TODO/t003-Point-of-Interest-Foundation.md) |
 | Authored treasure prop and socket | Implemented | [t004 — Treasure Prop + Treasure Socket](../TODO/t004-Treasure-Prop.md) |
 | NPC treasure discovery and investigation | Implemented | [t005 — NPC Treasure Discovery & Investigation](../TODO/t005-NPC-Treasure-Investigation.md) |
+| Adventurer treasure custody and ownership | Implemented | [t006 — Treasure Pickup & Ownership](../TODO/t006-NPC-Carried-Treasure.md) |
 | Manual ladder and platform placement | Planning | [Manual Traversal](../Design/World_Generation_and_Building.md#manual-traversal-placement) |
 | Auto, wide, and narrow cell construction | In Progress | [Cell Width Control](../Design/World_Generation_and_Building.md#wide-and-narrow-cell-control) |
 | Editable shared walls and local tile re-resolution | Implemented | [Connection Intent](../Design/World_Generation_and_Building.md#cell-connection-intent) |

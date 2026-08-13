@@ -12,7 +12,6 @@ None.
 
 ## Planned / Near-Term — Sinister Dungeon Expedition
 
-- [t006 — Treasure Pickup & Ownership](t006-NPC-Carried-Treasure.md)
 - [t007 — Adventurer Loot Drop & Dungeon Recovery](t007-Expedition-Vertical-Slice-Validation.md)
 - [t008 — Successful Escape & Lost Treasure](t008-Successful-Escape-Lost-Treasure.md)
 - [t009 — Soul / Aura Harvesting Foundation](t009-Soul-Aura-Harvesting.md)
@@ -33,6 +32,7 @@ None.
 - [t003 — Point-of-Interest Foundation](t003-Point-of-Interest-Foundation.md)
 - [t004 — Treasure Prop + Treasure Socket](t004-Treasure-Prop.md)
 - [t005 — NPC Treasure Discovery & Investigation](t005-NPC-Treasure-Investigation.md)
+- [t006 — Treasure Pickup & Ownership](t006-NPC-Carried-Treasure.md)
 
 ## Roadmaps
 

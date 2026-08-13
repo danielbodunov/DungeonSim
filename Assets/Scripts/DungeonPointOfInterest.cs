@@ -11,7 +11,9 @@ public enum DungeonPointOfInterestType
 
 public interface IDungeonPointOfInterestInteraction
 {
-    bool TryCompleteInvestigation(DungeonPointOfInterest pointOfInterest);
+    bool TryCompleteInvestigation(
+        DungeonPointOfInterest pointOfInterest,
+        NPCTraversalAgent investigator);
 }
 
 /// <summary>
@@ -84,15 +86,15 @@ public sealed class DungeonPointOfInterest : MonoBehaviour
 
     public void ResetAvailability() => SetAvailable(true);
 
-    public bool TryCompleteInvestigation()
+    public bool TryCompleteInvestigation(NPCTraversalAgent investigator)
     {
-        if (!IsAvailable)
+        if (!IsAvailable || investigator == null)
             return false;
 
         MonoBehaviour[] components = GetComponents<MonoBehaviour>();
         for (int i = 0; i < components.Length; i++)
             if (components[i] is IDungeonPointOfInterestInteraction interaction &&
-                interaction.TryCompleteInvestigation(this))
+                interaction.TryCompleteInvestigation(this, investigator))
             {
                 return true;
             }

@@ -46,9 +46,12 @@ public sealed class TreasureProp : MonoBehaviour, IDungeonPointOfInterestInterac
     }
 
     public bool TryCompleteInvestigation(
-        DungeonPointOfInterest investigatedPointOfInterest)
+        DungeonPointOfInterest investigatedPointOfInterest,
+        NPCTraversalAgent investigator)
     {
-        return investigatedPointOfInterest == pointOfInterest && TryResolve();
+        return investigatedPointOfInterest == pointOfInterest &&
+            investigator != null &&
+            investigator.TryTakeTreasure(this);
     }
 
     public void SetRewardValue(int value)
