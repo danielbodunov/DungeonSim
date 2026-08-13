@@ -39,11 +39,15 @@ public class TileGridGenerator : MonoBehaviour
     ConnectionIntent[,] eastConnectionIntents;
     ConnectionIntent[,] southConnectionIntents;
     readonly Dictionary<Vector2Int, CellTrap> placedTraps = new();
+    readonly Dictionary<Vector2Int, FloorProp> placedFloorProps = new();
     readonly Dictionary<Vector2Int, List<DungeonPointOfInterest>> pointsOfInterest =
         new();
     readonly Dictionary<Vector2Int, int> placedTrapObjectIds = new();
     readonly Dictionary<Vector2Int, string> placedTrapPrefabNames = new();
+    readonly Dictionary<Vector2Int, int> placedFloorPropObjectIds = new();
+    readonly Dictionary<Vector2Int, string> placedFloorPropPrefabNames = new();
     Transform trapContainer;
+    Transform floorPropContainer;
     DungeonEntrance placedEntrance;
     GameObject placedEntranceInstance;
     Vector2Int placedEntranceCell;
@@ -357,10 +361,35 @@ public class TileGridGenerator : MonoBehaviour
     public void NotifyLayoutChanged()
     {
         RefreshPlacedEntrance();
+        RefreshPlacedFloorProps();
         if (propGenerator != null)
             propGenerator.GenerateProps();
 
         LayoutChanged?.Invoke();
+    }
+
+    void RefreshPlacedFloorProps()
+    {
+        var cellsToRemove = new List<Vector2Int>();
+        foreach (KeyValuePair<Vector2Int, FloorProp> pair in placedFloorProps)
+        {
+            FloorProp floorProp = pair.Value;
+            if (floorProp == null ||
+                !IsPlacedCell(pair.Key.x, pair.Key.y) ||
+                !floorProp.IsCompatibleWith(this, pair.Key))
+            {
+                cellsToRemove.Add(pair.Key);
+                continue;
+            }
+
+            floorProp.transform.SetPositionAndRotation(
+                GetCellWorldPosition(pair.Key.x, pair.Key.y),
+                Quaternion.identity);
+            floorProp.Initialize(this, pair.Key);
+        }
+
+        for (int i = 0; i < cellsToRemove.Count; i++)
+            RemoveFloorPropAtCell(cellsToRemove[i]);
     }
 
     void RefreshPlacedEntrance()
@@ -530,6 +559,7 @@ public class TileGridGenerator : MonoBehaviour
         }
 
         ClearTraps();
+        ClearFloorProps();
         ClearEntrance();
         DestroyInstantiatedGrid();
         InitializeGrid();
@@ -688,6 +718,241 @@ public class TileGridGenerator : MonoBehaviour
             coordinates.x < width && coordinates.y < height;
     }
 
+    public bool HasPlacedFloorProp(Vector2Int cell)
+    {
+        if (!placedFloorProps.TryGetValue(cell, out FloorProp floorProp))
+            return false;
+        if (floorProp != null)
+            return true;
+
+        placedFloorProps.Remove(cell);
+        placedFloorPropObjectIds.Remove(cell);
+        placedFloorPropPrefabNames.Remove(cell);
+        return false;
+    }
+
+    public bool CanPlaceFloorPropWorldPosition(
+        Vector3 worldPosition,
+        GameObject floorPropPrefab)
+    {
+        Vector2Int cell = GetGridCoordinates(worldPosition);
+        return CanPlaceFloorPropCell(cell.x, cell.y, floorPropPrefab);
+    }
+
+    public bool CanPlaceFloorPropCell(
+        int x,
+        int y,
+        GameObject floorPropPrefab)
+    {
+        return TryValidateFloorPropPlacement(
+            new Vector2Int(x, y), floorPropPrefab, out _);
+    }
+
+    public bool TryGetFloorPropPreviewPose(
+        Vector3 worldPosition,
+        GameObject floorPropPrefab,
+        out Vector3 position,
+        out Quaternion rotation)
+    {
+        Vector2Int cell = GetGridCoordinates(worldPosition);
+        bool inBounds = cell.x >= 0 && cell.y >= 0 &&
+            cell.x < width && cell.y < height;
+        position = inBounds
+            ? GetCellWorldPosition(cell.x, cell.y)
+            : worldPosition;
+        rotation = Quaternion.identity;
+        return CanPlaceFloorPropCell(cell.x, cell.y, floorPropPrefab);
+    }
+
+    public bool PlaceFloorPropWorldPosition(
+        Vector3 worldPosition,
+        GameObject floorPropPrefab,
+        int objectId = -1,
+        bool resolvedForSave = false)
+    {
+        Vector2Int cell = GetGridCoordinates(worldPosition);
+        return PlaceFloorPropCell(
+            cell.x, cell.y, floorPropPrefab, objectId, resolvedForSave);
+    }
+
+    public bool PlaceFloorPropCell(
+        int x,
+        int y,
+        GameObject floorPropPrefab,
+        int objectId = -1,
+        bool resolvedForSave = false)
+    {
+        var cell = new Vector2Int(x, y);
+        if (!TryValidateFloorPropPlacement(
+                cell, floorPropPrefab, out string failure))
+        {
+            Debug.LogWarning(failure, this);
+            return false;
+        }
+
+        if (floorPropContainer == null)
+        {
+            var container = new GameObject("Placed Floor Props");
+            container.transform.SetParent(transform, false);
+            floorPropContainer = container.transform;
+        }
+
+        GameObject instance = Instantiate(
+            floorPropPrefab,
+            GetCellWorldPosition(x, y),
+            Quaternion.identity,
+            floorPropContainer);
+        FloorProp floorProp = instance.GetComponent<FloorProp>();
+        if (floorProp == null)
+        {
+            // The prefab is validated before instantiation, but keep this guard
+            // for runtime prefab mutation and clearer diagnostics.
+            Debug.LogWarning(
+                $"Floor prop prefab '{floorPropPrefab.name}' needs a FloorProp component on its root.",
+                floorPropPrefab);
+            instance.SetActive(false);
+            Destroy(instance);
+            return false;
+        }
+
+        if (instance.GetComponentInChildren<DungeonLightReceiver>(true) == null)
+            instance.AddComponent<DungeonLightReceiver>();
+
+        instance.name = $"{floorPropPrefab.name} [{x},{y}]";
+        floorProp.Initialize(this, cell);
+        floorProp.RestoreResolvedState(resolvedForSave);
+        placedFloorProps.Add(cell, floorProp);
+        placedFloorPropObjectIds[cell] = objectId;
+        placedFloorPropPrefabNames[cell] = floorPropPrefab.name;
+        LayoutChanged?.Invoke();
+        return true;
+    }
+
+    bool TryValidateFloorPropPlacement(
+        Vector2Int cell,
+        GameObject floorPropPrefab,
+        out string failure)
+    {
+        if (floorPropPrefab == null)
+        {
+            failure = "A floor prop prefab must be assigned before it can be placed.";
+            return false;
+        }
+
+        FloorProp floorProp = floorPropPrefab.GetComponent<FloorProp>();
+        if (floorProp == null)
+        {
+            failure = $"Floor prop prefab '{floorPropPrefab.name}' needs a FloorProp component on its root.";
+            return false;
+        }
+
+        if (cell.x < 0 || cell.x >= width || cell.y < 0 || cell.y >= height ||
+            !IsPlacedCell(cell.x, cell.y))
+        {
+            failure = $"Floor props can only be placed on a built dungeon tile. Cell ({cell.x},{cell.y}) is not available.";
+            return false;
+        }
+
+        if (!floorProp.IsCompatibleWith(this, cell))
+        {
+            failure = $"'{floorPropPrefab.name}' is not compatible with cell ({cell.x},{cell.y}).";
+            return false;
+        }
+
+        if (HasPlacedFloorProp(cell))
+        {
+            failure = $"Cell ({cell.x},{cell.y}) already contains a floor prop.";
+            return false;
+        }
+
+        if (placedTraps.TryGetValue(cell, out CellTrap trap) && trap != null)
+        {
+            failure = $"Cell ({cell.x},{cell.y}) already contains a trap.";
+            return false;
+        }
+
+        if (placedEntrance != null && placedEntranceCell == cell)
+        {
+            failure = $"Cell ({cell.x},{cell.y}) already contains the dungeon entrance.";
+            return false;
+        }
+
+        if (instantiated[cell.x, cell.y] != null &&
+            instantiated[cell.x, cell.y]
+                .GetComponentInChildren<DungeonEntrance>(true) != null)
+        {
+            failure = $"Cell ({cell.x},{cell.y}) contains topology-sensitive entrance content.";
+            return false;
+        }
+
+        if (GetPointsOfInterest(cell, false).Count > 0)
+        {
+            failure = $"Cell ({cell.x},{cell.y}) already contains interactive content.";
+            return false;
+        }
+
+        if (propGenerator != null && propGenerator.IsCellOccupiedByGeneratedProp(cell))
+        {
+            failure = $"Cell ({cell.x},{cell.y}) is occupied by topology-sensitive content.";
+            return false;
+        }
+
+        failure = string.Empty;
+        return true;
+    }
+
+    public List<SavedFloorPropCell> CaptureFloorPropLayout()
+    {
+        var result = new List<SavedFloorPropCell>();
+        foreach (KeyValuePair<Vector2Int, FloorProp> pair in placedFloorProps)
+        {
+            if (pair.Value == null)
+                continue;
+
+            placedFloorPropObjectIds.TryGetValue(pair.Key, out int objectId);
+            placedFloorPropPrefabNames.TryGetValue(pair.Key, out string prefabName);
+            result.Add(new SavedFloorPropCell
+            {
+                x = pair.Key.x,
+                y = pair.Key.y,
+                objectId = objectId,
+                prefabName = prefabName,
+                isResolved = pair.Value.IsResolvedForSave
+            });
+        }
+        return result;
+    }
+
+    public void ClearFloorProps()
+    {
+        foreach (FloorProp floorProp in placedFloorProps.Values)
+        {
+            if (floorProp == null)
+                continue;
+            floorProp.gameObject.SetActive(false);
+            Destroy(floorProp.gameObject);
+        }
+        placedFloorProps.Clear();
+        placedFloorPropObjectIds.Clear();
+        placedFloorPropPrefabNames.Clear();
+    }
+
+    bool RemoveFloorPropAtCell(Vector2Int cell)
+    {
+        if (!placedFloorProps.TryGetValue(cell, out FloorProp floorProp))
+            return false;
+
+        placedFloorProps.Remove(cell);
+        placedFloorPropObjectIds.Remove(cell);
+        placedFloorPropPrefabNames.Remove(cell);
+        if (floorProp != null)
+        {
+            floorProp.gameObject.SetActive(false);
+            Destroy(floorProp.gameObject);
+        }
+        return true;
+    }
+
     public IReadOnlyList<DungeonPointOfInterest> GetPointsOfInterest(
         Vector2Int cell,
         bool availableOnly = true)
@@ -826,6 +1091,13 @@ public class TileGridGenerator : MonoBehaviour
             Debug.LogWarning(
                 $"Entrances can only be placed on a built dungeon tile. " +
                 $"Cell ({x},{y}) is not available.", this);
+            return false;
+        }
+
+        if (HasPlacedFloorProp(new Vector2Int(x, y)))
+        {
+            Debug.LogWarning(
+                $"Cell ({x},{y}) already contains a floor prop.", this);
             return false;
         }
 
@@ -1526,6 +1798,7 @@ public class TileGridGenerator : MonoBehaviour
         foreach (Vector2Int position in region)
             InstantiateCurrentCell(position.x, position.y);
         RemoveTrapAtCell(new Vector2Int(x, y));
+        RemoveFloorPropAtCell(new Vector2Int(x, y));
         if (placedEntrance != null && placedEntranceCell == new Vector2Int(x, y))
             ClearEntrance();
         NotifyLayoutChanged();
@@ -1588,6 +1861,13 @@ public class TileGridGenerator : MonoBehaviour
         if (x < 0 || x >= width || y < 0 || y >= height || !placed[x, y])
         {
             Debug.LogWarning($"Traps can only be placed on a built dungeon tile. Cell ({x},{y}) is not available.", this);
+            return false;
+        }
+
+        if (HasPlacedFloorProp(cell))
+        {
+            Debug.LogWarning(
+                $"Cell ({x},{y}) already contains a floor prop.", this);
             return false;
         }
 

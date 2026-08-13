@@ -74,6 +74,7 @@ public class GameSaveManager : MonoBehaviour
             tileCells = tileGrid.CaptureTileLayout(),
             connectionEdges = tileGrid.CaptureConnectionIntents(),
             traps = tileGrid.CaptureTrapLayout(),
+            floorProps = tileGrid.CaptureFloorPropLayout(),
             entrance = tileGrid.CaptureEntranceLayout()
         };
 
@@ -94,7 +95,8 @@ public class GameSaveManager : MonoBehaviour
         }
 
         return ReportSuccess(
-            $"Saved '{saveName}' with {save.tileCells.Count} cells and " +
+            $"Saved '{saveName}' with {save.tileCells.Count} cells, " +
+            $"{save.floorProps.Count} floor props, and " +
             $"{save.livingAdventurers.Count} adventurers.");
     }
 
@@ -177,6 +179,8 @@ public class GameSaveManager : MonoBehaviour
         List<SavedConnectionEdge> previousConnections =
             tileGrid.CaptureConnectionIntents();
         List<SavedTrapCell> previousTraps = tileGrid.CaptureTrapLayout();
+        List<SavedFloorPropCell> previousFloorProps =
+            tileGrid.CaptureFloorPropLayout();
         SavedEntrance previousEntrance = tileGrid.CaptureEntranceLayout();
         int previousPropSeed = tileGrid.PropGenerationSeed;
         if (!tileGrid.RestoreTileLayout(save.tileCells, save.connectionEdges))
@@ -184,6 +188,7 @@ public class GameSaveManager : MonoBehaviour
             if (tileGrid.RestoreTileLayout(previousTiles, previousConnections))
             {
                 RestoreTraps(previousTraps);
+                RestoreFloorProps(previousFloorProps);
                 RestoreEntrance(previousEntrance);
                 tileGrid.RegenerateProps(previousPropSeed);
             }
@@ -201,6 +206,7 @@ public class GameSaveManager : MonoBehaviour
 
         int restoredTraps = RestoreTraps(save.traps);
         bool restoredEntrance = RestoreEntrance(save.entrance);
+        int restoredFloorProps = RestoreFloorProps(save.floorProps);
         tileGrid.RegenerateProps(save.propGenerationSeed);
         string displayName = string.IsNullOrWhiteSpace(save.saveName)
             ? Path.GetFileNameWithoutExtension(savePath)
@@ -208,6 +214,7 @@ public class GameSaveManager : MonoBehaviour
         return ReportSuccess(
             $"Loaded '{displayName}': {save.tileCells.Count} cells, " +
             $"{restoredTraps} traps, " +
+            $"{restoredFloorProps} floor props, " +
             $"{(restoredEntrance ? "an entrance" : "no entrance")}, and " +
             $"{gameplayLoop.AdventurerRoster.Count} adventurers.");
     }
@@ -335,6 +342,44 @@ public class GameSaveManager : MonoBehaviour
                 Debug.LogWarning(
                     $"Could not restore trap '{savedTrap.prefabName}' at " +
                     $"({savedTrap.x},{savedTrap.y}).", this);
+            }
+        }
+        return restored;
+    }
+
+    int RestoreFloorProps(List<SavedFloorPropCell> floorProps)
+    {
+        tileGrid.ClearFloorProps();
+        if (floorProps == null)
+            return 0;
+
+        int restored = 0;
+        foreach (SavedFloorPropCell savedProp in floorProps)
+        {
+            if (savedProp == null)
+                continue;
+
+            GameObject prefab = FindObjectPrefab(savedProp.objectId);
+            if (prefab == null && !string.IsNullOrWhiteSpace(savedProp.prefabName))
+            {
+                prefab = Resources.Load<GameObject>($"Props/{savedProp.prefabName}")
+                    ?? Resources.Load<GameObject>(savedProp.prefabName);
+            }
+
+            if (prefab != null && tileGrid.PlaceFloorPropCell(
+                    savedProp.x,
+                    savedProp.y,
+                    prefab,
+                    savedProp.objectId,
+                    savedProp.isResolved))
+            {
+                restored++;
+            }
+            else
+            {
+                Debug.LogWarning(
+                    $"Could not restore floor prop '{savedProp.prefabName}' at " +
+                    $"({savedProp.x},{savedProp.y}).", this);
             }
         }
         return restored;
