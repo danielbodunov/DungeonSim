@@ -97,6 +97,35 @@ public class PropGenerator : MonoBehaviour
             pendingGeneration = StartCoroutine(RegenerateAfterFrame());
     }
 
+    /// <summary>
+    /// Synchronously discards procedural state owned by the current layout.
+    /// A full layout restore calls this before restoring authoritative placed
+    /// content so old occupancy cannot participate in incoming validation.
+    /// </summary>
+    public void ClearGeneratedProps()
+    {
+        if (pendingGeneration != null)
+        {
+            StopCoroutine(pendingGeneration);
+            pendingGeneration = null;
+        }
+
+        for (int i = spawnedProps.Count - 1; i >= 0; i--)
+        {
+            GameObject prop = spawnedProps[i];
+            if (prop == null)
+                continue;
+
+            prop.SetActive(false);
+            Destroy(prop);
+        }
+
+        spawnedProps.Clear();
+        spawnedLadderProps.Clear();
+        occupiedPropCells.Clear();
+        generatedRuns.Clear();
+    }
+
     System.Collections.IEnumerator RegenerateAfterFrame()
     {
         yield return null;

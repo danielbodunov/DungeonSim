@@ -558,6 +558,10 @@ public class TileGridGenerator : MonoBehaviour
             }
         }
 
+        // Procedural props belong to the outgoing layout. Clear their runtime
+        // instances and occupancy synchronously before incoming authored
+        // content is restored through normal placement validation.
+        propGenerator?.ClearGeneratedProps();
         ClearTraps();
         ClearFloorProps();
         ClearEntrance();

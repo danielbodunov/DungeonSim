@@ -22,7 +22,7 @@ These tickets establish the revised core fantasy before more sophisticated explo
 
 ## Awaiting Unity Validation
 
-None.
+- [DEV001 — Generic Prop & Treasure Placement](DEV001-Generic-Prop-Treasure-Placement.md)
 
 ## Completed / Existing Work
 
