@@ -138,10 +138,15 @@ public class NPCTraversal : MonoBehaviour
     public event System.Action<NPCTraversalAgent, Vector2Int, bool> AdventurerCellEntered;
     public event System.Func<NPCTraversalAgent, Vector2Int, bool> InvestigationDecisionRequested;
 
-    internal bool ShouldInvestigate(NPCTraversalAgent visitor, Vector2Int cell)
+    internal bool TryGetInvestigationTarget(
+        NPCTraversalAgent visitor,
+        Vector2Int cell,
+        out DungeonPointOfInterest target)
     {
-        if (grid != null && grid.TryGetAvailablePointOfInterest(cell, out _))
+        if (grid != null && grid.TryGetAvailablePointOfInterest(cell, out target))
             return true;
+
+        target = null;
 
         if (InvestigationDecisionRequested == null)
             return false;
@@ -151,14 +156,6 @@ public class NPCTraversal : MonoBehaviour
             if (decision(visitor, cell))
                 return true;
         return false;
-    }
-
-    internal float GetInvestigationDuration(Vector2Int cell, float fallback)
-    {
-        return grid != null &&
-            grid.TryGetAvailablePointOfInterest(cell, out var pointOfInterest)
-                ? pointOfInterest.InvestigationDuration
-                : fallback;
     }
 
     internal void NotifyAdventurerDied(NPCCharacter character)
@@ -1091,12 +1088,26 @@ public class NPCTraversalAgent : MonoBehaviour
             RecordArrival(currentCell);
 
             if (!returningHome && character.CurrentStamina > 0f &&
-                navigation.ShouldInvestigate(this, currentCell))
+                navigation.TryGetInvestigationTarget(
+                    this, currentCell, out DungeonPointOfInterest investigationTarget))
             {
-                float investigationDuration =
-                    navigation.GetInvestigationDuration(currentCell, waitTime);
+                float investigationDuration = investigationTarget != null
+                    ? investigationTarget.InvestigationDuration
+                    : waitTime;
+                bool investigationCompleted = investigationDuration <= 0f;
                 if (investigationDuration > 0f)
-                    yield return SpendStaminaWhileWaiting(investigationDuration);
+                {
+                    yield return SpendStaminaWhileWaiting(
+                        investigationDuration,
+                        completed => investigationCompleted = completed);
+                }
+
+                if (investigationCompleted && investigationTarget != null &&
+                    investigationTarget.IsAvailable &&
+                    investigationTarget.Cell == currentCell)
+                {
+                    investigationTarget.TryCompleteInvestigation();
+                }
             }
         }
 
@@ -1237,7 +1248,9 @@ public class NPCTraversalAgent : MonoBehaviour
         }
     }
 
-    IEnumerator SpendStaminaWhileWaiting(float duration)
+    IEnumerator SpendStaminaWhileWaiting(
+        float duration,
+        System.Action<bool> completion = null)
     {
         float elapsed = 0f;
         while (elapsed < duration && character.CurrentStamina > 0f)
@@ -1247,6 +1260,7 @@ public class NPCTraversalAgent : MonoBehaviour
             elapsed += delta;
             yield return null;
         }
+        completion?.Invoke(elapsed >= duration);
     }
 
     IEnumerator PerformTaskUntilExhausted()

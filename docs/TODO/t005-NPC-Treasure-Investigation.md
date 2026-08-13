@@ -3,10 +3,10 @@
 ## Tracking
 
 - **ID:** t005
-- **Status:** Ready
+- **Status:** Complete
 - **Milestone:** Expedition Loop
 - **Depends on:** t004 — Treasure Prop + Treasure Socket
-- **Blocks:** t006 — NPC Carried Treasure / Visit Reward
+- **Blocks:** t006 — Treasure Pickup & Ownership
 
 ## Type
 
@@ -16,7 +16,7 @@ Feature
 
 Connect the existing treasure POI to NPC behavior so an adventurer that physically reaches a cell containing available treasure recognizes it as a meaningful investigation target, pauses through the existing investigation flow, and resolves the treasure exactly once when investigation completes.
 
-This ticket is about discovery and investigation. It does not yet award or carry the treasure value.
+This ticket is about discovery and investigation. It does not yet transfer ownership of the treasure to the adventurer.
 
 ## Current Behavior
 
@@ -68,7 +68,7 @@ These are starting points, not a prescribed file-change list.
 
 ## Constraints
 
-- Do not add carried treasure or persistent reward settlement; that belongs to t006.
+- Do not add treasure pickup, adventurer-carried ownership, or persistent reward settlement; pickup and ownership transfer belong to t006.
 - Do not add treasure-seeking pathfinding or known-treasure prioritization; that belongs to later exploration tickets.
 - Do not add global POI knowledge.
 - Do not redesign the POI foundation unless a narrowly scoped correction is required for this ticket.
@@ -94,12 +94,27 @@ If investigation can be interrupted/cancelled in the current architecture, treas
 
 ## Out of Scope
 
-- Adding reward value to the NPC
+- Treasure pickup or ownership transfer
 - Persistent economy settlement
 - Treasure attraction/path priority
 - Multiple-POI prioritization policy
 - Treasure rarity or inventory
 - Final treasure animation/art
+
+## Implementation Status
+
+- Added a generic POI investigation-completion contract so traversal retains a
+  concrete target without depending on treasure-specific types.
+- NPCs select the available POI only after physically entering its cell, use
+  that target's configured investigation duration, and complete it only after
+  the stamina-backed wait finishes successfully.
+- `TreasureProp` implements the POI completion contract and retains ownership of
+  resolve-once state and its existing resolved visual.
+- Interrupted or stamina-exhausted investigations leave treasure available;
+  resolved treasure is excluded by the existing available-POI query and cannot
+  trigger a second investigation.
+- Runtime compilation, focused source validation, and the manual Unity scenario
+  were completed successfully on 2026-08-12.
 
 ## Git
 

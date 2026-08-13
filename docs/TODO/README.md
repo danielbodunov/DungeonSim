@@ -8,7 +8,7 @@ None.
 
 ## Ready
 
-- [t005 — NPC Treasure Discovery & Investigation](t005-NPC-Treasure-Investigation.md)
+None.
 
 ## Planned / Near-Term — Sinister Dungeon Expedition
 
@@ -32,6 +32,7 @@ None.
 - [t002 — Dungeon Entrance / Adventurer Spawn Contract](t002-Dungeon-Entrance.md)
 - [t003 — Point-of-Interest Foundation](t003-Point-of-Interest-Foundation.md)
 - [t004 — Treasure Prop + Treasure Socket](t004-Treasure-Prop.md)
+- [t005 — NPC Treasure Discovery & Investigation](t005-NPC-Treasure-Investigation.md)
 
 ## Roadmaps
 

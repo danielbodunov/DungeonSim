@@ -39,7 +39,7 @@ Provides dungeon treasure as authored POI content hosted through reusable socket
 **Milestone outcome:** Treasure functions as bait with real ownership consequences; death recovers spoils and harvests Aura; escape can carry dungeon value away; each expedition has an explicit outcome.
 
 ### t005 — NPC Treasure Discovery & Investigation
-**Status:** Ready
+**Status:** Complete
 
 NPC discovers treasure only after physically reaching its cell, investigates through the existing POI flow, and resolves it exactly once.
 
