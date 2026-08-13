@@ -12,7 +12,6 @@ None.
 
 ## Planned — Developer Tooling Milestone
 
-- [DEV002 — Reusable Dungeon Test Scenarios](DEV002-Reusable-Dungeon-Test-Scenarios.md)
 - [DEV003 — NPC Runtime Debug Harness](DEV003-NPC-Runtime-Debug-Harness.md)
 
 Complete DEV001–DEV003 before beginning t007. These tools should reduce scenario setup/reproduction time while continuing to exercise normal production gameplay systems.
@@ -28,6 +27,7 @@ Complete DEV001–DEV003 before beginning t007. These tools should reduce scenar
 ## Awaiting Unity Validation
 
 - [DEV001 — Generic Prop & Treasure Placement](DEV001-Generic-Prop-Treasure-Placement.md)
+- [DEV002 — Reusable Dungeon Test Scenarios](DEV002-Reusable-Dungeon-Test-Scenarios.md)
 
 ## Completed / Existing Work
 
