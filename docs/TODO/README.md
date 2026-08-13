@@ -6,19 +6,24 @@ This directory is the working queue for prioritized, actionable tickets. Broader
 
 None.
 
-## Ready
+## Ready — Developer Tooling Milestone
 
-None.
+- [DEV001 — Generic Prop & Treasure Placement](DEV001-Generic-Prop-Treasure-Placement.md)
+
+## Planned — Developer Tooling Milestone
+
+- [DEV002 — Reusable Dungeon Test Scenarios](DEV002-Reusable-Dungeon-Test-Scenarios.md)
+- [DEV003 — NPC Runtime Debug Harness](DEV003-NPC-Runtime-Debug-Harness.md)
+
+Complete DEV001–DEV003 before beginning t007. These tools should reduce scenario setup/reproduction time while continuing to exercise normal production gameplay systems.
 
 ## Planned / Near-Term — Sinister Dungeon Expedition
 
-- [t007 — Adventurer Loot Drop & Dungeon Recovery](t007-Expedition-Vertical-Slice-Validation.md)
+- [t007 — Adventurer Loot Drop & Dungeon Recovery](t007-Expedition-Vertical-Slice-Validation.md) — gated by DEV001–DEV003
 - [t008 — Successful Escape & Lost Treasure](t008-Successful-Escape-Lost-Treasure.md)
 - [t009 — Soul / Aura Harvesting Foundation](t009-Soul-Aura-Harvesting.md)
 - [t010 — Expedition Outcomes](t010-Expedition-Outcomes.md)
 - [t011 — Sinister Dungeon Vertical Slice Validation](t011-Sinister-Dungeon-Vertical-Slice.md)
-
-These tickets establish the revised core fantasy before more sophisticated exploration/economy work: treasure is dungeon-owned bait, adventurers can steal it, death can recover loot and harvest Aura, and escape can carry dungeon value away.
 
 ## Awaiting Unity Validation
 
@@ -37,32 +42,23 @@ These tickets establish the revised core fantasy before more sophisticated explo
 ## Roadmaps
 
 - [Core Gameplay Loop Roadmap](../Roadmap/Core-Gameplay-Loop.md)
+- [Developer Tooling Roadmap](../Roadmap/Developer-Tooling.md)
 - [Roadmap index and planning rules](../Roadmap/README.md)
 
 ## Design References
 
-- [Core game direction](../Design/Core_Game_Direction.md) — player fantasy, treasure-as-bait, Aura, adventurer outcomes, emergent stories, and future raid-mode boundary.
+- [Core game direction](../Design/Core_Game_Direction.md)
 - [NPC behavior](../Design/NPC_Behavior.md)
 - [World generation and building](../Design/World_Generation_and_Building.md)
 
 ## Issue Tracking
 
-- [Known issues and follow-ups](Known_Issues_and_followups.md) records incidental issues discovered during active work without automatically expanding the current ticket's scope.
+- [Known issues and follow-ups](Known_Issues_and_followups.md)
 
 ## Ticket Lifecycle
 
-Use stable ticket IDs (`t###`). Never renumber or reuse an ID once assigned, even when roadmap priorities change.
+Gameplay/production features use stable `t###` IDs. Developer/testing infrastructure uses stable `DEV###` IDs. Never renumber or reuse an assigned ID.
 
-Standard statuses:
-
-- Planned
-- Ready
-- In Progress
-- Awaiting Unity Validation
-- Complete
-- Blocked
-- Cancelled
-
-When roadmap work becomes actionable, create a focused Markdown ticket here containing tracking metadata, desired behavior, requirements, acceptance criteria, relevant implementation context, constraints, manual validation, and explicit out-of-scope items.
+Standard statuses: Planned, Ready, In Progress, Awaiting Unity Validation, Complete, Blocked, Cancelled.
 
 Branches, commits, PRs, known issues, and design discussions should reference the stable ticket ID when practical.
