@@ -13,7 +13,8 @@ public enum ObjectPlacementType
 {
     DungeonTile,
     Trap,
-    Entrance
+    Entrance,
+    FloorProp
 }
 
 [Serializable]

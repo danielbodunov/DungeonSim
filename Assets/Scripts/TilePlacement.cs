@@ -35,6 +35,14 @@ public class TilePlacement : MonoBehaviour
     private bool removingEntrance;
     private bool editingEdges;
     private CellWidthIntent widthIntent = CellWidthIntent.Auto;
+    private GameObject floorPropPreview;
+    private Renderer[] floorPropPreviewRenderers = System.Array.Empty<Renderer>();
+    private Renderer[] cellIndicatorRenderers = System.Array.Empty<Renderer>();
+    private MaterialPropertyBlock previewPropertyBlock;
+    private static readonly Color ValidPreviewColor =
+        new(0.25f, 0.9f, 0.4f, 0.72f);
+    private static readonly Color InvalidPreviewColor =
+        new(1f, 0.2f, 0.2f, 0.72f);
 
     public bool BuildingEnabled => buildingEnabled;
     public bool IsRemovingTraps => removingTraps;
@@ -56,6 +64,10 @@ public class TilePlacement : MonoBehaviour
             tileGridGenerator = this.GetComponent<TileGridGenerator>()
                 ?? throw new System.Exception("TileGridGenerator component not found on the same GameObject.");
         }
+        cellIndicatorRenderers = cellIndicator != null
+            ? cellIndicator.GetComponentsInChildren<Renderer>(true)
+            : System.Array.Empty<Renderer>();
+        previewPropertyBlock = new MaterialPropertyBlock();
         StopPlacement();
         //CreateGroundTiles();
     }
@@ -74,6 +86,7 @@ public class TilePlacement : MonoBehaviour
         }
         gridVisualization.SetActive(true);
         cellIndicator.SetActive(true);
+        CreateFloorPropPreview(database.objectsData[selectedObjectIndex]);
         inputManager.OnClicked += PlaceStructure;
         inputManager.OnRightClicked += PlaceGround;
         inputManager.OnExit += StopPlacement;
@@ -193,6 +206,14 @@ public class TilePlacement : MonoBehaviour
                 lastDragCell = gridPosition;
             }
         }
+        else if (selectedObject.PlacementType == ObjectPlacementType.FloorProp)
+        {
+            if (tileGridGenerator.PlaceFloorPropWorldPosition(
+                    cellCenter, selectedObject.Prefab, selectedObject.ID))
+            {
+                lastDragCell = gridPosition;
+            }
+        }
         else
         {
             if (tileGridGenerator.ClickWorldPosition(
@@ -210,6 +231,8 @@ public class TilePlacement : MonoBehaviour
 
     public void StopPlacement()
     {
+        DestroyFloorPropPreview();
+        ClearPreviewTint(cellIndicatorRenderers);
         selectedObjectIndex = -1;
         removingTraps = false;
         removingEntrance = false;
@@ -237,6 +260,8 @@ public class TilePlacement : MonoBehaviour
         mouseIndicator.transform.position = mousePosition;
         cellIndicator.transform.position = grid.GetCellCenterWorld(gridPosition);
 
+        UpdateFloorPropPreview(grid.GetCellCenterWorld(gridPosition));
+
         // Wall toggles are discrete clicks handled by PlaceStructure. Keeping
         // them out of the held-button path prevents one click toggling twice.
         if (editingEdges)
@@ -258,6 +283,98 @@ public class TilePlacement : MonoBehaviour
         buildingEnabled = enabled;
         if (!buildingEnabled)
             StopPlacement();
+    }
+
+    void CreateFloorPropPreview(ObjectData selectedObject)
+    {
+        DestroyFloorPropPreview();
+        if (selectedObject == null ||
+            selectedObject.PlacementType != ObjectPlacementType.FloorProp ||
+            selectedObject.Prefab == null)
+        {
+            return;
+        }
+
+        floorPropPreview = Instantiate(selectedObject.Prefab);
+        floorPropPreview.name = $"{selectedObject.Prefab.name} Placement Preview";
+        floorPropPreview.hideFlags = HideFlags.DontSave;
+
+        foreach (Behaviour behaviour in
+            floorPropPreview.GetComponentsInChildren<Behaviour>(true))
+        {
+            behaviour.enabled = false;
+        }
+        foreach (Collider target in
+            floorPropPreview.GetComponentsInChildren<Collider>(true))
+        {
+            target.enabled = false;
+        }
+        foreach (Rigidbody body in
+            floorPropPreview.GetComponentsInChildren<Rigidbody>(true))
+        {
+            body.isKinematic = true;
+            body.detectCollisions = false;
+        }
+
+        floorPropPreviewRenderers =
+            floorPropPreview.GetComponentsInChildren<Renderer>(true);
+    }
+
+    void UpdateFloorPropPreview(Vector3 cellCenter)
+    {
+        if (floorPropPreview == null || selectedObjectIndex < 0 ||
+            database == null || selectedObjectIndex >= database.objectsData.Count)
+        {
+            return;
+        }
+
+        ObjectData selectedObject = database.objectsData[selectedObjectIndex];
+        bool isValid = tileGridGenerator.TryGetFloorPropPreviewPose(
+            cellCenter,
+            selectedObject.Prefab,
+            out Vector3 position,
+            out Quaternion rotation);
+        floorPropPreview.transform.SetPositionAndRotation(position, rotation);
+        Color tint = isValid ? ValidPreviewColor : InvalidPreviewColor;
+        ApplyPreviewTint(floorPropPreviewRenderers, tint);
+        ApplyPreviewTint(cellIndicatorRenderers, tint);
+    }
+
+    void ApplyPreviewTint(Renderer[] renderers, Color tint)
+    {
+        if (previewPropertyBlock == null)
+            previewPropertyBlock = new MaterialPropertyBlock();
+
+        for (int i = 0; i < renderers.Length; i++)
+        {
+            Renderer target = renderers[i];
+            if (target == null)
+                continue;
+
+            target.GetPropertyBlock(previewPropertyBlock);
+            previewPropertyBlock.SetColor("_BaseColor", tint);
+            previewPropertyBlock.SetColor("_Color", tint);
+            target.SetPropertyBlock(previewPropertyBlock);
+            previewPropertyBlock.Clear();
+        }
+    }
+
+    static void ClearPreviewTint(Renderer[] renderers)
+    {
+        for (int i = 0; i < renderers.Length; i++)
+            if (renderers[i] != null)
+                renderers[i].SetPropertyBlock(null);
+    }
+
+    void DestroyFloorPropPreview()
+    {
+        if (floorPropPreview != null)
+        {
+            floorPropPreview.SetActive(false);
+            Destroy(floorPropPreview);
+        }
+        floorPropPreview = null;
+        floorPropPreviewRenderers = System.Array.Empty<Renderer>();
     }
 
     // private void CreateGroundTiles()

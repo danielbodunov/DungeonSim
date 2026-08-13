@@ -31,6 +31,9 @@ public class PropGenerator : MonoBehaviour
         : GenerationSeed;
     public event System.Action StructuresRegenerated;
 
+    public bool IsCellOccupiedByGeneratedProp(Vector2Int cell) =>
+        occupiedPropCells.Contains(cell);
+
     public List<GeneratedStructureRun> GetRunsAtCell(Vector2Int cell)
     {
         var results = new List<GeneratedStructureRun>();
@@ -92,6 +95,35 @@ public class PropGenerator : MonoBehaviour
         pendingGenerationSeed = generationSeed;
         if (pendingGeneration == null)
             pendingGeneration = StartCoroutine(RegenerateAfterFrame());
+    }
+
+    /// <summary>
+    /// Synchronously discards procedural state owned by the current layout.
+    /// A full layout restore calls this before restoring authoritative placed
+    /// content so old occupancy cannot participate in incoming validation.
+    /// </summary>
+    public void ClearGeneratedProps()
+    {
+        if (pendingGeneration != null)
+        {
+            StopCoroutine(pendingGeneration);
+            pendingGeneration = null;
+        }
+
+        for (int i = spawnedProps.Count - 1; i >= 0; i--)
+        {
+            GameObject prop = spawnedProps[i];
+            if (prop == null)
+                continue;
+
+            prop.SetActive(false);
+            Destroy(prop);
+        }
+
+        spawnedProps.Clear();
+        spawnedLadderProps.Clear();
+        occupiedPropCells.Clear();
+        generatedRuns.Clear();
     }
 
     System.Collections.IEnumerator RegenerateAfterFrame()
@@ -268,7 +300,8 @@ public class PropGenerator : MonoBehaviour
             if (!gridGenerator.IsPlacedCell(x, y))
                 continue;
 
-            if (occupiedPropCells.Contains(new Vector2Int(x, y)))
+            if (occupiedPropCells.Contains(new Vector2Int(x, y)) ||
+                gridGenerator.HasPlacedFloorProp(new Vector2Int(x, y)))
                 continue;
 
             var candidates = new List<LadderCandidate>();
@@ -351,7 +384,9 @@ public class PropGenerator : MonoBehaviour
                     continue;
 
                 var cell = new Vector2Int(x, y);
-                if (definition.occupiesCell && occupiedPropCells.Contains(cell))
+                if (definition.occupiesCell &&
+                    (occupiedPropCells.Contains(cell) ||
+                     gridGenerator.HasPlacedFloorProp(cell)))
                     continue;
                 if (Random.value > definition.spawnChance)
                     continue;
@@ -443,7 +478,8 @@ public class PropGenerator : MonoBehaviour
                 return false;
             }
 
-            if (occupiedPropCells.Contains(new Vector2Int(x, nextY)))
+            if (occupiedPropCells.Contains(new Vector2Int(x, nextY)) ||
+                gridGenerator.HasPlacedFloorProp(new Vector2Int(x, nextY)))
             {
                 failure = $"cell [{x},{nextY}] is already occupied by another prop";
                 return false;
@@ -686,6 +722,7 @@ public class PropGenerator : MonoBehaviour
     {
         var cell = new Vector2Int(piece.x, piece.y);
         if (prefab == null || occupiedPropCells.Contains(cell) ||
+            gridGenerator.HasPlacedFloorProp(cell) ||
             !gridGenerator.TryGetPropSocketWorldPose(
                 piece.x, piece.y, piece.socket, out Vector3 position, out Quaternion socketRotation))
             return;

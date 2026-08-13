@@ -43,3 +43,8 @@ MonoBehaviour:
     <Size>k__BackingField: {x: 1, y: 1}
     <Prefab>k__BackingField: {fileID: 1001, guid: ac13f74274c6481e904013b2ef8af8de, type: 3}
     <PlacementType>k__BackingField: 2
+  - <Name>k__BackingField: Treasure
+    <ID>k__BackingField: 6
+    <Size>k__BackingField: {x: 1, y: 1}
+    <Prefab>k__BackingField: {fileID: 2870602997783973031, guid: 90390a8738a86164dbb3b5463e1e8950, type: 3}
+    <PlacementType>k__BackingField: 3
