@@ -4,15 +4,15 @@
 
 Create practical Unity testing tools that make gameplay scenarios quick to reproduce while continuing to exercise normal production systems.
 
-## Immediate milestone
+## Immediate milestone — Complete
 
-The immediate testing-environment milestone is substantially implemented:
+The immediate testing-environment milestone is complete:
 
-- DEV001 — Generic Prop & Treasure Placement — **Awaiting Unity Validation**
+- DEV001 — Generic Prop & Treasure Placement — **Complete**
 - DEV002 — Reusable Dungeon Test Scenarios — **Complete**
 - DEV003 — NPC Runtime Debug Harness — **Complete**
 
-DEV001 still requires the targeted cross-layout regression validation for stale generated-prop occupancy. Once that passes, the immediate developer-tooling gate is complete and gameplay work can resume with t007.
+DEV001's targeted cross-layout generated-prop/floor-prop regression was validated in the Unity Editor. The developer-tooling gate before t007 is therefore satisfied.
 
 ## Future tooling
 
