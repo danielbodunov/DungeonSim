@@ -93,7 +93,7 @@ public sealed class DungeonTestScenario : ScriptableObject
                 objectCatalog,
                 ObjectPlacementType.Entrance);
 
-        if (!ValidateAuthoredContent(out string contentFailure))
+        if (!ValidatePrefabReferences(out string contentFailure))
         {
             report = $"Capture is incomplete: {contentFailure}";
             return false;
@@ -136,7 +136,21 @@ public sealed class DungeonTestScenario : ScriptableObject
                 $"current scene uses {grid.GridWidth}x{grid.GridHeight}.";
             return false;
         }
-        if (!ValidateAuthoredContent(out report))
+
+        // This entire phase operates on copied solver state and local
+        // occupancy reservations. Do not move any production restore or
+        // placement call above the authored-content validation boundary.
+        if (!grid.TryValidateTileLayout(
+                tileCells,
+                connectionEdges,
+                out TileGridGenerator.PlacementValidationContext
+                    placementContext,
+                out report))
+        {
+            report = $"Scenario layout is invalid: {report}";
+            return false;
+        }
+        if (!ValidateAuthoredContent(grid, placementContext, out report))
             return false;
         if (!grid.RestoreTileLayout(
                 CopyTileCells(tileCells),
@@ -198,7 +212,85 @@ public sealed class DungeonTestScenario : ScriptableObject
         return true;
     }
 
-    bool ValidateAuthoredContent(out string report)
+    bool ValidateAuthoredContent(
+        TileGridGenerator grid,
+        TileGridGenerator.PlacementValidationContext placementContext,
+        out string report)
+    {
+        if (traps == null)
+        {
+            report = "The scenario trap collection is missing.";
+            return false;
+        }
+        if (floorProps == null)
+        {
+            report = "The scenario floor-prop collection is missing.";
+            return false;
+        }
+
+        for (int i = 0; i < traps.Count; i++)
+        {
+            DungeonScenarioPlacedObject trap = traps[i];
+            if (trap == null)
+            {
+                report = $"Trap record {i + 1} is empty.";
+                return false;
+            }
+
+            GameObject prefab = ResolvePrefab(trap, ObjectPlacementType.Trap);
+            var cell = new Vector2Int(trap.x, trap.y);
+            if (!grid.TryValidateTrapPlacement(
+                    placementContext, cell, prefab, out string failure))
+            {
+                report = $"Trap '{trap.prefabName}' at ({trap.x},{trap.y}) " +
+                    $"is invalid: {failure}";
+                return false;
+            }
+            placementContext.ReserveTrap(cell);
+        }
+
+        if (entrance != null)
+        {
+            GameObject prefab = ResolvePrefab(
+                entrance, ObjectPlacementType.Entrance);
+            var cell = new Vector2Int(entrance.x, entrance.y);
+            if (!grid.TryValidateEntrancePlacement(
+                    placementContext, cell, prefab, out string failure))
+            {
+                report = $"Entrance '{entrance.prefabName}' at " +
+                    $"({entrance.x},{entrance.y}) is invalid: {failure}";
+                return false;
+            }
+            placementContext.ReserveEntrance(cell);
+        }
+
+        for (int i = 0; i < floorProps.Count; i++)
+        {
+            DungeonScenarioPlacedObject floorProp = floorProps[i];
+            if (floorProp == null)
+            {
+                report = $"Floor-prop record {i + 1} is empty.";
+                return false;
+            }
+
+            GameObject prefab = ResolvePrefab(
+                floorProp, ObjectPlacementType.FloorProp);
+            var cell = new Vector2Int(floorProp.x, floorProp.y);
+            if (!grid.TryValidateFloorPropPlacement(
+                    placementContext, cell, prefab, out string failure))
+            {
+                report = $"Floor prop '{floorProp.prefabName}' at " +
+                    $"({floorProp.x},{floorProp.y}) is invalid: {failure}";
+                return false;
+            }
+            placementContext.ReserveFloorProp(cell);
+        }
+
+        report = string.Empty;
+        return true;
+    }
+
+    bool ValidatePrefabReferences(out string report)
     {
         for (int i = 0; i < traps.Count; i++)
         {

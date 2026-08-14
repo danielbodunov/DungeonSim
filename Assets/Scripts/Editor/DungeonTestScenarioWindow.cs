@@ -222,13 +222,13 @@ public sealed class DungeonTestScenarioWindow : EditorWindow
             return;
         }
 
-        placement.StopPlacement();
         if (!selectedScenario.TryApplyTo(grid, out string report))
         {
             SetStatus(report, MessageType.Error);
             return;
         }
 
+        placement.StopPlacement();
         SetStatus($"{verb}: {report}", MessageType.Info);
     }
 
