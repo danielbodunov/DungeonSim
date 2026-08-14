@@ -8,11 +8,10 @@ None.
 
 ## Ready
 
-None while the developer-tooling gate awaits final DEV001 Unity validation.
+- [t007 — Adventurer Loot Drop & Dungeon Recovery](t007-Expedition-Vertical-Slice-Validation.md)
 
 ## Planned / Near-Term — Sinister Dungeon Expedition
 
-- [t007 — Adventurer Loot Drop & Dungeon Recovery](t007-Expedition-Vertical-Slice-Validation.md) — next gameplay ticket after DEV001 validation completes the tooling gate
 - [t008 — Successful Escape & Lost Treasure](t008-Successful-Escape-Lost-Treasure.md)
 - [t009 — Soul / Aura Harvesting Foundation](t009-Soul-Aura-Harvesting.md)
 - [t010 — Expedition Outcomes](t010-Expedition-Outcomes.md)
@@ -20,11 +19,12 @@ None while the developer-tooling gate awaits final DEV001 Unity validation.
 
 ## Awaiting Unity Validation
 
-- [DEV001 — Generic Prop & Treasure Placement](DEV001-Generic-Prop-Treasure-Placement.md)
+None.
 
 ## Completed / Existing Work
 
 - [Initial building and adventurer vertical slices](2026-08-09-initial-vertical-slices.md)
+- [DEV001 — Generic Prop & Treasure Placement](DEV001-Generic-Prop-Treasure-Placement.md)
 - [DEV002 — Reusable Dungeon Test Scenarios](DEV002-Reusable-Dungeon-Test-Scenarios.md)
 - [DEV003 — NPC Runtime Debug Harness](DEV003-NPC-Runtime-Debug-Harness.md)
 - [t001 — NPC Traversal Memory](t001-NPC-Traversal-Memory.md)
@@ -34,9 +34,9 @@ None while the developer-tooling gate awaits final DEV001 Unity validation.
 - [t005 — NPC Treasure Discovery & Investigation](t005-NPC-Treasure-Investigation.md)
 - [t006 — Treasure Pickup & Ownership](t006-NPC-Carried-Treasure.md)
 
-## Developer Tooling Gate
+## Developer Tooling Gate — Complete
 
-DEV002 and DEV003 are complete. DEV001 remains Awaiting Unity Validation. Once DEV001 passes its cross-layout floor-prop/generated-prop regression test, the immediate tooling milestone is complete and t007 becomes Ready.
+DEV001–DEV003 are complete and Unity validated as required. The immediate testing-environment milestone is satisfied and gameplay work resumes with t007.
 
 ## Roadmaps
 
