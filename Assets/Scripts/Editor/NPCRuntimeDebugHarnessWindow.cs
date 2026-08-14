@@ -17,6 +17,7 @@ public sealed class NPCRuntimeDebugHarnessWindow : EditorWindow
     bool showCarriedTreasure = true;
     bool showRecoverableLoot = true;
     bool showDeathLootOutcomes = true;
+    bool showSuccessfulEscapeLootOutcomes = true;
     int damageAmount = 1;
     int healAmount = 1;
     float staminaAmount = 1f;
@@ -197,6 +198,22 @@ public sealed class NPCRuntimeDebugHarnessWindow : EditorWindow
             true);
         if (showDeathLootOutcomes)
             DrawDeathLootOutcomes(traversal.DeathLootOutcomes);
+
+        DrawReadOnlyText(
+            "Escaped Items",
+            traversal.EscapedDungeonLootItemCount.ToString());
+        DrawReadOnlyText(
+            "Escaped Value",
+            traversal.EscapedDungeonLootValue.ToString());
+        showSuccessfulEscapeLootOutcomes = EditorGUILayout.Foldout(
+            showSuccessfulEscapeLootOutcomes,
+            $"Successful Escape Outcomes ({traversal.SuccessfulEscapeLootOutcomeCount})",
+            true);
+        if (showSuccessfulEscapeLootOutcomes)
+        {
+            DrawSuccessfulEscapeLootOutcomes(
+                traversal.SuccessfulEscapeLootOutcomes);
+        }
     }
 
     static void DrawRecoverableDrops(IReadOnlyList<RecoverableLootDrop> drops)
@@ -272,6 +289,57 @@ public sealed class NPCRuntimeDebugHarnessWindow : EditorWindow
                 $"value {outcome.RecoveredValue} | cleared {outcome.CustodyCleared} | " +
                 $"processed {outcome.RecoveryProcessed} | " +
                 $"duplicate attempts {outcome.DuplicateProcessingAttempts}");
+        }
+    }
+
+    static void DrawSuccessfulEscapeLootOutcomes(
+        IReadOnlyList<AdventurerEscapeLootOutcome> outcomes)
+    {
+        if (outcomes.Count == 0)
+        {
+            EditorGUILayout.LabelField("  None");
+            return;
+        }
+
+        for (int i = 0; i < outcomes.Count; i++)
+        {
+            AdventurerEscapeLootOutcome outcome = outcomes[i];
+            if (outcome == null)
+            {
+                EditorGUILayout.LabelField($"  {i + 1}. Missing outcome record");
+                continue;
+            }
+
+            EditorGUILayout.LabelField(
+                $"  {outcome.SourceAdventurerName} [agent {outcome.SourceRuntimeAgentId}] " +
+                $"| entrance cell {outcome.ExitCell}");
+            EditorGUILayout.LabelField(
+                $"      custody {outcome.CarriedItemCountBefore} item(s), " +
+                $"value {outcome.CarriedValueBefore} -> " +
+                $"{outcome.CarriedItemCountAfter} item(s), " +
+                $"value {outcome.CarriedValueAfter}");
+            EditorGUILayout.LabelField(
+                $"      escaped {outcome.EscapedItemCount} item(s), " +
+                $"value {outcome.EscapedValue} | loss {outcome.ProducedLoss} | " +
+                $"cleared {outcome.CustodyCleared} | processed {outcome.EscapeProcessed} | " +
+                $"duplicate attempts {outcome.DuplicateProcessingAttempts}");
+
+            IReadOnlyList<EscapedLootItem> items = outcome.EscapedItems;
+            for (int itemIndex = 0; itemIndex < items.Count; itemIndex++)
+            {
+                EscapedLootItem item = items[itemIndex];
+                if (item == null)
+                {
+                    EditorGUILayout.LabelField("      Missing item record");
+                    continue;
+                }
+
+                string source = item.HasSourceCell
+                    ? $" | source {item.SourceCell}"
+                    : string.Empty;
+                EditorGUILayout.LabelField(
+                    $"      {item.ItemId} | {item.Origin} | value {item.Value}{source}");
+            }
         }
     }
 
