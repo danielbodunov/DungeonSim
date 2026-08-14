@@ -35,6 +35,17 @@ public readonly struct NPCTraversalConnection : System.IEquatable<NPCTraversalCo
     public override int GetHashCode() => (first.GetHashCode() * 397) ^ second.GetHashCode();
 }
 
+public enum NPCTraversalAgentBehaviorState
+{
+    Inactive,
+    Exploring,
+    Moving,
+    Investigating,
+    PerformingTask,
+    ReturningHome,
+    Dead
+}
+
 /// <summary>
 /// Builds runtime NPC routes from placed tile openings and generated ladders.
 /// Add this beside TileGridGenerator and assign an NPC prefab.
@@ -903,6 +914,10 @@ public class NPCTraversalAgent : MonoBehaviour
     float taskStaminaCostPerSecond;
     bool returningHome;
     bool visitInProgress;
+    DungeonPointOfInterest activeInvestigationTarget;
+    float investigationTimeRemaining;
+    bool isInvestigating;
+    bool performingTask;
 
     public IReadOnlyList<Vector3> ActiveRoute => activeRoute;
     public int NextWaypointIndex => nextWaypointIndex;
@@ -933,6 +948,28 @@ public class NPCTraversalAgent : MonoBehaviour
     public float RemainingStamina => character != null ? character.CurrentStamina : 0f;
     public bool IsReturningHome => returningHome;
     public bool VisitInProgress => visitInProgress;
+    public DungeonPointOfInterest ActiveInvestigationTarget => activeInvestigationTarget;
+    public float InvestigationTimeRemaining => investigationTimeRemaining;
+    public bool IsInvestigating => isInvestigating;
+    public NPCTraversalAgentBehaviorState BehaviorState
+    {
+        get
+        {
+            if (character != null && character.IsDead)
+                return NPCTraversalAgentBehaviorState.Dead;
+            if (!visitInProgress)
+                return NPCTraversalAgentBehaviorState.Inactive;
+            if (returningHome)
+                return NPCTraversalAgentBehaviorState.ReturningHome;
+            if (isInvestigating)
+                return NPCTraversalAgentBehaviorState.Investigating;
+            if (performingTask)
+                return NPCTraversalAgentBehaviorState.PerformingTask;
+            if (movement != null)
+                return NPCTraversalAgentBehaviorState.Moving;
+            return NPCTraversalAgentBehaviorState.Exploring;
+        }
+    }
 
     /// <summary>The bool is true when this is the cell's first visit this round.</summary>
     public event System.Action<NPCTraversalAgent, Vector2Int, bool> CellEntered;
@@ -979,6 +1016,7 @@ public class NPCTraversalAgent : MonoBehaviour
         if (movement != null)
             StopCoroutine(movement);
         movement = null;
+        ClearActiveActivityState();
         visitInProgress = false;
         navigation?.NotifyAdventurerDied(deadCharacter);
         navigation?.DespawnAdventurer(this);
@@ -995,6 +1033,7 @@ public class NPCTraversalAgent : MonoBehaviour
 
         activeRoute = null;
         nextWaypointIndex = -1;
+        ClearActiveActivityState();
         if (!navigation.TryGetClosestCellAnchor(
             transform.position, out currentCell, out Vector3 anchor))
             return;
@@ -1023,6 +1062,7 @@ public class NPCTraversalAgent : MonoBehaviour
             return false;
         character.ResetVisitResources();
         returningHome = false;
+        ClearActiveActivityState();
         visitInProgress = true;
         RecordArrival(currentCell);
         StartNextExplorationStep();
@@ -1107,9 +1147,12 @@ public class NPCTraversalAgent : MonoBehaviour
                 navigation.TryGetInvestigationTarget(
                     this, currentCell, out DungeonPointOfInterest investigationTarget))
             {
+                activeInvestigationTarget = investigationTarget;
+                isInvestigating = true;
                 float investigationDuration = investigationTarget != null
                     ? investigationTarget.InvestigationDuration
                     : waitTime;
+                investigationTimeRemaining = investigationDuration;
                 bool investigationCompleted = investigationDuration <= 0f;
                 if (investigationDuration > 0f)
                 {
@@ -1124,6 +1167,9 @@ public class NPCTraversalAgent : MonoBehaviour
                 {
                     investigationTarget.TryCompleteInvestigation(this);
                 }
+                activeInvestigationTarget = null;
+                investigationTimeRemaining = 0f;
+                isInvestigating = false;
             }
         }
 
@@ -1256,13 +1302,33 @@ public class NPCTraversalAgent : MonoBehaviour
         }
 
         returningHome = true;
-        if (currentCell != startCell && MoveToCell(startCell, true))
-            return;
+        TryStartReturnMovement();
+    }
 
-        // Already home, or the graph changed so home can no longer be reached.
-        // Only a successful return counts as a completed dungeon visit.
-        if (currentCell == startCell)
-            movement = StartCoroutine(ReturnFromEntranceCell());
+    /// <summary>Stops the current activity and requests the normal familiar route home.</summary>
+    public bool TryForceReturnHome()
+    {
+        if (!visitInProgress || navigation == null || character == null || character.IsDead)
+            return false;
+
+        if (movement != null)
+            StopCoroutine(movement);
+        movement = null;
+        activeRoute = null;
+        nextWaypointIndex = -1;
+        ClearActiveActivityState();
+        returningHome = true;
+        return TryStartReturnMovement();
+    }
+
+    bool TryStartReturnMovement()
+    {
+        if (currentCell != startCell)
+            return MoveToCell(startCell, true);
+
+        // Already home. Only reaching the entrance position completes the visit.
+        movement = StartCoroutine(ReturnFromEntranceCell());
+        return true;
     }
 
     IEnumerator ReturnFromEntranceCell()
@@ -1297,6 +1363,7 @@ public class NPCTraversalAgent : MonoBehaviour
             float delta = Mathf.Min(Time.deltaTime, duration - elapsed);
             character.SpendStamina(taskStaminaCostPerSecond * delta);
             elapsed += delta;
+            investigationTimeRemaining = Mathf.Max(0f, duration - elapsed);
             yield return null;
         }
         completion?.Invoke(elapsed >= duration);
@@ -1304,13 +1371,23 @@ public class NPCTraversalAgent : MonoBehaviour
 
     IEnumerator PerformTaskUntilExhausted()
     {
+        performingTask = true;
         while (character.CurrentStamina > 0f)
         {
             character.SpendStamina(taskStaminaCostPerSecond * Time.deltaTime);
             yield return null;
         }
+        performingTask = false;
         movement = null;
         StartNextExplorationStep();
+    }
+
+    void ClearActiveActivityState()
+    {
+        activeInvestigationTarget = null;
+        investigationTimeRemaining = 0f;
+        isInvestigating = false;
+        performingTask = false;
     }
 
     void CompleteDungeonVisit()
@@ -1320,6 +1397,7 @@ public class NPCTraversalAgent : MonoBehaviour
 
         visitInProgress = false;
         returningHome = false;
+        ClearActiveActivityState();
         if (character != null)
             character.RecordDungeonVisitCompleted();
         DungeonVisitCompleted?.Invoke(this);

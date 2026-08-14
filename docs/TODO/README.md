@@ -12,7 +12,7 @@ None.
 
 ## Planned — Developer Tooling Milestone
 
-- [DEV003 — NPC Runtime Debug Harness](DEV003-NPC-Runtime-Debug-Harness.md)
+None.
 
 Complete DEV001–DEV003 before beginning t007. These tools should reduce scenario setup/reproduction time while continuing to exercise normal production gameplay systems.
 
@@ -32,6 +32,7 @@ Complete DEV001–DEV003 before beginning t007. These tools should reduce scenar
 
 - [Initial building and adventurer vertical slices](2026-08-09-initial-vertical-slices.md)
 - [DEV002 — Reusable Dungeon Test Scenarios](DEV002-Reusable-Dungeon-Test-Scenarios.md)
+- [DEV003 — NPC Runtime Debug Harness](DEV003-NPC-Runtime-Debug-Harness.md)
 - [t001 — NPC Traversal Memory](t001-NPC-Traversal-Memory.md)
 - [t002 — Dungeon Entrance / Adventurer Spawn Contract](t002-Dungeon-Entrance.md)
 - [t003 — Point-of-Interest Foundation](t003-Point-of-Interest-Foundation.md)
