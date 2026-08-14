@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
-using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.UI;
 using UnityEngine.UI;
 
@@ -21,6 +20,7 @@ public class GameplayLoopUI : MonoBehaviour
     GameplayLoopController loop;
     GameSaveManager saveManager;
     TilePlacement placement;
+    InputManager inputManager;
     GameObject expansionPalette;
     GameObject openDungeonButton;
     GameObject explorationPanel;
@@ -51,6 +51,7 @@ public class GameplayLoopUI : MonoBehaviour
             loop = FindAnyObjectByType<GameplayLoopController>();
         saveManager = loop != null ? loop.GetComponent<GameSaveManager>() : null;
         placement = FindAnyObjectByType<TilePlacement>();
+        inputManager = InputManager.Instance ?? FindAnyObjectByType<InputManager>();
 
         EnsureEventSystem();
         BuildInterface();
@@ -84,7 +85,9 @@ public class GameplayLoopUI : MonoBehaviour
 
     void Update()
     {
-        if (Keyboard.current?.escapeKey.wasPressedThisFrame == true)
+        if (inputManager == null)
+            inputManager = InputManager.Instance;
+        if (inputManager != null && inputManager.EscapePressed)
             ToggleSaveMenu();
         RefreshDynamicText();
     }
