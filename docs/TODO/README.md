@@ -27,11 +27,11 @@ Complete DEV001–DEV003 before beginning t007. These tools should reduce scenar
 ## Awaiting Unity Validation
 
 - [DEV001 — Generic Prop & Treasure Placement](DEV001-Generic-Prop-Treasure-Placement.md)
-- [DEV002 — Reusable Dungeon Test Scenarios](DEV002-Reusable-Dungeon-Test-Scenarios.md)
 
 ## Completed / Existing Work
 
 - [Initial building and adventurer vertical slices](2026-08-09-initial-vertical-slices.md)
+- [DEV002 — Reusable Dungeon Test Scenarios](DEV002-Reusable-Dungeon-Test-Scenarios.md)
 - [t001 — NPC Traversal Memory](t001-NPC-Traversal-Memory.md)
 - [t002 — Dungeon Entrance / Adventurer Spawn Contract](t002-Dungeon-Entrance.md)
 - [t003 — Point-of-Interest Foundation](t003-Point-of-Interest-Foundation.md)

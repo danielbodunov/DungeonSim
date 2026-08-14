@@ -2,7 +2,7 @@
 
 ## Tracking
 - **ID:** DEV002
-- **Status:** Awaiting Unity Validation
+- **Status:** Complete
 - **Depends on:** DEV001
 - **Blocks:** DEV003; t007
 
@@ -50,6 +50,7 @@ Do not create a parallel dungeon implementation or automated test runner in this
 - Follow-up compilation: `dotnet build Assembly-CSharp.csproj --no-restore --nologo` completed with 0 warnings and 0 errors after the non-mutating validation change.
 - Follow-up Editor compilation: `dotnet build Assembly-CSharp-Editor.csproj --no-restore --nologo` completed with 0 errors and the same pre-existing `TileSocketBakerWindow.cs` warning.
 - Focused mutation-boundary review confirmed every failure in the new preflight path occurs before `RestoreTileLayout()`, prop clearing, object destruction, placement, regeneration, or layout events.
+- Follow-up manual Unity validation was completed on 2026-08-14. Valid scenarios still applied correctly, invalid tile/content/prefab/occupancy cases were rejected with clear errors, and every rejection left the running dungeon and active placement preview unchanged.
 
 ## Manual Unity Validation Performed
 
@@ -64,14 +65,6 @@ Do not create a parallel dungeon implementation or automated test runner in this
 
 - Scenario capture, load, and reset require Play Mode because the production dungeon grid initializes at runtime.
 - A scenario can only be applied to a running grid with the same dimensions and compatible tile profiles/prefabs.
-
-## Follow-Up Manual Unity Validation
-
-1. Load a valid scenario and confirm normal layout, entrance, trap, treasure, reset, and NPC treasure behavior still passes.
-2. Create invalid scenario variants covering an unknown tile profile, unresolved/missing prefab, authored content on an unbuilt cell, incompatible entrance socket, duplicate trap, duplicate floor prop, trap/entrance overlap, and trap/floor-prop overlap.
-3. Before each invalid load, establish a visibly different running dungeon containing tiles, generated props, traps, entrance, and treasure, then activate a placement preview.
-4. Attempt to load each invalid scenario. Verify the window reports the specific invalid record and reason.
-5. After every rejection, verify the running layout, generated props, authored content, resolved treasure state, entrance, traps, procedural generation seed, and active placement preview are completely unchanged and no layout-change side effects occur.
 
 ## Git
 Implementation branch: `feature/dev002-test-scenarios`
