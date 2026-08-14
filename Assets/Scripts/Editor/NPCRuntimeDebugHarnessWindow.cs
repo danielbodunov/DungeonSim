@@ -159,6 +159,7 @@ public sealed class NPCRuntimeDebugHarnessWindow : EditorWindow
             return;
         }
 
+        DrawSimulationControls();
         scroll = EditorGUILayout.BeginScrollView(scroll);
         DrawRecoverableLootState();
         if (selectedAgent == null)
@@ -174,6 +175,32 @@ public sealed class NPCRuntimeDebugHarnessWindow : EditorWindow
         DrawGameplayActions();
         DrawRawDebugActions();
         EditorGUILayout.EndScrollView();
+    }
+
+    void DrawSimulationControls()
+    {
+        EditorGUILayout.Space();
+        EditorGUILayout.LabelField("Dungeon Simulation", EditorStyles.boldLabel);
+        DrawReadOnlyText(
+            "State",
+            DungeonSimulationState.IsPaused ? "Paused" : "Running");
+
+        string buttonLabel = DungeonSimulationState.IsPaused
+            ? "Resume Dungeon Simulation"
+            : "Pause Dungeon Simulation";
+        if (!GUILayout.Button(buttonLabel))
+            return;
+
+        GameplayLoopController loop = GameplayLoopController.Instance ??
+            FindAnyObjectByType<GameplayLoopController>();
+        if (loop != null)
+            loop.TogglePause();
+        else
+            DungeonSimulationState.TogglePause();
+
+        lastActionMessage = DungeonSimulationState.IsPaused
+            ? "Dungeon simulation paused; camera, selection, and debug actions remain active."
+            : "Dungeon simulation resumed from its existing state.";
     }
 
     void DrawRecoverableLootState()

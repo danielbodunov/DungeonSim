@@ -51,7 +51,7 @@ public class GameplayLoopController : MonoBehaviour
     public DungeonPhase Phase { get; private set; } = DungeonPhase.Expansion;
     public float ExplorationTimeRemaining { get; private set; }
     public float SelectedSpeed => selectedSpeed;
-    public bool IsPaused { get; private set; }
+    public bool IsPaused => DungeonSimulationState.IsPaused;
     public bool CanBuild => Phase == DungeonPhase.Expansion;
     public int PlacedCellCount => tileGrid != null ? tileGrid.PlacedCellCount : 0;
     public int DungeonRating => Mathf.Clamp(
@@ -102,6 +102,7 @@ public class GameplayLoopController : MonoBehaviour
         }
 
         Instance = this;
+        DungeonSimulationState.PauseChanged += OnSimulationPauseChanged;
         tilePlacement = FindAnyObjectByType<TilePlacement>();
         tileGrid = FindAnyObjectByType<TileGridGenerator>();
         npcTraversal = FindAnyObjectByType<NPCTraversal>();
@@ -214,8 +215,14 @@ public class GameplayLoopController : MonoBehaviour
 
     public void SetPaused(bool paused)
     {
-        IsPaused = paused;
-        Time.timeScale = paused ? 0f : selectedSpeed;
+        if (!DungeonSimulationState.SetPaused(paused))
+            StateChanged?.Invoke();
+    }
+
+    void OnSimulationPauseChanged(bool paused)
+    {
+        if (!paused)
+            Time.timeScale = selectedSpeed;
         StateChanged?.Invoke();
     }
 
@@ -454,6 +461,8 @@ public class GameplayLoopController : MonoBehaviour
         if (Instance != this)
             return;
 
+        DungeonSimulationState.PauseChanged -= OnSimulationPauseChanged;
+        DungeonSimulationState.SetPaused(false);
         Time.timeScale = 1f;
         if (npcTraversal != null)
         {

@@ -3,7 +3,7 @@
 ## Tracking
 
 - **ID:** DEV006
-- **Status:** Planned
+- **Status:** Complete
 - **Milestone:** Developer Tooling — Observation & Control
 - **Depends on:** DEV005
 
@@ -99,8 +99,34 @@ Do **not** implement simulation-speed controls in DEV006. Record any architectur
 7. Resume and verify all simulation systems continue from their previous state.
 8. Repeat pause/resume several times to check for duplicated coroutines, skipped state, or timer jumps.
 
+## Implementation Status
+
+- Added `DungeonSimulationState` as the production-side authority for selective pause state, pause notifications, pause-aware delta time, and simulation-only coroutine waits.
+- Preserved `GameplayLoopController.IsPaused`, `SetPaused()`, and `TogglePause()` as compatibility-facing APIs while routing their state through the new authority.
+- Selective pause no longer writes `Time.timeScale = 0`; existing gameplay-speed behavior remains separate and unchanged.
+- Exploration duration and adventurer spawning stop through the gameplay loop's existing pause guard.
+- NPC route movement, ladder movement, return movement, investigations, general task stamina drain, and fall-recovery delay now preserve their exact in-progress state while paused.
+- Spike-wall trigger phases, damage delay, reset duration, cooldown, readiness, and animator playback now pause and resume without restarting the trap cycle.
+- The NPC runtime debug harness exposes the current simulation state and pause/resume controls while keeping selection, camera focus, inspection, and debug mutation actions available.
+- The existing runtime debug-panel button is labeled Pause/Resume Simulation to make its selective scope explicit.
+- The current dynamic-system audit identified the gameplay loop, NPC traversal agents, and spike-wall traps as simulation participants. Lighting, camera, UI feedback, placement previews, and static dungeon content remain active presentation/tooling systems.
+
+## Validation Notes
+
+- Runtime C# compilation passes with zero warnings and zero errors.
+- Editor C# compilation passes with zero errors and the pre-existing `TileSocketBakerWindow.visualizeSamples` unused-field warning.
+- Static inspection confirms no remaining `Time.timeScale = 0` assignment and no direct scaled-time waits in current NPC or trap simulation paths.
+- Manual Unity validation completed successfully on 2026-08-14.
+
+## Known Limitations
+
+- Participation is explicit: future dynamic gameplay systems must query `DungeonSimulationState.IsPaused`, consume `DungeonSimulationState.DeltaTime`, or use its simulation wait helpers.
+- Existing X1/X2/X3 gameplay-speed controls still use Unity time scale. General speed controls and single-step simulation remain out of scope.
+
 ## Git
 
 Suggested branch: `dev/DEV006-selective-simulation-pause`
+
+Active branch: `tool/dev006-selective-simulation-pause` (`dev/` is unavailable because a branch named `dev` occupies that Git ref namespace.)
 
 Proceed according to `docs/AGENTS.md` and provide the standard post-implementation report when complete.

@@ -28,6 +28,7 @@ None.
 - [DEV003 — NPC Runtime Debug Harness](DEV003-NPC-Runtime-Debug-Harness.md)
 - [DEV004 — NPC Camera Focus & Follow](DEV004-NPC-Camera-Focus-Follow.md)
 - [DEV005 — Editor Window Input Isolation](DEV005-Editor-Input-Isolation.md)
+- [DEV006 — Selective Simulation Pause](DEV006-Selective-Simulation-Pause.md)
 - [t001 — NPC Traversal Memory](t001-NPC-Traversal-Memory.md)
 - [t002 — Dungeon Entrance / Adventurer Spawn Contract](t002-Dungeon-Entrance.md)
 - [t003 — Point-of-Interest Foundation](t003-Point-of-Interest-Foundation.md)

@@ -39,14 +39,16 @@ public class SpikeWallTrap : CellTrap
     bool createPlaceholderVisual = true;
 
     bool isCycling;
-    float cooldownEndsAt;
+    float cooldownRemaining;
+    float animatorSpeedBeforePause = 1f;
+    bool animatorPaused;
 
     public int Damage => damage;
     public float Difficulty => difficulty;
     public float Cooldown => cooldown;
-    public float CooldownRemaining => Mathf.Max(0f, cooldownEndsAt - Time.time);
+    public float CooldownRemaining => Mathf.Max(0f, cooldownRemaining);
     public SpikeWallState State { get; private set; } = SpikeWallState.Default;
-    public bool IsReady => !isCycling && Time.time >= cooldownEndsAt;
+    public bool IsReady => !isCycling && cooldownRemaining <= 0f;
 
     void Awake()
     {
@@ -61,6 +63,28 @@ public class SpikeWallTrap : CellTrap
         SetState(SpikeWallState.Default, defaultState);
     }
 
+    void OnEnable()
+    {
+        DungeonSimulationState.PauseChanged += OnSimulationPauseChanged;
+        OnSimulationPauseChanged(DungeonSimulationState.IsPaused);
+    }
+
+    void OnDisable()
+    {
+        DungeonSimulationState.PauseChanged -= OnSimulationPauseChanged;
+        RestoreAnimatorSpeed();
+    }
+
+    void Update()
+    {
+        if (cooldownRemaining <= 0f)
+            return;
+
+        cooldownRemaining = Mathf.Max(
+            0f,
+            cooldownRemaining - DungeonSimulationState.DeltaTime);
+    }
+
     public override void OnNpcEntered(NPCCharacter npc)
     {
         TryTrigger(npc);
@@ -68,10 +92,10 @@ public class SpikeWallTrap : CellTrap
 
     public bool TryTrigger(NPCCharacter npc)
     {
-        if (npc == null || npc.IsDead || !IsReady)
+        if (DungeonSimulationState.IsPaused || npc == null || npc.IsDead || !IsReady)
             return false;
 
-        cooldownEndsAt = Time.time + cooldown;
+        cooldownRemaining = cooldown;
         isCycling = true;
         StartCoroutine(RunCycle(npc));
         return true;
@@ -83,26 +107,58 @@ public class SpikeWallTrap : CellTrap
 
         float activeDuration = Mathf.Max(triggeredDuration, damageDelay);
         if (damageDelay > 0f)
-            yield return new WaitForSeconds(damageDelay);
+            yield return DungeonSimulationState.WaitForSimulationSeconds(damageDelay);
 
+        if (DungeonSimulationState.IsPaused)
+            yield return DungeonSimulationState.WaitUntilRunning();
         if (target != null && !target.IsDead)
             NPCActionResolver.ResolveTrap(
                 target, this, damage, difficulty, dodgeSettings);
 
         float remainingTriggeredTime = activeDuration - damageDelay;
         if (remainingTriggeredTime > 0f)
-            yield return new WaitForSeconds(remainingTriggeredTime);
+        {
+            yield return DungeonSimulationState.WaitForSimulationSeconds(
+                remainingTriggeredTime);
+        }
 
         SetState(SpikeWallState.Resetting, resettingState);
         if (resetDuration > 0f)
-            yield return new WaitForSeconds(resetDuration);
+            yield return DungeonSimulationState.WaitForSimulationSeconds(resetDuration);
 
+        if (DungeonSimulationState.IsPaused)
+            yield return DungeonSimulationState.WaitUntilRunning();
         SetState(SpikeWallState.Default, defaultState);
 
-        float remainingCooldown = cooldownEndsAt - Time.time;
-        if (remainingCooldown > 0f)
-            yield return new WaitForSeconds(remainingCooldown);
+        while (cooldownRemaining > 0f)
+            yield return null;
         isCycling = false;
+    }
+
+    void OnSimulationPauseChanged(bool paused)
+    {
+        if (animator == null)
+            return;
+
+        if (paused)
+        {
+            if (animatorPaused)
+                return;
+            animatorSpeedBeforePause = animator.speed;
+            animator.speed = 0f;
+            animatorPaused = true;
+            return;
+        }
+
+        RestoreAnimatorSpeed();
+    }
+
+    void RestoreAnimatorSpeed()
+    {
+        if (!animatorPaused || animator == null)
+            return;
+        animator.speed = animatorSpeedBeforePause;
+        animatorPaused = false;
     }
 
     void SetState(SpikeWallState newState, string animatorState)
