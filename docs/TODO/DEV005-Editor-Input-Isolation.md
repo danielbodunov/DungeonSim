@@ -3,7 +3,7 @@
 ## Tracking
 
 - **ID:** DEV005
-- **Status:** Planned
+- **Status:** Complete
 - **Milestone:** Developer Tooling — Observation & Control
 - **Depends on:** DEV004
 - **Blocks:** DEV006
@@ -51,10 +51,37 @@ Avoid per-window patches such as each Editor window manually disabling the camer
 3. Verify the Editor content scrolls and Game View camera zoom remains unchanged.
 4. Move focus to Game View and verify camera zoom works normally.
 5. Alternate rapidly between Game View and Editor tools and verify input ownership remains correct.
-6. Exercise clickable/drag controls in the Editor tools and confirm they do not leak into gameplay input.
+6. Exercise clickable/drag controls in the Editor tools and confirm they do not leak into gameplay input or NPC selection.
+7. With an NPC camera focus active, scroll the NPC debug window and verify neither camera zoom nor focus changes. Then scroll over Game View and verify focused zoom still works.
+8. Start tile/object placement, click controls in both Editor tools, and verify no placement occurs. Click Game View and verify normal placement still occurs.
+9. Focus an Editor tool and press movement/Escape keys; verify gameplay camera/placement does not respond. Focus Game View and verify the same keys work normally.
+10. Build or inspect the player runtime assembly and verify it has no `UnityEditor` dependency.
+
+## Implementation Status
+
+- `InputManager` now owns the central input gate and separately resolves pointer and keyboard ownership before exposing continuous action state.
+- `InputManager` runs before normal gameplay consumers so camera and placement code observe the current ownership-filtered state in the same frame.
+- Left/right click and Escape callbacks resolve ownership at callback time, preventing an Editor interaction from leaking before the next gameplay `Update`.
+- The gameplay save-menu Escape shortcut now consumes `InputManager.EscapePressed` instead of bypassing ownership through `Keyboard.current`.
+- `EscapePressed` remains a one-frame press signal, so holding Escape cannot repeatedly toggle the save/load menu.
+- In the Unity Editor, pointer input is owned only while the pointer is over Game View. Keyboard/gamepad movement and Escape are owned only while Game View has focus.
+- An Editor-only `GameplayInputOwnershipEditorBridge` supplies current `EditorWindow.mouseOverWindow` and `focusedWindow` state through a generic runtime resolver API.
+- Player/runtime builds register no Editor resolver and retain full input ownership by default. The runtime assembly contains no `UnityEditor` reference.
+- The ownership rule applies automatically to the NPC debug harness, dungeon scenario window, and future Editor windows; no per-window enter/leave hooks were added.
+
+## Validation Result
+
+- Manual Unity validation completed successfully on 2026-08-14, including the Escape press/hold regression check for the save/load menu.
+
+## Known Limitations
+
+- Pointer ownership follows the window currently under the cursor. Dragging out of Game View intentionally stops gameplay pointer motion until the cursor returns.
+- This ticket gates the existing gameplay input actions; it does not redesign bindings or introduce input-context stacks.
 
 ## Git
 
 Suggested branch: `dev/DEV005-editor-input-isolation`
+
+Active branch: `tool/dev005-editor-input-isolation` (`dev/` is unavailable because a branch named `dev` already occupies that Git ref namespace.)
 
 Proceed according to `docs/AGENTS.md` and provide the standard post-implementation report when complete.

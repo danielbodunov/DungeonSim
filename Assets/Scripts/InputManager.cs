@@ -3,6 +3,24 @@ using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
+public readonly struct GameplayInputOwnership
+{
+    public static GameplayInputOwnership Full => new(true, true);
+    public static GameplayInputOwnership None => new(false, false);
+
+    public bool PointerInputOwned { get; }
+    public bool KeyboardInputOwned { get; }
+
+    public GameplayInputOwnership(
+        bool pointerInputOwned,
+        bool keyboardInputOwned)
+    {
+        PointerInputOwned = pointerInputOwned;
+        KeyboardInputOwned = keyboardInputOwned;
+    }
+}
+
+[DefaultExecutionOrder(-1000)]
 public class InputManager : MonoBehaviour
 {
     [SerializeField]
@@ -14,6 +32,7 @@ public class InputManager : MonoBehaviour
 
     public event Action OnClicked, OnRightClicked, OnExit;
     public static InputManager Instance { get; private set; }
+    static Func<GameplayInputOwnership> inputOwnershipResolver;
 
     public float Scroll { get; private set; }
     public Vector2 MouseDelta { get; private set; }
@@ -21,6 +40,8 @@ public class InputManager : MonoBehaviour
     public bool MiddlePressed { get; private set; }
     public bool LeftClick { get; private set; }
     public bool EscapePressed { get; private set; }
+    public bool PointerInputOwned { get; private set; } = true;
+    public bool KeyboardInputOwned { get; private set; } = true;
 
     private InputAction clickLeftAction;
     private InputAction clickRightAction;
@@ -100,17 +121,31 @@ public class InputManager : MonoBehaviour
         clickLeftAction.performed -= OnClickPerformed;
         clickRightAction.performed -= OnRightClickPerformed;
         escapeAction.performed -= OnEscapePerformed;
+        ClearInputState();
     }
 
     void Update()
     {
+        GameplayInputOwnership ownership = ResolveInputOwnership();
+        PointerInputOwned = ownership.PointerInputOwned;
+        KeyboardInputOwned = ownership.KeyboardInputOwned;
+
         // Use Input System action values and callback events for discrete events
-        LeftClick = clickLeftAction != null && clickLeftAction.ReadValue<float>() > 0.5f;
-        Move = moveAction != null ? moveAction.ReadValue<Vector2>() : Vector2.zero;
-        Scroll = zoomAction != null ? zoomAction.ReadValue<float>() : 0f;
-        MouseDelta = mouseDeltaAction != null ? mouseDeltaAction.ReadValue<Vector2>() : Vector2.zero;
-        MiddlePressed = middleButtonAction != null && middleButtonAction.ReadValue<float>() > 0.5f;
-        EscapePressed = escapeAction != null && escapeAction.ReadValue<float>() > 0.5f;
+        LeftClick = PointerInputOwned && clickLeftAction != null &&
+            clickLeftAction.ReadValue<float>() > 0.5f;
+        Move = KeyboardInputOwned && moveAction != null
+            ? moveAction.ReadValue<Vector2>()
+            : Vector2.zero;
+        Scroll = PointerInputOwned && zoomAction != null
+            ? zoomAction.ReadValue<float>()
+            : 0f;
+        MouseDelta = PointerInputOwned && mouseDeltaAction != null
+            ? mouseDeltaAction.ReadValue<Vector2>()
+            : Vector2.zero;
+        MiddlePressed = PointerInputOwned && middleButtonAction != null &&
+            middleButtonAction.ReadValue<float>() > 0.5f;
+        EscapePressed = KeyboardInputOwned && escapeAction != null &&
+            escapeAction.WasPressedThisFrame();
     }
 
     void OnDestroy()
@@ -129,6 +164,40 @@ public class InputManager : MonoBehaviour
         return UnityEngine.EventSystems.EventSystem.current.IsPointerOverGameObject();
     }
 
+    /// <summary>
+    /// Installs the environment-specific authority used to decide which input
+    /// surface owns gameplay pointer and keyboard actions.
+    /// </summary>
+    public static void RegisterInputOwnershipResolver(
+        Func<GameplayInputOwnership> resolver)
+    {
+        inputOwnershipResolver = resolver;
+    }
+
+    public static void UnregisterInputOwnershipResolver(
+        Func<GameplayInputOwnership> resolver)
+    {
+        if (inputOwnershipResolver == resolver)
+            inputOwnershipResolver = null;
+    }
+
+    static GameplayInputOwnership ResolveInputOwnership()
+    {
+        return inputOwnershipResolver != null
+            ? inputOwnershipResolver.Invoke()
+            : GameplayInputOwnership.Full;
+    }
+
+    void ClearInputState()
+    {
+        Scroll = 0f;
+        MouseDelta = Vector2.zero;
+        Move = Vector2.zero;
+        MiddlePressed = false;
+        LeftClick = false;
+        EscapePressed = false;
+    }
+
     public Vector3 GetSelectedMapPosition()
     {
         Vector3 mousePos =  UnityEngine.InputSystem.Mouse.current.position.ReadValue();;
@@ -144,16 +213,19 @@ public class InputManager : MonoBehaviour
 
     private void OnClickPerformed(InputAction.CallbackContext ctx)
     {
-        OnClicked?.Invoke();
+        if (ResolveInputOwnership().PointerInputOwned)
+            OnClicked?.Invoke();
     }
 
     private void OnRightClickPerformed(InputAction.CallbackContext ctx)
     {
-        OnRightClicked?.Invoke();
+        if (ResolveInputOwnership().PointerInputOwned)
+            OnRightClicked?.Invoke();
     }
 
     private void OnEscapePerformed(InputAction.CallbackContext ctx)
     {
-        OnExit?.Invoke();
+        if (ResolveInputOwnership().KeyboardInputOwned)
+            OnExit?.Invoke();
     }
 }
