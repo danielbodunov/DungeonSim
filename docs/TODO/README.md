@@ -6,19 +6,13 @@ This directory is the working queue for prioritized, actionable tickets. Broader
 
 None.
 
-## Ready — Developer Tooling Milestone
+## Ready
 
-- [DEV001 — Generic Prop & Treasure Placement](DEV001-Generic-Prop-Treasure-Placement.md)
-
-## Planned — Developer Tooling Milestone
-
-None.
-
-Complete DEV001–DEV003 before beginning t007. These tools should reduce scenario setup/reproduction time while continuing to exercise normal production gameplay systems.
+None while the developer-tooling gate awaits final DEV001 Unity validation.
 
 ## Planned / Near-Term — Sinister Dungeon Expedition
 
-- [t007 — Adventurer Loot Drop & Dungeon Recovery](t007-Expedition-Vertical-Slice-Validation.md) — gated by DEV001–DEV003
+- [t007 — Adventurer Loot Drop & Dungeon Recovery](t007-Expedition-Vertical-Slice-Validation.md) — next gameplay ticket after DEV001 validation completes the tooling gate
 - [t008 — Successful Escape & Lost Treasure](t008-Successful-Escape-Lost-Treasure.md)
 - [t009 — Soul / Aura Harvesting Foundation](t009-Soul-Aura-Harvesting.md)
 - [t010 — Expedition Outcomes](t010-Expedition-Outcomes.md)
@@ -39,6 +33,10 @@ Complete DEV001–DEV003 before beginning t007. These tools should reduce scenar
 - [t004 — Treasure Prop + Treasure Socket](t004-Treasure-Prop.md)
 - [t005 — NPC Treasure Discovery & Investigation](t005-NPC-Treasure-Investigation.md)
 - [t006 — Treasure Pickup & Ownership](t006-NPC-Carried-Treasure.md)
+
+## Developer Tooling Gate
+
+DEV002 and DEV003 are complete. DEV001 remains Awaiting Unity Validation. Once DEV001 passes its cross-layout floor-prop/generated-prop regression test, the immediate tooling milestone is complete and t007 becomes Ready.
 
 ## Roadmaps
 
