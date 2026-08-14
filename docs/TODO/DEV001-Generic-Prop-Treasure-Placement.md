@@ -3,7 +3,7 @@
 ## Tracking
 
 - **ID:** DEV001
-- **Status:** Awaiting Unity Validation
+- **Status:** Complete
 - **Milestone:** Testing Environment
 - **Blocks:** DEV002; t007
 
@@ -66,12 +66,8 @@ The layout restore lifecycle now synchronously clears generated instances, runs,
 - `dotnet build Assembly-CSharp.csproj --no-restore --nologo` completed with 0 warnings and 0 errors.
 - Focused call-path review confirmed `RestoreTileLayout()` clears outgoing generated state only after the incoming layout passes initial data validation and before authoritative placed content is restored.
 - Focused rollback review confirmed a failed incoming restore still re-enters `RestoreTileLayout()` for the previous layout, clearing any pending/outgoing generated state before restoring prior traps, entrance, floor props, and generation seed.
-- The original DEV001 placement, NPC interaction, save/reload, and trap behavior was manually validated before this follow-up.
-- An isolated Unity Play Mode regression runner was prepared for the cross-layout scenario, but Unity licensing contention with the already-open Editor prevented the temporary project from reaching compilation or Play Mode. No result from that runner is claimed.
-
-## Remaining Validation
-
-Run the cross-layout regression sequence above in the Unity Editor. Confirm the Console contains no restore warning for Dungeon B's floor prop and verify generated content respects the restored cell in both transition directions.
+- The original DEV001 placement, NPC interaction, save/reload, and trap behavior was manually validated.
+- The targeted cross-layout generated-prop/floor-prop regression sequence was subsequently validated in the Unity Editor and confirmed complete.
 
 ## Future Placement Positions
 
