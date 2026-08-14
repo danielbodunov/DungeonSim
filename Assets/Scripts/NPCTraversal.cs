@@ -113,6 +113,10 @@ public class NPCTraversal : MonoBehaviour
     DungeonEntrance activeEntrance;
     NPCTraversalAgent agent;
     readonly List<NPCTraversalAgent> agents = new();
+    [SerializeField] List<RecoverableLootDrop> recoverableLootDrops = new();
+    [SerializeField] List<AdventurerDeathLootOutcome> deathLootOutcomes = new();
+    [SerializeField, HideInInspector] int nextRecoverableLootDropNumber = 1;
+    [SerializeField, HideInInspector] int nextRuntimeAgentId = 1;
     int floorConnectionCount;
     int ladderConnectionCount;
 
@@ -143,11 +147,41 @@ public class NPCTraversal : MonoBehaviour
     public IReadOnlyList<Vector3> DebugWalkableSamples => debugWalkableSamples;
     public IReadOnlyList<Vector3> DebugRejectedSamples => debugRejectedSamples;
     public DungeonEntrance ActiveEntrance => activeEntrance;
+    public IReadOnlyList<RecoverableLootDrop> RecoverableLootDrops =>
+        recoverableLootDrops;
+    public IReadOnlyList<AdventurerDeathLootOutcome> DeathLootOutcomes =>
+        deathLootOutcomes;
+    public int DeathLootOutcomeCount => deathLootOutcomes.Count;
+    public int RecoverableLootDropCount => recoverableLootDrops.Count;
+    public int RecoverableLootItemCount
+    {
+        get
+        {
+            int total = 0;
+            for (int i = 0; i < recoverableLootDrops.Count; i++)
+                if (recoverableLootDrops[i] != null)
+                    total += recoverableLootDrops[i].ItemCount;
+            return total;
+        }
+    }
+    public int RecoverableLootValue
+    {
+        get
+        {
+            int total = 0;
+            for (int i = 0; i < recoverableLootDrops.Count; i++)
+                if (recoverableLootDrops[i] != null)
+                    total += recoverableLootDrops[i].TotalValue;
+            return total;
+        }
+    }
     internal float MaximumUnplannedDrop => maxStepHeight;
     internal float FallRecoveryDelay => fallRecoveryDelay;
     public event System.Action<NPCCharacter> AdventurerDied;
     public event System.Action<NPCTraversalAgent, Vector2Int, bool> AdventurerCellEntered;
     public event System.Func<NPCTraversalAgent, Vector2Int, bool> InvestigationDecisionRequested;
+    public event System.Action<RecoverableLootDrop> RecoverableLootCreated;
+    public event System.Action<AdventurerDeathLootOutcome> DeathLootOutcomeRecorded;
 
     internal bool TryGetInvestigationTarget(
         NPCTraversalAgent visitor,
@@ -169,9 +203,95 @@ public class NPCTraversal : MonoBehaviour
         return false;
     }
 
-    internal void NotifyAdventurerDied(NPCCharacter character)
+    internal void NotifyAdventurerDied(NPCTraversalAgent visitor)
     {
-        AdventurerDied?.Invoke(character);
+        TryCreateRecoverableLootDrop(visitor);
+        AdventurerDied?.Invoke(visitor != null ? visitor.Character : null);
+    }
+
+    bool TryCreateRecoverableLootDrop(NPCTraversalAgent visitor)
+    {
+        if (visitor == null)
+            return false;
+        int sourceRuntimeAgentId = visitor.RuntimeAgentId;
+        if (!visitor.TryClaimDeathLootRecovery())
+        {
+            RecordDuplicateDeathLootAttempt(sourceRuntimeAgentId);
+            return false;
+        }
+
+        IReadOnlyList<CarriedDungeonTreasure> carried =
+            visitor.CarriedDungeonTreasure;
+        int carriedItemCountBefore = visitor.CarriedDungeonTreasureCount;
+        int carriedValueBefore = visitor.CarriedDungeonTreasureValue;
+        var recoveredItems = new List<RecoverableLootItem>(carried.Count);
+        for (int i = 0; i < carried.Count; i++)
+        {
+            CarriedDungeonTreasure item = carried[i];
+            if (item == null)
+                continue;
+            recoveredItems.Add(new RecoverableLootItem(
+                item.TreasureId,
+                item.Value,
+                item.OriginatedAsDungeonBait
+                    ? RecoverableLootOrigin.DungeonTreasure
+                    : RecoverableLootOrigin.AdventurerPossession,
+                item.SourceCell,
+                item.OriginatedAsDungeonBait));
+        }
+
+        RecoverableLootDrop drop = null;
+        if (recoveredItems.Count > 0)
+        {
+            string dropId = $"recovered-loot-{nextRecoverableLootDropNumber:D4}";
+            nextRecoverableLootDropNumber++;
+            drop = new RecoverableLootDrop(
+                dropId,
+                visitor.CurrentCell,
+                visitor.transform.position,
+                visitor.Character != null
+                    ? visitor.Character.CharacterName
+                    : visitor.name,
+                recoveredItems);
+            recoverableLootDrops.Add(drop);
+        }
+
+        visitor.ClearCarriedLootAfterDeath();
+        var outcome = new AdventurerDeathLootOutcome(
+            sourceRuntimeAgentId,
+            visitor.Character != null
+                ? visitor.Character.CharacterName
+                : visitor.name,
+            visitor.CurrentCell,
+            visitor.transform.position,
+            carriedItemCountBefore,
+            carriedValueBefore,
+            recoveredItems.Count,
+            drop != null ? drop.TotalValue : 0,
+            drop != null ? drop.DropId : string.Empty,
+            visitor.CarriedDungeonTreasureCount,
+            visitor.CarriedDungeonTreasureValue);
+        deathLootOutcomes.Add(outcome);
+        if (drop != null)
+            RecoverableLootCreated?.Invoke(drop);
+        DeathLootOutcomeRecorded?.Invoke(outcome);
+        return drop != null;
+    }
+
+    void RecordDuplicateDeathLootAttempt(int sourceRuntimeAgentId)
+    {
+        for (int i = deathLootOutcomes.Count - 1; i >= 0; i--)
+        {
+            AdventurerDeathLootOutcome outcome = deathLootOutcomes[i];
+            if (outcome == null ||
+                outcome.SourceRuntimeAgentId != sourceRuntimeAgentId)
+            {
+                continue;
+            }
+
+            outcome.RecordDuplicateProcessingAttempt();
+            return;
+        }
     }
 
     internal void NotifyCellEntered(
@@ -188,6 +308,10 @@ public class NPCTraversal : MonoBehaviour
 
     void Awake()
     {
+        recoverableLootDrops ??= new List<RecoverableLootDrop>();
+        deathLootOutcomes ??= new List<AdventurerDeathLootOutcome>();
+        nextRecoverableLootDropNumber = Mathf.Max(1, nextRecoverableLootDropNumber);
+        nextRuntimeAgentId = Mathf.Max(1, nextRuntimeAgentId);
         if (grid == null)
             grid = GetComponent<TileGridGenerator>();
         if (props == null)
@@ -521,7 +645,8 @@ public class NPCTraversal : MonoBehaviour
             this, start, spawnPosition, moveSpeed, ladderSpeed,
             patrolAutomatically, waitAtDestination,
             movementStaminaCost, ladderStaminaMultiplier,
-            taskStaminaCostPerSecond);
+            taskStaminaCostPerSecond,
+            nextRuntimeAgentId++);
         if (beginVisit)
             agent.BeginDungeonVisit();
         return agent;
@@ -918,6 +1043,8 @@ public class NPCTraversalAgent : MonoBehaviour
     float investigationTimeRemaining;
     bool isInvestigating;
     bool performingTask;
+    bool deathLootRecoveryClaimed;
+    int runtimeAgentId;
 
     public IReadOnlyList<Vector3> ActiveRoute => activeRoute;
     public int NextWaypointIndex => nextWaypointIndex;
@@ -927,6 +1054,8 @@ public class NPCTraversalAgent : MonoBehaviour
         ? activeRoute[nextWaypointIndex]
         : transform.position;
     public NPCCharacter Character => character;
+    public NPCTraversal Navigation => navigation;
+    public int RuntimeAgentId => runtimeAgentId;
     public Vector2Int StartCell => startCell;
     public Vector2Int CurrentCell => currentCell;
     public Vector3 HomePosition => homePosition;
@@ -941,13 +1070,15 @@ public class NPCTraversalAgent : MonoBehaviour
         {
             int total = 0;
             for (int i = 0; i < carriedDungeonTreasure.Count; i++)
-                total += carriedDungeonTreasure[i].Value;
+                if (carriedDungeonTreasure[i] != null)
+                    total += carriedDungeonTreasure[i].Value;
             return total;
         }
     }
     public float RemainingStamina => character != null ? character.CurrentStamina : 0f;
     public bool IsReturningHome => returningHome;
     public bool VisitInProgress => visitInProgress;
+    public bool DeathLootRecoveryProcessed => deathLootRecoveryClaimed;
     public DungeonPointOfInterest ActiveInvestigationTarget => activeInvestigationTarget;
     public float InvestigationTimeRemaining => investigationTimeRemaining;
     public bool IsInvestigating => isInvestigating;
@@ -985,7 +1116,8 @@ public class NPCTraversalAgent : MonoBehaviour
         float wait,
         float staminaCostPerUnit,
         float ladderCostMultiplier,
-        float taskCostPerSecond)
+        float taskCostPerSecond,
+        int assignedRuntimeAgentId)
     {
         navigation = owner;
         this.startCell = startCell;
@@ -998,7 +1130,9 @@ public class NPCTraversalAgent : MonoBehaviour
         movementStaminaCost = staminaCostPerUnit;
         ladderStaminaMultiplier = ladderCostMultiplier;
         taskStaminaCostPerSecond = taskCostPerSecond;
+        runtimeAgentId = Mathf.Max(1, assignedRuntimeAgentId);
         carriedDungeonTreasure ??= new List<CarriedDungeonTreasure>();
+        deathLootRecoveryClaimed = false;
         character = GetComponent<NPCCharacter>();
         if (character == null)
             character = gameObject.AddComponent<NPCCharacter>();
@@ -1011,6 +1145,19 @@ public class NPCTraversalAgent : MonoBehaviour
             character.Died -= OnCharacterDied;
     }
 
+    internal bool TryClaimDeathLootRecovery()
+    {
+        if (deathLootRecoveryClaimed)
+            return false;
+        deathLootRecoveryClaimed = true;
+        return true;
+    }
+
+    internal void ClearCarriedLootAfterDeath()
+    {
+        carriedDungeonTreasure.Clear();
+    }
+
     void OnCharacterDied(NPCCharacter deadCharacter)
     {
         if (movement != null)
@@ -1018,7 +1165,7 @@ public class NPCTraversalAgent : MonoBehaviour
         movement = null;
         ClearActiveActivityState();
         visitInProgress = false;
-        navigation?.NotifyAdventurerDied(deadCharacter);
+        navigation?.NotifyAdventurerDied(this);
         navigation?.DespawnAdventurer(this);
     }
 
@@ -1058,6 +1205,7 @@ public class NPCTraversalAgent : MonoBehaviour
         visitedCells.Clear();
         familiarConnections.Clear();
         carriedDungeonTreasure.Clear();
+        deathLootRecoveryClaimed = false;
         if (character == null)
             return false;
         character.ResetVisitResources();

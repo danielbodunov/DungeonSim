@@ -8,7 +8,7 @@ None.
 
 ## Ready
 
-- [t007 — Adventurer Loot Drop & Dungeon Recovery](t007-Expedition-Vertical-Slice-Validation.md)
+None.
 
 ## Planned / Near-Term — Sinister Dungeon Expedition
 
@@ -33,6 +33,7 @@ None.
 - [t004 — Treasure Prop + Treasure Socket](t004-Treasure-Prop.md)
 - [t005 — NPC Treasure Discovery & Investigation](t005-NPC-Treasure-Investigation.md)
 - [t006 — Treasure Pickup & Ownership](t006-NPC-Carried-Treasure.md)
+- [t007 — Adventurer Loot Drop & Dungeon Recovery](t007-Expedition-Vertical-Slice-Validation.md)
 
 ## Developer Tooling Gate — Complete
 
