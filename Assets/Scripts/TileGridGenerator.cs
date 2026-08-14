@@ -13,6 +13,166 @@ public class TileGridGenerator : MonoBehaviour
         Vector2Int.left
     };
 
+    internal sealed class ValidatedTileLayout
+    {
+        public readonly Dictionary<Vector2Int, int> assignments = new();
+        public readonly HashSet<Vector2Int> placedCells = new();
+        public readonly Dictionary<Vector2Int, CellWidthIntent> widthIntents =
+            new();
+        public readonly List<SavedConnectionEdge> connectionIntents = new();
+        public readonly Dictionary<string, ConnectionIntent> intentsByEdge =
+            new(System.StringComparer.Ordinal);
+        public List<int>[,] cellOptions;
+    }
+
+    /// <summary>
+    /// Read-only view of either the current grid or a validated incoming
+    /// layout. Reservations are local to this context and let callers validate
+    /// a sequence of authored placements without changing the dungeon.
+    /// </summary>
+    public sealed class PlacementValidationContext
+    {
+        readonly TileGridGenerator owner;
+        readonly ValidatedTileLayout layout;
+        readonly HashSet<Vector2Int> reservedTraps = new();
+        readonly HashSet<Vector2Int> reservedFloorProps = new();
+        Vector2Int? reservedEntrance;
+
+        internal PlacementValidationContext(
+            TileGridGenerator owningGrid,
+            ValidatedTileLayout validatedLayout)
+        {
+            owner = owningGrid;
+            layout = validatedLayout;
+        }
+
+        public bool IsPlacedCell(int x, int y)
+        {
+            var cell = new Vector2Int(x, y);
+            return layout != null
+                ? layout.placedCells.Contains(cell)
+                : owner != null && owner.IsPlacedCell(x, y);
+        }
+
+        public IReadOnlyList<BakedPropSocket> GetCellPropSockets(
+            int x,
+            int y)
+        {
+            TileSocketProfile profile = GetCellProfile(new Vector2Int(x, y));
+            return profile?.propSockets
+                ?? (IReadOnlyList<BakedPropSocket>)System.Array.Empty<BakedPropSocket>();
+        }
+
+        internal bool BelongsTo(TileGridGenerator grid) => owner == grid;
+
+        internal void ResetReservations()
+        {
+            reservedTraps.Clear();
+            reservedFloorProps.Clear();
+            reservedEntrance = null;
+        }
+
+        internal bool HasTrap(Vector2Int cell)
+        {
+            if (reservedTraps.Contains(cell))
+                return true;
+            return layout == null &&
+                owner.placedTraps.TryGetValue(cell, out CellTrap trap) &&
+                trap != null;
+        }
+
+        internal bool HasFloorProp(Vector2Int cell)
+        {
+            if (reservedFloorProps.Contains(cell))
+                return true;
+            return layout == null &&
+                owner.placedFloorProps.TryGetValue(cell, out FloorProp floorProp) &&
+                floorProp != null;
+        }
+
+        internal bool HasEntranceAt(Vector2Int cell)
+        {
+            if (reservedEntrance.HasValue && reservedEntrance.Value == cell)
+                return true;
+            return layout == null && owner.placedEntrance != null &&
+                owner.placedEntranceCell == cell;
+        }
+
+        internal bool HasEntrance => reservedEntrance.HasValue ||
+            (layout == null && owner.placedEntrance != null &&
+                !owner.placedEntranceIsFallback);
+
+        internal void ReserveTrap(Vector2Int cell) => reservedTraps.Add(cell);
+        internal void ReserveFloorProp(Vector2Int cell) =>
+            reservedFloorProps.Add(cell);
+        internal void ReserveEntrance(Vector2Int cell) => reservedEntrance = cell;
+
+        internal bool HasTopologySensitiveEntrance(Vector2Int cell)
+        {
+            if (layout == null && owner.instantiated != null &&
+                cell.x >= 0 && cell.y >= 0 &&
+                cell.x < owner.instantiated.GetLength(0) &&
+                cell.y < owner.instantiated.GetLength(1))
+            {
+                GameObject instance = owner.instantiated[cell.x, cell.y];
+                return instance != null &&
+                    instance.GetComponentInChildren<DungeonEntrance>(true) != null;
+            }
+
+            TileSocketProfile profile = GetCellProfile(cell);
+            return profile != null && profile.sourcePrefab != null &&
+                profile.sourcePrefab
+                    .GetComponentInChildren<DungeonEntrance>(true) != null;
+        }
+
+        internal bool HasPointOfInterest(Vector2Int cell)
+        {
+            if (layout == null)
+            {
+                if (!owner.pointsOfInterest.TryGetValue(cell, out var points))
+                    return false;
+                for (int i = 0; i < points.Count; i++)
+                {
+                    DungeonPointOfInterest point = points[i];
+                    if (point != null && point.IsBound && point.Cell == cell)
+                        return true;
+                }
+                return false;
+            }
+
+            TileSocketProfile profile = GetCellProfile(cell);
+            return profile != null && profile.sourcePrefab != null &&
+                profile.sourcePrefab
+                    .GetComponentInChildren<DungeonPointOfInterest>(true) != null;
+        }
+
+        internal bool IsGeneratedPropOccupied(Vector2Int cell)
+        {
+            return layout == null && owner.propGenerator != null &&
+                owner.propGenerator.IsCellOccupiedByGeneratedProp(cell);
+        }
+
+        TileSocketProfile GetCellProfile(Vector2Int cell)
+        {
+            if (owner == null || cell.x < 0 || cell.y < 0 ||
+                cell.x >= owner.width || cell.y >= owner.height)
+            {
+                return null;
+            }
+
+            if (layout != null)
+            {
+                return layout.assignments.TryGetValue(cell, out int tileIndex)
+                    ? owner.database.tiles[tileIndex]
+                    : null;
+            }
+
+            if (owner.cells == null || owner.cells[cell.x, cell.y].Count != 1)
+                return null;
+            return owner.database.tiles[owner.cells[cell.x, cell.y][0]];
+        }
+    }
+
     [SerializeField] TileAdjacencyDatabase database;
     [SerializeField] GameObject placeholderPrefab;
     [SerializeField] PropGenerator propGenerator;
@@ -55,6 +215,7 @@ public class TileGridGenerator : MonoBehaviour
     string placedEntrancePrefabName;
     bool placedEntranceIsFallback;
     Transform entranceContainer;
+    PlacementValidationContext livePlacementValidationContext;
 
     public event System.Action LayoutChanged;
 
@@ -150,7 +311,7 @@ public class TileGridGenerator : MonoBehaviour
 
     void InitializeGrid()
     {
-        cells = new List<int>[width, height];
+        cells = CreateInitialCellOptions();
         instantiated = new GameObject[width, height];
         placed = new bool[width, height];
         fixedGround = new bool[width, height];
@@ -161,37 +322,45 @@ public class TileGridGenerator : MonoBehaviour
         for (int x = 0; x < width; x++)
         for (int y = 0; y < height; y++)
         {
-            //Get world position cell with respective origin and generation direction
-            // Vector3 coord = GetWorldPosition(x, y);
-            // int wX = (int)coord.x;
-            // int wY = (int)coord.y;
-            cells[x, y] = new List<int>();
             if(x == 0 || y == 0 || x == width - 1 || y == height - 1)
-                {
-                    cells[x, y].Add(groundTileIndex);
-                    fixedGround[x, y] = true;
-                    continue;
-                }
+                fixedGround[x, y] = true;
+        }
+    }
+
+    List<int>[,] CreateInitialCellOptions()
+    {
+        var initialCells = new List<int>[width, height];
+        for (int x = 0; x < width; x++)
+        for (int y = 0; y < height; y++)
+        {
+            initialCells[x, y] = new List<int>();
+            if (x == 0 || y == 0 || x == width - 1 || y == height - 1)
+            {
+                initialCells[x, y].Add(groundTileIndex);
+                continue;
+            }
 
             for (int i = 0; i < prefabs.Count; i++)
-                cells[x, y].Add(i);
+                initialCells[x, y].Add(i);
         }
 
         // The border cells are pre-collapsed to the ground tile. Their
         // constraints must be applied before the player can collapse a cell.
         for (int x = 0; x < width; x++)
         {
-            Propagate(x, 0);
+            Propagate(initialCells, x, 0);
             if (height > 1)
-                Propagate(x, height - 1);
+                Propagate(initialCells, x, height - 1);
         }
 
         for (int y = 1; y < height - 1; y++)
         {
-            Propagate(0, y);
+            Propagate(initialCells, 0, y);
             if (width > 1)
-                Propagate(width - 1, y);
+                Propagate(initialCells, width - 1, y);
         }
+
+        return initialCells;
     }
 
     // ---- 3–5. Collapse + Propagation ----
@@ -208,6 +377,11 @@ public class TileGridGenerator : MonoBehaviour
     //Propagate constraints from cell (x,y) to neighbors, and recursively propagate if neighbors are constrained
     void Propagate(int startX, int startY)
     {
+        Propagate(cells, startX, startY);
+    }
+
+    void Propagate(List<int>[,] targetCells, int startX, int startY)
+    {
         Queue<Vector2Int> queue = new();
         queue.Enqueue(new Vector2Int(startX, startY));
 
@@ -216,15 +390,20 @@ public class TileGridGenerator : MonoBehaviour
             var p = queue.Dequeue();
 
             // Grid rows increase downward in world space, so y + 1 is south.
-            ConstrainNeighbor(p.x, p.y, p.x, p.y + 1, south, queue);
-            ConstrainNeighbor(p.x, p.y, p.x, p.y - 1, north, queue);
-            ConstrainNeighbor(p.x, p.y, p.x + 1, p.y, east,  queue);
-            ConstrainNeighbor(p.x, p.y, p.x - 1, p.y, west,  queue);
+            ConstrainNeighbor(
+                targetCells, p.x, p.y, p.x, p.y + 1, south, queue);
+            ConstrainNeighbor(
+                targetCells, p.x, p.y, p.x, p.y - 1, north, queue);
+            ConstrainNeighbor(
+                targetCells, p.x, p.y, p.x + 1, p.y, east, queue);
+            ConstrainNeighbor(
+                targetCells, p.x, p.y, p.x - 1, p.y, west, queue);
         }
     }
 
     //Set neighbor's options to the subset of its current options that are allowed by the source cell's options and the adjacency rules, and if any options were removed, add the neighbor to the queue to propagate from it
     void ConstrainNeighbor(
+        List<int>[,] targetCells,
         int x, int y,
         int nx, int ny,
         Dictionary<int, HashSet<int>> rule,
@@ -235,8 +414,8 @@ public class TileGridGenerator : MonoBehaviour
         {
             return;
         }
-        var sourceTiles = cells[x, y];
-        var neighbor = cells[nx, ny];
+        var sourceTiles = targetCells[x, y];
+        var neighbor = targetCells[nx, ny];
 
         var allowed = new HashSet<int>();
 
@@ -371,12 +550,14 @@ public class TileGridGenerator : MonoBehaviour
     void RefreshPlacedFloorProps()
     {
         var cellsToRemove = new List<Vector2Int>();
+        PlacementValidationContext validationContext =
+            GetLivePlacementValidationContext();
         foreach (KeyValuePair<Vector2Int, FloorProp> pair in placedFloorProps)
         {
             FloorProp floorProp = pair.Value;
             if (floorProp == null ||
                 !IsPlacedCell(pair.Key.x, pair.Key.y) ||
-                !floorProp.IsCompatibleWith(this, pair.Key))
+                !floorProp.IsCompatibleWith(validationContext, pair.Key))
             {
                 cellsToRemove.Add(pair.Key);
                 continue;
@@ -497,47 +678,148 @@ public class TileGridGenerator : MonoBehaviour
         List<SavedTileCell> savedCells,
         List<SavedConnectionEdge> savedConnections = null)
     {
-        if (!IsInitialized || savedCells == null)
+        if (!TryBuildValidatedTileLayout(
+                savedCells,
+                savedConnections,
+                out ValidatedTileLayout validated,
+                out string failure))
+        {
+            Debug.LogWarning(failure, this);
             return false;
+        }
+
+        // No live state changes occur above this point. The validated option
+        // grid is applied directly so restoration cannot discover a layout
+        // contradiction after outgoing content has been cleared.
+        propGenerator?.ClearGeneratedProps();
+        ClearTraps();
+        ClearFloorProps();
+        ClearEntrance();
+        DestroyInstantiatedGrid();
+        InitializeGrid();
+        cells = CopyCellOptions(validated.cellOptions);
+
+        foreach (SavedConnectionEdge edge in validated.connectionIntents)
+        {
+            SetStoredConnectionIntent(
+                new Vector2Int(edge.fromX, edge.fromY),
+                new Vector2Int(edge.toX, edge.toY),
+                edge.intent);
+        }
+
+        foreach (KeyValuePair<Vector2Int, int> assignment in validated.assignments)
+        {
+            Vector2Int position = assignment.Key;
+            placed[position.x, position.y] =
+                validated.placedCells.Contains(position);
+            widthIntents[position.x, position.y] =
+                validated.widthIntents[position];
+        }
+
+        InstantiateGrid();
+        LayoutChanged?.Invoke();
+        return true;
+    }
+
+    public bool TryValidateTileLayout(
+        List<SavedTileCell> savedCells,
+        List<SavedConnectionEdge> savedConnections,
+        out PlacementValidationContext placementContext,
+        out string failure)
+    {
+        placementContext = null;
+        if (!TryBuildValidatedTileLayout(
+                savedCells,
+                savedConnections,
+                out ValidatedTileLayout validated,
+                out failure))
+        {
+            return false;
+        }
+
+        placementContext = new PlacementValidationContext(this, validated);
+        return true;
+    }
+
+    bool TryBuildValidatedTileLayout(
+        List<SavedTileCell> savedCells,
+        List<SavedConnectionEdge> savedConnections,
+        out ValidatedTileLayout validated,
+        out string failure)
+    {
+        validated = null;
+        if (!IsInitialized)
+        {
+            failure = "The dungeon grid is not initialized.";
+            return false;
+        }
+        if (savedCells == null)
+        {
+            failure = "The tile layout is missing.";
+            return false;
+        }
 
         var tileIndicesById = new Dictionary<string, int>(
             System.StringComparer.OrdinalIgnoreCase);
         for (int i = 0; i < database.tiles.Count; i++)
             tileIndicesById[GetProfileId(database.tiles[i])] = i;
 
-        var assignments = new Dictionary<Vector2Int, int>();
-        var placedCells = new HashSet<Vector2Int>();
-        var savedWidthIntents = new Dictionary<Vector2Int, CellWidthIntent>();
+        var result = new ValidatedTileLayout();
         foreach (SavedTileCell savedCell in savedCells)
         {
-            var position = new Vector2Int(savedCell.x, savedCell.y);
-            if (savedCell.x <= 0 || savedCell.y <= 0 ||
-                savedCell.x >= width - 1 || savedCell.y >= height - 1 ||
-                assignments.ContainsKey(position) ||
-                string.IsNullOrWhiteSpace(savedCell.profileId) ||
-                !tileIndicesById.TryGetValue(savedCell.profileId, out int tileIndex))
+            if (savedCell == null)
             {
+                failure = "The tile layout contains an empty cell record.";
                 return false;
             }
 
-            assignments[position] = tileIndex;
-            savedWidthIntents[position] = System.Enum.IsDefined(
+            var position = new Vector2Int(savedCell.x, savedCell.y);
+            if (savedCell.x <= 0 || savedCell.y <= 0 ||
+                savedCell.x >= width - 1 || savedCell.y >= height - 1)
+            {
+                failure = $"Tile cell ({savedCell.x},{savedCell.y}) is outside " +
+                    "the editable grid bounds.";
+                return false;
+            }
+            if (result.assignments.ContainsKey(position))
+            {
+                failure = $"Tile cell ({savedCell.x},{savedCell.y}) is duplicated.";
+                return false;
+            }
+            if (string.IsNullOrWhiteSpace(savedCell.profileId) ||
+                !tileIndicesById.TryGetValue(savedCell.profileId, out int tileIndex))
+            {
+                failure = $"Tile cell ({savedCell.x},{savedCell.y}) references " +
+                    $"unknown profile '{savedCell.profileId}'.";
+                return false;
+            }
+
+            result.assignments[position] = tileIndex;
+            result.widthIntents[position] = System.Enum.IsDefined(
                 typeof(CellWidthIntent), savedCell.widthIntent)
                     ? savedCell.widthIntent
                     : CellWidthIntent.Auto;
             if (savedCell.isPlaced)
-                placedCells.Add(position);
+                result.placedCells.Add(position);
         }
 
-        var connectionIntents = new List<SavedConnectionEdge>();
         var savedEdgeKeys = new HashSet<string>();
         if (savedConnections != null)
         {
             foreach (SavedConnectionEdge edge in savedConnections)
             {
-                if (edge == null ||
-                    !System.Enum.IsDefined(typeof(ConnectionIntent), edge.intent) ||
-                    edge.intent == ConnectionIntent.Auto)
+                if (edge == null)
+                {
+                    failure = "The tile layout contains an empty connection record.";
+                    return false;
+                }
+                if (!System.Enum.IsDefined(typeof(ConnectionIntent), edge.intent))
+                {
+                    failure = $"Connection edge ({edge.fromX},{edge.fromY}) to " +
+                        $"({edge.toX},{edge.toY}) has an invalid intent.";
+                    return false;
+                }
+                if (edge.intent == ConnectionIntent.Auto)
                 {
                     continue;
                 }
@@ -546,74 +828,59 @@ public class TileGridGenerator : MonoBehaviour
                 var to = new Vector2Int(edge.toX, edge.toY);
                 if (!IsInteriorCell(from) || !IsInteriorCell(to) ||
                     !AreCardinalNeighbors(from, to) ||
-                    !placedCells.Contains(from) || !placedCells.Contains(to))
+                    !result.placedCells.Contains(from) ||
+                    !result.placedCells.Contains(to))
                 {
+                    failure = $"Connection edge {from} to {to} must join two " +
+                        "adjacent built cells.";
                     return false;
                 }
 
                 string edgeKey = GetCanonicalEdgeKey(from, to);
                 if (!savedEdgeKeys.Add(edgeKey))
+                {
+                    failure = $"Connection edge {from} to {to} is duplicated.";
                     return false;
-                connectionIntents.Add(edge);
+                }
+                result.connectionIntents.Add(new SavedConnectionEdge
+                {
+                    fromX = edge.fromX,
+                    fromY = edge.fromY,
+                    toX = edge.toX,
+                    toY = edge.toY,
+                    intent = edge.intent
+                });
+                result.intentsByEdge[edgeKey] = edge.intent;
             }
         }
 
-        // Procedural props belong to the outgoing layout. Clear their runtime
-        // instances and occupancy synchronously before incoming authored
-        // content is restored through normal placement validation.
-        propGenerator?.ClearGeneratedProps();
-        ClearTraps();
-        ClearFloorProps();
-        ClearEntrance();
-        DestroyInstantiatedGrid();
-        InitializeGrid();
-
-        foreach (SavedConnectionEdge edge in connectionIntents)
+        if (!AssignmentsRespectConnectionIntents(
+                result.assignments, result.intentsByEdge))
         {
-            SetStoredConnectionIntent(
-                new Vector2Int(edge.fromX, edge.fromY),
-                new Vector2Int(edge.toX, edge.toY),
-                edge.intent);
+            failure = "The tile assignments conflict with their connection intents.";
+            return false;
         }
 
-        foreach (KeyValuePair<Vector2Int, int> assignment in assignments)
+        result.cellOptions = CreateInitialCellOptions();
+        foreach (KeyValuePair<Vector2Int, int> assignment in result.assignments)
         {
             Vector2Int position = assignment.Key;
-            cells[position.x, position.y].Clear();
-            cells[position.x, position.y].Add(assignment.Value);
-            placed[position.x, position.y] = placedCells.Contains(position);
-            widthIntents[position.x, position.y] = savedWidthIntents[position];
+            result.cellOptions[position.x, position.y].Clear();
+            result.cellOptions[position.x, position.y].Add(assignment.Value);
         }
 
-        if (!AssignmentsRespectConnectionIntents(assignments))
+        foreach (Vector2Int position in result.assignments.Keys)
+            Propagate(result.cellOptions, position.x, position.y);
+
+        if (HasContradiction(result.cellOptions))
         {
-            Debug.LogWarning(
-                "The saved tile assignments conflict with their connection intents.",
-                this);
-            DestroyInstantiatedGrid();
-            InitializeGrid();
-            InstantiateGrid();
-            NotifyLayoutChanged();
+            failure = "The tile assignments conflict with the current adjacency " +
+                "database.";
             return false;
         }
 
-        foreach (Vector2Int position in assignments.Keys)
-            Propagate(position.x, position.y);
-
-        if (HasContradiction())
-        {
-            Debug.LogWarning(
-                "The saved tile assignments conflict with the current adjacency database.",
-                this);
-            DestroyInstantiatedGrid();
-            InitializeGrid();
-            InstantiateGrid();
-            NotifyLayoutChanged();
-            return false;
-        }
-
-        InstantiateGrid();
-        LayoutChanged?.Invoke();
+        validated = result;
+        failure = string.Empty;
         return true;
     }
 
@@ -722,6 +989,195 @@ public class TileGridGenerator : MonoBehaviour
             coordinates.x < width && coordinates.y < height;
     }
 
+    PlacementValidationContext GetLivePlacementValidationContext()
+    {
+        livePlacementValidationContext ??=
+            new PlacementValidationContext(this, null);
+        livePlacementValidationContext.ResetReservations();
+        return livePlacementValidationContext;
+    }
+
+    bool TryValidatePlacementContext(
+        PlacementValidationContext context,
+        out string failure)
+    {
+        if (context == null || !context.BelongsTo(this))
+        {
+            failure = "The placement validation context does not belong to this grid.";
+            return false;
+        }
+
+        failure = string.Empty;
+        return true;
+    }
+
+    public bool TryValidateTrapPlacement(
+        PlacementValidationContext context,
+        Vector2Int cell,
+        GameObject trapPrefab,
+        out string failure)
+    {
+        if (!TryValidatePlacementContext(context, out failure))
+            return false;
+        if (trapPrefab == null)
+        {
+            failure = "A trap prefab must be assigned before it can be placed.";
+            return false;
+        }
+        if (trapPrefab.GetComponent<CellTrap>() == null)
+        {
+            failure = $"Trap prefab '{trapPrefab.name}' needs a component " +
+                "derived from CellTrap on its root.";
+            return false;
+        }
+        if (!context.IsPlacedCell(cell.x, cell.y))
+        {
+            failure = $"Traps can only be placed on a built dungeon tile. " +
+                $"Cell ({cell.x},{cell.y}) is not available.";
+            return false;
+        }
+        if (context.HasTrap(cell))
+        {
+            failure = $"Cell ({cell.x},{cell.y}) already contains a trap.";
+            return false;
+        }
+        if (context.HasFloorProp(cell))
+        {
+            failure = $"Cell ({cell.x},{cell.y}) already contains a floor prop.";
+            return false;
+        }
+        if (context.HasEntranceAt(cell))
+        {
+            failure = $"Cell ({cell.x},{cell.y}) already contains the dungeon entrance.";
+            return false;
+        }
+
+        failure = string.Empty;
+        return true;
+    }
+
+    public bool TryValidateEntrancePlacement(
+        PlacementValidationContext context,
+        Vector2Int cell,
+        GameObject entrancePrefab,
+        out string failure)
+    {
+        if (!TryValidatePlacementContext(context, out failure))
+            return false;
+        if (entrancePrefab == null)
+        {
+            failure = "An entrance prefab must be assigned before it can be placed.";
+            return false;
+        }
+        if (entrancePrefab.GetComponentInChildren<DungeonEntrance>(true) == null)
+        {
+            failure = $"Entrance prefab '{entrancePrefab.name}' needs a " +
+                "DungeonEntrance component.";
+            return false;
+        }
+        if (!context.IsPlacedCell(cell.x, cell.y))
+        {
+            failure = $"Entrances can only be placed on a built dungeon tile. " +
+                $"Cell ({cell.x},{cell.y}) is not available.";
+            return false;
+        }
+        if (context.HasEntrance)
+        {
+            failure = "The dungeon already contains a manually placed entrance.";
+            return false;
+        }
+        if (context.HasTrap(cell))
+        {
+            failure = $"Cell ({cell.x},{cell.y}) already contains a trap.";
+            return false;
+        }
+        if (context.HasFloorProp(cell))
+        {
+            failure = $"Cell ({cell.x},{cell.y}) already contains a floor prop.";
+            return false;
+        }
+        if (FindEntranceSocket(
+                context.GetCellPropSockets(cell.x, cell.y)) == null)
+        {
+            failure = $"Cell ({cell.x},{cell.y}) does not provide a compatible " +
+                "entrance socket.";
+            return false;
+        }
+
+        failure = string.Empty;
+        return true;
+    }
+
+    public bool TryValidateFloorPropPlacement(
+        PlacementValidationContext context,
+        Vector2Int cell,
+        GameObject floorPropPrefab,
+        out string failure)
+    {
+        if (!TryValidatePlacementContext(context, out failure))
+            return false;
+        if (floorPropPrefab == null)
+        {
+            failure = "A floor prop prefab must be assigned before it can be placed.";
+            return false;
+        }
+
+        FloorProp floorProp = floorPropPrefab.GetComponent<FloorProp>();
+        if (floorProp == null)
+        {
+            failure = $"Floor prop prefab '{floorPropPrefab.name}' needs a " +
+                "FloorProp component on its root.";
+            return false;
+        }
+        if (!context.IsPlacedCell(cell.x, cell.y))
+        {
+            failure = $"Floor props can only be placed on a built dungeon tile. " +
+                $"Cell ({cell.x},{cell.y}) is not available.";
+            return false;
+        }
+        if (!floorProp.IsCompatibleWith(context, cell))
+        {
+            failure = $"'{floorPropPrefab.name}' is not compatible with cell " +
+                $"({cell.x},{cell.y}).";
+            return false;
+        }
+        if (context.HasFloorProp(cell))
+        {
+            failure = $"Cell ({cell.x},{cell.y}) already contains a floor prop.";
+            return false;
+        }
+        if (context.HasTrap(cell))
+        {
+            failure = $"Cell ({cell.x},{cell.y}) already contains a trap.";
+            return false;
+        }
+        if (context.HasEntranceAt(cell))
+        {
+            failure = $"Cell ({cell.x},{cell.y}) already contains the dungeon entrance.";
+            return false;
+        }
+        if (context.HasTopologySensitiveEntrance(cell))
+        {
+            failure = $"Cell ({cell.x},{cell.y}) contains topology-sensitive " +
+                "entrance content.";
+            return false;
+        }
+        if (context.HasPointOfInterest(cell))
+        {
+            failure = $"Cell ({cell.x},{cell.y}) already contains interactive content.";
+            return false;
+        }
+        if (context.IsGeneratedPropOccupied(cell))
+        {
+            failure = $"Cell ({cell.x},{cell.y}) is occupied by " +
+                "topology-sensitive content.";
+            return false;
+        }
+
+        failure = string.Empty;
+        return true;
+    }
+
     public bool HasPlacedFloorProp(Vector2Int cell)
     {
         if (!placedFloorProps.TryGetValue(cell, out FloorProp floorProp))
@@ -794,6 +1250,13 @@ public class TileGridGenerator : MonoBehaviour
             return false;
         }
 
+        if (placedFloorProps.ContainsKey(cell))
+        {
+            placedFloorProps.Remove(cell);
+            placedFloorPropObjectIds.Remove(cell);
+            placedFloorPropPrefabNames.Remove(cell);
+        }
+
         if (floorPropContainer == null)
         {
             var container = new GameObject("Placed Floor Props");
@@ -837,72 +1300,11 @@ public class TileGridGenerator : MonoBehaviour
         GameObject floorPropPrefab,
         out string failure)
     {
-        if (floorPropPrefab == null)
-        {
-            failure = "A floor prop prefab must be assigned before it can be placed.";
-            return false;
-        }
-
-        FloorProp floorProp = floorPropPrefab.GetComponent<FloorProp>();
-        if (floorProp == null)
-        {
-            failure = $"Floor prop prefab '{floorPropPrefab.name}' needs a FloorProp component on its root.";
-            return false;
-        }
-
-        if (cell.x < 0 || cell.x >= width || cell.y < 0 || cell.y >= height ||
-            !IsPlacedCell(cell.x, cell.y))
-        {
-            failure = $"Floor props can only be placed on a built dungeon tile. Cell ({cell.x},{cell.y}) is not available.";
-            return false;
-        }
-
-        if (!floorProp.IsCompatibleWith(this, cell))
-        {
-            failure = $"'{floorPropPrefab.name}' is not compatible with cell ({cell.x},{cell.y}).";
-            return false;
-        }
-
-        if (HasPlacedFloorProp(cell))
-        {
-            failure = $"Cell ({cell.x},{cell.y}) already contains a floor prop.";
-            return false;
-        }
-
-        if (placedTraps.TryGetValue(cell, out CellTrap trap) && trap != null)
-        {
-            failure = $"Cell ({cell.x},{cell.y}) already contains a trap.";
-            return false;
-        }
-
-        if (placedEntrance != null && placedEntranceCell == cell)
-        {
-            failure = $"Cell ({cell.x},{cell.y}) already contains the dungeon entrance.";
-            return false;
-        }
-
-        if (instantiated[cell.x, cell.y] != null &&
-            instantiated[cell.x, cell.y]
-                .GetComponentInChildren<DungeonEntrance>(true) != null)
-        {
-            failure = $"Cell ({cell.x},{cell.y}) contains topology-sensitive entrance content.";
-            return false;
-        }
-
-        if (GetPointsOfInterest(cell, false).Count > 0)
-        {
-            failure = $"Cell ({cell.x},{cell.y}) already contains interactive content.";
-            return false;
-        }
-
-        if (propGenerator != null && propGenerator.IsCellOccupiedByGeneratedProp(cell))
-        {
-            failure = $"Cell ({cell.x},{cell.y}) is occupied by topology-sensitive content.";
-            return false;
-        }
-
-        failure = string.Empty;
-        return true;
+        return TryValidateFloorPropPlacement(
+            GetLivePlacementValidationContext(),
+            cell,
+            floorPropPrefab,
+            out failure);
     }
 
     public List<SavedFloorPropCell> CaptureFloorPropLayout()
@@ -1083,33 +1485,14 @@ public class TileGridGenerator : MonoBehaviour
         GameObject entrancePrefab,
         int objectId = -1)
     {
-        if (entrancePrefab == null)
+        var cell = new Vector2Int(x, y);
+        if (!TryValidateEntrancePlacement(
+                GetLivePlacementValidationContext(),
+                cell,
+                entrancePrefab,
+                out string failure))
         {
-            Debug.LogWarning(
-                "An entrance prefab must be assigned before it can be placed.", this);
-            return false;
-        }
-
-        if (x < 0 || x >= width || y < 0 || y >= height || !placed[x, y])
-        {
-            Debug.LogWarning(
-                $"Entrances can only be placed on a built dungeon tile. " +
-                $"Cell ({x},{y}) is not available.", this);
-            return false;
-        }
-
-        if (HasPlacedFloorProp(new Vector2Int(x, y)))
-        {
-            Debug.LogWarning(
-                $"Cell ({x},{y}) already contains a floor prop.", this);
-            return false;
-        }
-
-        if (placedEntrance != null && !placedEntranceIsFallback)
-        {
-            Debug.LogWarning(
-                $"The dungeon already has an entrance at {placedEntranceCell}. " +
-                "Remove it before placing another.", this);
+            Debug.LogWarning(failure, this);
             return false;
         }
 
@@ -1246,7 +1629,15 @@ public class TileGridGenerator : MonoBehaviour
 
     BakedPropSocket FindEntranceSocket(int x, int y)
     {
-        foreach (BakedPropSocket socket in GetCellPropSockets(x, y))
+        return FindEntranceSocket(GetCellPropSockets(x, y));
+    }
+
+    static BakedPropSocket FindEntranceSocket(
+        IReadOnlyList<BakedPropSocket> sockets)
+    {
+        for (int i = 0; i < sockets.Count; i++)
+        {
+            BakedPropSocket socket = sockets[i];
             if (socket != null && socket.role == PropSocketRole.Single &&
                 string.Equals(
                     socket.structureId, EntranceStructureId,
@@ -1254,6 +1645,7 @@ public class TileGridGenerator : MonoBehaviour
             {
                 return socket;
             }
+        }
         return null;
     }
 
@@ -1538,7 +1930,8 @@ public class TileGridGenerator : MonoBehaviour
     }
 
     bool AssignmentsRespectConnectionIntents(
-        Dictionary<Vector2Int, int> assignments)
+        Dictionary<Vector2Int, int> assignments,
+        Dictionary<string, ConnectionIntent> intentsByEdge)
     {
         foreach (KeyValuePair<Vector2Int, int> assignment in assignments)
         {
@@ -1547,10 +1940,10 @@ public class TileGridGenerator : MonoBehaviour
             var southNeighbor = position + Vector2Int.up;
             if (!AssignmentEdgeRespectsIntent(
                     position, assignment.Value, TileSide.East,
-                    eastNeighbor, assignments) ||
+                    eastNeighbor, assignments, intentsByEdge) ||
                 !AssignmentEdgeRespectsIntent(
                     position, assignment.Value, TileSide.South,
-                    southNeighbor, assignments))
+                    southNeighbor, assignments, intentsByEdge))
             {
                 return false;
             }
@@ -1563,9 +1956,11 @@ public class TileGridGenerator : MonoBehaviour
         int tileIndex,
         TileSide side,
         Vector2Int neighbor,
-        Dictionary<Vector2Int, int> assignments)
+        Dictionary<Vector2Int, int> assignments,
+        Dictionary<string, ConnectionIntent> intentsByEdge)
     {
-        ConnectionIntent intent = GetConnectionIntent(position, neighbor);
+        intentsByEdge.TryGetValue(
+            GetCanonicalEdgeKey(position, neighbor), out ConnectionIntent intent);
         if (intent == ConnectionIntent.Auto ||
             !assignments.TryGetValue(neighbor, out int neighborTile))
         {
@@ -1856,34 +2251,18 @@ public class TileGridGenerator : MonoBehaviour
         int objectId = -1)
     {
         var cell = new Vector2Int(x, y);
-        if (trapPrefab == null)
+        if (!TryValidateTrapPlacement(
+                GetLivePlacementValidationContext(),
+                cell,
+                trapPrefab,
+                out string failure))
         {
-            Debug.LogWarning("A trap prefab must be assigned before it can be placed.", this);
+            Debug.LogWarning(failure, this);
             return false;
         }
 
-        if (x < 0 || x >= width || y < 0 || y >= height || !placed[x, y])
-        {
-            Debug.LogWarning($"Traps can only be placed on a built dungeon tile. Cell ({x},{y}) is not available.", this);
-            return false;
-        }
-
-        if (HasPlacedFloorProp(cell))
-        {
-            Debug.LogWarning(
-                $"Cell ({x},{y}) already contains a floor prop.", this);
-            return false;
-        }
-
-        if (placedTraps.TryGetValue(cell, out CellTrap existingTrap))
-        {
-            if (existingTrap != null)
-            {
-                Debug.LogWarning($"Cell ({x},{y}) already contains a trap.", this);
-                return false;
-            }
+        if (placedTraps.ContainsKey(cell))
             placedTraps.Remove(cell);
-        }
 
         if (trapContainer == null)
         {
@@ -2055,18 +2434,28 @@ public class TileGridGenerator : MonoBehaviour
 
     List<int>[,] CopyCells()
     {
+        return CopyCellOptions(cells);
+    }
+
+    List<int>[,] CopyCellOptions(List<int>[,] source)
+    {
         var copy = new List<int>[width, height];
         for (int x = 0; x < width; x++)
         for (int y = 0; y < height; y++)
-            copy[x, y] = new List<int>(cells[x, y]);
+            copy[x, y] = new List<int>(source[x, y]);
         return copy;
     }
 
     bool HasContradiction()
     {
+        return HasContradiction(cells);
+    }
+
+    bool HasContradiction(List<int>[,] targetCells)
+    {
         for (int x = 0; x < width; x++)
         for (int y = 0; y < height; y++)
-            if (cells[x, y].Count == 0)
+            if (targetCells[x, y].Count == 0)
                 return true;
         return false;
     }

@@ -26,6 +26,17 @@ public class FloorProp : MonoBehaviour
         return grid != null && grid.IsPlacedCell(cell.x, cell.y);
     }
 
+    /// <summary>
+    /// Compatibility hook used by production placement validation for both
+    /// the live grid and a non-mutating validated incoming layout.
+    /// </summary>
+    public virtual bool IsCompatibleWith(
+        TileGridGenerator.PlacementValidationContext context,
+        Vector2Int cell)
+    {
+        return context != null && context.IsPlacedCell(cell.x, cell.y);
+    }
+
     public virtual void Initialize(TileGridGenerator grid, Vector2Int cell)
     {
         Grid = grid;
