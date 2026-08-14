@@ -161,7 +161,11 @@ public class GameplayLoopUI : MonoBehaviour
         CreateSpeedButton(panel, "X2", 2f, new Vector2(76f, -130f));
         CreateSpeedButton(panel, "X3", 3f, new Vector2(138f, -130f));
 
-        Button pause = CreateButton(panel, "Pause", new Vector2(14f, -178f), new Vector2(182f, 38f),
+        Button pause = CreateButton(
+            panel,
+            "Pause Simulation",
+            new Vector2(14f, -178f),
+            new Vector2(182f, 38f),
             () => loop.TogglePause());
         pauseButtonText = pause.GetComponentInChildren<TMP_Text>();
         CreateButton(panel, "Clear NPCs", new Vector2(14f, -226f), new Vector2(182f, 38f),
@@ -566,7 +570,9 @@ public class GameplayLoopUI : MonoBehaviour
         phaseTitle.text = expansion ? "EXPANSION" : "EXPLORING";
         phaseTitle.color = expansion ? Ink : Color.white;
         phaseDetails.color = expansion ? Ink : new Color(0.87f, 0.89f, 1f, 1f);
-        pauseButtonText.text = loop.IsPaused ? "Resume" : "Pause";
+        pauseButtonText.text = loop.IsPaused
+            ? "Resume Simulation"
+            : "Pause Simulation";
         if (loadLastSaveButton != null && saveManager != null)
             loadLastSaveButton.interactable = saveManager.HasSave;
         if (saveStatusText != null && saveManager != null)

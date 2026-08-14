@@ -1374,7 +1374,9 @@ public class NPCTraversalAgent : MonoBehaviour
                 {
                     float segmentSpeed = isLadderSegment ? climbSpeed : speed;
                     Vector3 next = Vector3.MoveTowards(
-                        transform.position, target, segmentSpeed * Time.deltaTime);
+                        transform.position,
+                        target,
+                        segmentSpeed * DungeonSimulationState.DeltaTime);
                     if (!isLadderSegment)
                     {
                         Vector3 groundedNext = navigation.GetGroundedPosition(next);
@@ -1398,6 +1400,8 @@ public class NPCTraversalAgent : MonoBehaviour
                 }
             }
 
+            if (DungeonSimulationState.IsPaused)
+                yield return DungeonSimulationState.WaitUntilRunning();
             familiarConnections.Add(new NPCTraversalConnection(step.from, step.to));
             currentCell = step.to;
             RecordArrival(currentCell);
@@ -1420,6 +1424,8 @@ public class NPCTraversalAgent : MonoBehaviour
                         completed => investigationCompleted = completed);
                 }
 
+                if (DungeonSimulationState.IsPaused)
+                    yield return DungeonSimulationState.WaitUntilRunning();
                 if (investigationCompleted && investigationTarget != null &&
                     investigationTarget.IsAvailable &&
                     investigationTarget.Cell == currentCell)
@@ -1455,6 +1461,8 @@ public class NPCTraversalAgent : MonoBehaviour
         Vector3 fallPosition,
         float fallStartHeight)
     {
+        if (DungeonSimulationState.IsPaused)
+            yield return DungeonSimulationState.WaitUntilRunning();
         activeRoute = null;
         nextWaypointIndex = -1;
 
@@ -1483,8 +1491,13 @@ public class NPCTraversalAgent : MonoBehaviour
             yield break;
 
         if (navigation.FallRecoveryDelay > 0f)
-            yield return new WaitForSeconds(navigation.FallRecoveryDelay);
+        {
+            yield return DungeonSimulationState.WaitForSimulationSeconds(
+                navigation.FallRecoveryDelay);
+        }
 
+        if (DungeonSimulationState.IsPaused)
+            yield return DungeonSimulationState.WaitUntilRunning();
         movement = null;
         if (!visitInProgress || character == null || character.IsDead)
             yield break;
@@ -1595,6 +1608,8 @@ public class NPCTraversalAgent : MonoBehaviour
         activeRoute = new List<Vector3> { homePosition };
         nextWaypointIndex = 0;
         yield return MoveToHomePosition();
+        if (DungeonSimulationState.IsPaused)
+            yield return DungeonSimulationState.WaitUntilRunning();
         activeRoute = null;
         nextWaypointIndex = -1;
         movement = null;
@@ -1606,7 +1621,9 @@ public class NPCTraversalAgent : MonoBehaviour
         while ((transform.position - homePosition).sqrMagnitude > 0.0001f)
         {
             Vector3 next = Vector3.MoveTowards(
-                transform.position, homePosition, speed * Time.deltaTime);
+                transform.position,
+                homePosition,
+                speed * DungeonSimulationState.DeltaTime);
             transform.position = navigation.GetGroundedPosition(next);
             yield return null;
         }
@@ -1619,7 +1636,9 @@ public class NPCTraversalAgent : MonoBehaviour
         float elapsed = 0f;
         while (elapsed < duration && character.CurrentStamina > 0f)
         {
-            float delta = Mathf.Min(Time.deltaTime, duration - elapsed);
+            float delta = Mathf.Min(
+                DungeonSimulationState.DeltaTime,
+                duration - elapsed);
             character.SpendStamina(taskStaminaCostPerSecond * delta);
             elapsed += delta;
             investigationTimeRemaining = Mathf.Max(0f, duration - elapsed);
@@ -1633,7 +1652,8 @@ public class NPCTraversalAgent : MonoBehaviour
         performingTask = true;
         while (character.CurrentStamina > 0f)
         {
-            character.SpendStamina(taskStaminaCostPerSecond * Time.deltaTime);
+            character.SpendStamina(
+                taskStaminaCostPerSecond * DungeonSimulationState.DeltaTime);
             yield return null;
         }
         performingTask = false;
