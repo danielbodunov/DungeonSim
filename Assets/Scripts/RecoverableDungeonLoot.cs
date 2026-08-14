@@ -8,6 +8,111 @@ public enum RecoverableLootOrigin
     AdventurerPossession
 }
 
+/// <summary>Immutable item snapshot finalized by a successful dungeon escape.</summary>
+[Serializable]
+public sealed class EscapedLootItem
+{
+    [SerializeField] string itemId;
+    [SerializeField, Min(0)] int value;
+    [SerializeField] RecoverableLootOrigin origin;
+    [SerializeField] Vector2Int sourceCell;
+    [SerializeField] bool hasSourceCell;
+
+    public string ItemId => itemId;
+    public int Value => value;
+    public RecoverableLootOrigin Origin => origin;
+    public Vector2Int SourceCell => sourceCell;
+    public bool HasSourceCell => hasSourceCell;
+
+    public EscapedLootItem(
+        string itemId,
+        int value,
+        RecoverableLootOrigin origin,
+        Vector2Int sourceCell,
+        bool hasSourceCell)
+    {
+        this.itemId = itemId;
+        this.value = Mathf.Max(0, value);
+        this.origin = origin;
+        this.sourceCell = sourceCell;
+        this.hasSourceCell = hasSourceCell;
+    }
+}
+
+/// <summary>Auditable result of finalizing loot at a successful dungeon exit.</summary>
+[Serializable]
+public sealed class AdventurerEscapeLootOutcome
+{
+    [SerializeField] int sourceRuntimeAgentId;
+    [SerializeField] string sourceAdventurerName;
+    [SerializeField] Vector2Int exitCell;
+    [SerializeField] Vector3 worldPosition;
+    [SerializeField] int carriedItemCountBefore;
+    [SerializeField] int carriedValueBefore;
+    [SerializeField] List<EscapedLootItem> escapedItems = new();
+    [SerializeField] int carriedItemCountAfter;
+    [SerializeField] int carriedValueAfter;
+    [SerializeField] bool escapeProcessed;
+    [SerializeField, Min(0)] int duplicateProcessingAttempts;
+
+    public int SourceRuntimeAgentId => sourceRuntimeAgentId;
+    public string SourceAdventurerName => sourceAdventurerName;
+    public Vector2Int ExitCell => exitCell;
+    public Vector3 WorldPosition => worldPosition;
+    public int CarriedItemCountBefore => carriedItemCountBefore;
+    public int CarriedValueBefore => carriedValueBefore;
+    public IReadOnlyList<EscapedLootItem> EscapedItems => escapedItems;
+    public int EscapedItemCount => escapedItems.Count;
+    public int EscapedValue
+    {
+        get
+        {
+            int total = 0;
+            for (int i = 0; i < escapedItems.Count; i++)
+                if (escapedItems[i] != null)
+                    total += escapedItems[i].Value;
+            return total;
+        }
+    }
+    public int CarriedItemCountAfter => carriedItemCountAfter;
+    public int CarriedValueAfter => carriedValueAfter;
+    public bool EscapeProcessed => escapeProcessed;
+    public int DuplicateProcessingAttempts => duplicateProcessingAttempts;
+    public bool ProducedLoss => EscapedItemCount > 0;
+    public bool CustodyCleared =>
+        carriedItemCountAfter == 0 && carriedValueAfter == 0;
+
+    public AdventurerEscapeLootOutcome(
+        int sourceRuntimeAgentId,
+        string sourceAdventurerName,
+        Vector2Int exitCell,
+        Vector3 worldPosition,
+        int carriedItemCountBefore,
+        int carriedValueBefore,
+        List<EscapedLootItem> escapedItems,
+        int carriedItemCountAfter,
+        int carriedValueAfter)
+    {
+        this.sourceRuntimeAgentId = sourceRuntimeAgentId;
+        this.sourceAdventurerName = sourceAdventurerName;
+        this.exitCell = exitCell;
+        this.worldPosition = worldPosition;
+        this.carriedItemCountBefore = Mathf.Max(0, carriedItemCountBefore);
+        this.carriedValueBefore = Mathf.Max(0, carriedValueBefore);
+        this.escapedItems = escapedItems != null
+            ? new List<EscapedLootItem>(escapedItems)
+            : new List<EscapedLootItem>();
+        this.carriedItemCountAfter = Mathf.Max(0, carriedItemCountAfter);
+        this.carriedValueAfter = Mathf.Max(0, carriedValueAfter);
+        escapeProcessed = true;
+    }
+
+    internal void RecordDuplicateProcessingAttempt()
+    {
+        duplicateProcessingAttempts++;
+    }
+}
+
 /// <summary>Auditable result of processing one dead adventurer's loot custody.</summary>
 [Serializable]
 public sealed class AdventurerDeathLootOutcome
