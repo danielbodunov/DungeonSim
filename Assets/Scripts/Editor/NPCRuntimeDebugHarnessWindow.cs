@@ -15,6 +15,8 @@ public sealed class NPCRuntimeDebugHarnessWindow : EditorWindow
     bool showKnownCells;
     bool showKnownConnections;
     bool showCarriedTreasure = true;
+    bool showRecoverableLoot = true;
+    bool showDeathLootOutcomes = true;
     int damageAmount = 1;
     int healAmount = 1;
     float staminaAmount = 1f;
@@ -147,19 +149,130 @@ public sealed class NPCRuntimeDebugHarnessWindow : EditorWindow
             return;
         }
 
+        scroll = EditorGUILayout.BeginScrollView(scroll);
+        DrawRecoverableLootState();
         if (selectedAgent == null)
         {
             if (!string.IsNullOrEmpty(lastActionMessage))
                 EditorGUILayout.HelpBox(lastActionMessage, MessageType.None);
             EditorGUILayout.HelpBox("No running NPC is selected.", MessageType.Warning);
+            EditorGUILayout.EndScrollView();
             return;
         }
 
-        scroll = EditorGUILayout.BeginScrollView(scroll);
         DrawRuntimeState();
         DrawGameplayActions();
         DrawRawDebugActions();
         EditorGUILayout.EndScrollView();
+    }
+
+    void DrawRecoverableLootState()
+    {
+        NPCTraversal traversal = selectedAgent != null
+            ? selectedAgent.Navigation
+            : FindAnyObjectByType<NPCTraversal>();
+
+        EditorGUILayout.Space();
+        EditorGUILayout.LabelField("Dungeon Recovery", EditorStyles.boldLabel);
+        if (traversal == null)
+        {
+            EditorGUILayout.HelpBox(
+                "No running NPCTraversal was found.", MessageType.None);
+            return;
+        }
+
+        DrawReadOnlyText("Recoverable Drops", traversal.RecoverableLootDropCount.ToString());
+        DrawReadOnlyText("Recoverable Items", traversal.RecoverableLootItemCount.ToString());
+        DrawReadOnlyText("Recoverable Value", traversal.RecoverableLootValue.ToString());
+        showRecoverableLoot = EditorGUILayout.Foldout(
+            showRecoverableLoot,
+            "Recovery Details",
+            true);
+        if (showRecoverableLoot)
+            DrawRecoverableDrops(traversal.RecoverableLootDrops);
+
+        showDeathLootOutcomes = EditorGUILayout.Foldout(
+            showDeathLootOutcomes,
+            $"Death/Custody Outcomes ({traversal.DeathLootOutcomeCount})",
+            true);
+        if (showDeathLootOutcomes)
+            DrawDeathLootOutcomes(traversal.DeathLootOutcomes);
+    }
+
+    static void DrawRecoverableDrops(IReadOnlyList<RecoverableLootDrop> drops)
+    {
+        if (drops.Count == 0)
+        {
+            EditorGUILayout.LabelField("  None");
+            return;
+        }
+
+        for (int dropIndex = 0; dropIndex < drops.Count; dropIndex++)
+        {
+            RecoverableLootDrop drop = drops[dropIndex];
+            if (drop == null)
+            {
+                EditorGUILayout.LabelField($"  {dropIndex + 1}. Missing drop record");
+                continue;
+            }
+
+            EditorGUILayout.LabelField(
+                $"  {drop.DropId} | {drop.SourceAdventurerName} | cell {drop.DropCell} | " +
+                $"{drop.ItemCount} item(s), value {drop.TotalValue}");
+            IReadOnlyList<RecoverableLootItem> items = drop.Items;
+            for (int itemIndex = 0; itemIndex < items.Count; itemIndex++)
+            {
+                RecoverableLootItem item = items[itemIndex];
+                if (item == null)
+                {
+                    EditorGUILayout.LabelField("      Missing item record");
+                    continue;
+                }
+
+                string source = item.HasSourceCell
+                    ? $" | source {item.SourceCell}"
+                    : string.Empty;
+                EditorGUILayout.LabelField(
+                    $"      {item.ItemId} | {item.Origin} | value {item.Value}{source}");
+            }
+        }
+    }
+
+    static void DrawDeathLootOutcomes(
+        IReadOnlyList<AdventurerDeathLootOutcome> outcomes)
+    {
+        if (outcomes.Count == 0)
+        {
+            EditorGUILayout.LabelField("  None");
+            return;
+        }
+
+        for (int i = 0; i < outcomes.Count; i++)
+        {
+            AdventurerDeathLootOutcome outcome = outcomes[i];
+            if (outcome == null)
+            {
+                EditorGUILayout.LabelField($"  {i + 1}. Missing outcome record");
+                continue;
+            }
+
+            string drop = outcome.ProducedDrop
+                ? outcome.RecoveryDropId
+                : "no drop";
+            EditorGUILayout.LabelField(
+                $"  {outcome.SourceAdventurerName} [agent {outcome.SourceRuntimeAgentId}] " +
+                $"| cell {outcome.DeathCell} | {drop}");
+            EditorGUILayout.LabelField(
+                $"      custody {outcome.CarriedItemCountBefore} item(s), " +
+                $"value {outcome.CarriedValueBefore} -> " +
+                $"{outcome.CarriedItemCountAfter} item(s), " +
+                $"value {outcome.CarriedValueAfter}");
+            EditorGUILayout.LabelField(
+                $"      recovered {outcome.RecoveredItemCount} item(s), " +
+                $"value {outcome.RecoveredValue} | cleared {outcome.CustodyCleared} | " +
+                $"processed {outcome.RecoveryProcessed} | " +
+                $"duplicate attempts {outcome.DuplicateProcessingAttempts}");
+        }
     }
 
     void DrawRuntimeState()
