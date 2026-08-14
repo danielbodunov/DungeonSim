@@ -22,6 +22,16 @@ public class CameraFollow : MonoBehaviour
     public float panMouseSensitivity = 0.02f;
     public bool invertMiddlePan = false;
 
+    [Header("Target Focus")]
+    [SerializeField, Min(0.01f), Tooltip("Orthographic size or perspective dolly distance used while focusing a target.")]
+    float focusZoom = 5f;
+    [SerializeField, Tooltip("World-space offset applied to the target's position when framing it.")]
+    Vector3 focusOffset = new(0f, 0.5f, 0f);
+    [SerializeField, Min(0.001f), Tooltip("Smoothing time used while transitioning to and following a focus target.")]
+    float focusSmoothTime = 0.2f;
+    [SerializeField, Tooltip("Keyboard pan or middle-mouse drag releases target focus. Wheel zoom remains available while focused.")]
+    bool manualPanCancelsFocus = true;
+
     public InputManager inputManager;
 
     private Vector3 targetPosition;
@@ -37,6 +47,16 @@ public class CameraFollow : MonoBehaviour
     private Vector3 targetFocusPoint;
     private Vector3 focusVelocity;
     private float currentZoomDistance;
+    private Transform focusTarget;
+    private bool focusActive;
+
+    public Transform FocusedTarget => HasFocus ? focusTarget : null;
+    public bool HasFocus => focusActive && focusTarget != null;
+    public float FocusZoom => focusZoom;
+    public Vector3 FocusOffset => focusOffset;
+    public bool ManualPanCancelsFocus => manualPanCancelsFocus;
+
+    public event System.Action<Transform> FocusChanged;
 
     void Awake()
     {
@@ -59,8 +79,6 @@ public class CameraFollow : MonoBehaviour
 
     void Update()
     {
-        Vector2 input = inputManager != null ? inputManager.Move : Vector2.zero;
-
         if (camComponent == null)
             camComponent = GetComponent<Camera>() ?? Camera.main;
 
@@ -69,6 +87,23 @@ public class CameraFollow : MonoBehaviour
 
         if (!camComponent.orthographic && !perspectiveZoomInitialized)
             InitializePerspectiveZoom();
+
+        if (focusActive && focusTarget == null)
+            ClearFocus();
+
+        Vector2 input = inputManager != null ? inputManager.Move : Vector2.zero;
+        Vector2 mouseDelta = Vector2.zero;
+        bool middle = false;
+        if (panWithMiddleMouse && inputManager != null)
+        {
+            middle = inputManager.MiddlePressed;
+            mouseDelta = inputManager.MouseDelta;
+        }
+
+        bool hasManualInput = input.sqrMagnitude > 0.0001f ||
+            (middle && mouseDelta.sqrMagnitude > 0.0001f);
+        if (HasFocus && manualPanCancelsFocus && hasManualInput)
+            ClearFocus();
 
         HandleZoomInput();
 
@@ -83,7 +118,6 @@ public class CameraFollow : MonoBehaviour
 
         if (panWithMiddleMouse && inputManager != null)
         {
-            bool middle = inputManager.MiddlePressed;
             if (middle && !prevMiddlePressed)
                 invertMiddlePan = !invertMiddlePan;
 
@@ -91,7 +125,6 @@ public class CameraFollow : MonoBehaviour
 
             if (middle)
             {
-                Vector2 mouseDelta = inputManager.MouseDelta;
                 panDelta += new Vector3(mouseDelta.x, -mouseDelta.y, 0f) * panMouseSensitivity;
                 isPanning = true;
             }
@@ -101,6 +134,43 @@ public class CameraFollow : MonoBehaviour
             UpdateOrthographicCamera(panDelta, isPanning);
         else
             UpdatePerspectiveCamera(panDelta, isPanning);
+    }
+
+    /// <summary>Begins smoothly framing and following a generic world target.</summary>
+    public bool FocusTarget(Transform target)
+    {
+        if (target == null || target == transform)
+        {
+            ClearFocus();
+            return false;
+        }
+
+        if (camComponent == null)
+            camComponent = GetComponent<Camera>() ?? Camera.main;
+        if (camComponent == null)
+            return false;
+
+        if (!camComponent.orthographic && !perspectiveZoomInitialized)
+            InitializePerspectiveZoom();
+
+        focusTarget = target;
+        focusActive = true;
+        targetZoom = Mathf.Clamp(focusZoom, minZoom, maxZoom);
+        UpdateFocusedFramingTarget();
+        FocusChanged?.Invoke(focusTarget);
+        return true;
+    }
+
+    /// <summary>Releases target tracking and leaves normal control at the current view.</summary>
+    public void ClearFocus()
+    {
+        if (!focusActive)
+            return;
+
+        focusActive = false;
+        focusTarget = null;
+        HoldCurrentViewForManualControl();
+        FocusChanged?.Invoke(null);
     }
 
     private void HandleZoomInput()
@@ -127,28 +197,48 @@ public class CameraFollow : MonoBehaviour
     {
         targetPosition += panDelta;
 
-        if (!isPanning && followTarget != null && followTarget != transform)
+        if (HasFocus)
+        {
+            Vector3 framingPoint = focusTarget.position + focusOffset;
+            targetPosition.x = framingPoint.x;
+            targetPosition.y = framingPoint.y;
+        }
+        else if (!isPanning && followTarget != null && followTarget != transform)
             targetPosition.x = followTarget.position.x;
 
         transform.position = Vector3.SmoothDamp(
-            transform.position, targetPosition, ref positionVelocity, panSmoothTime);
+            transform.position,
+            targetPosition,
+            ref positionVelocity,
+            HasFocus ? focusSmoothTime : panSmoothTime);
 
         camComponent.orthographicSize = Mathf.SmoothDamp(
-            camComponent.orthographicSize, targetZoom, ref zoomVelocity, zoomSmoothTime);
+            camComponent.orthographicSize,
+            targetZoom,
+            ref zoomVelocity,
+            HasFocus ? focusSmoothTime : zoomSmoothTime);
     }
 
     private void UpdatePerspectiveCamera(Vector3 panDelta, bool isPanning)
     {
         targetFocusPoint += panDelta;
 
-        if (!isPanning && followTarget != null && followTarget != transform)
+        if (HasFocus)
+            targetFocusPoint = focusTarget.position + focusOffset;
+        else if (!isPanning && followTarget != null && followTarget != transform)
             targetFocusPoint.x = followTarget.position.x;
 
         currentFocusPoint = Vector3.SmoothDamp(
-            currentFocusPoint, targetFocusPoint, ref focusVelocity, panSmoothTime);
+            currentFocusPoint,
+            targetFocusPoint,
+            ref focusVelocity,
+            HasFocus ? focusSmoothTime : panSmoothTime);
 
         currentZoomDistance = Mathf.SmoothDamp(
-            currentZoomDistance, targetZoom, ref zoomVelocity, zoomSmoothTime);
+            currentZoomDistance,
+            targetZoom,
+            ref zoomVelocity,
+            HasFocus ? focusSmoothTime : zoomSmoothTime);
 
         // Leave fieldOfView untouched: perspective zoom is entirely camera motion.
         transform.position = currentFocusPoint - transform.forward * currentZoomDistance;
@@ -175,11 +265,52 @@ public class CameraFollow : MonoBehaviour
         perspectiveZoomInitialized = true;
     }
 
+    private void UpdateFocusedFramingTarget()
+    {
+        if (!HasFocus)
+            return;
+
+        Vector3 framingPoint = focusTarget.position + focusOffset;
+        if (camComponent.orthographic)
+        {
+            targetPosition.x = framingPoint.x;
+            targetPosition.y = framingPoint.y;
+        }
+        else
+        {
+            targetFocusPoint = framingPoint;
+        }
+    }
+
+    private void HoldCurrentViewForManualControl()
+    {
+        positionVelocity = Vector3.zero;
+        focusVelocity = Vector3.zero;
+        zoomVelocity = 0f;
+
+        if (camComponent == null)
+            return;
+
+        if (camComponent.orthographic)
+        {
+            targetPosition = transform.position;
+            targetZoom = camComponent.orthographicSize;
+            return;
+        }
+
+        if (!perspectiveZoomInitialized)
+            InitializePerspectiveZoom();
+        targetFocusPoint = currentFocusPoint;
+        targetZoom = currentZoomDistance;
+    }
+
     void OnValidate()
     {
         minZoom = Mathf.Max(0.01f, minZoom);
         maxZoom = Mathf.Max(minZoom, maxZoom);
         panSmoothTime = Mathf.Max(0.001f, panSmoothTime);
         zoomSmoothTime = Mathf.Max(0.001f, zoomSmoothTime);
+        focusZoom = Mathf.Clamp(focusZoom, minZoom, maxZoom);
+        focusSmoothTime = Mathf.Max(0.001f, focusSmoothTime);
     }
 }

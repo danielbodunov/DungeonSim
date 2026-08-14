@@ -26,6 +26,7 @@ None.
 - [DEV001 — Generic Prop & Treasure Placement](DEV001-Generic-Prop-Treasure-Placement.md)
 - [DEV002 — Reusable Dungeon Test Scenarios](DEV002-Reusable-Dungeon-Test-Scenarios.md)
 - [DEV003 — NPC Runtime Debug Harness](DEV003-NPC-Runtime-Debug-Harness.md)
+- [DEV004 — NPC Camera Focus & Follow](DEV004-NPC-Camera-Focus-Follow.md)
 - [t001 — NPC Traversal Memory](t001-NPC-Traversal-Memory.md)
 - [t002 — Dungeon Entrance / Adventurer Spawn Contract](t002-Dungeon-Entrance.md)
 - [t003 — Point-of-Interest Foundation](t003-Point-of-Interest-Foundation.md)

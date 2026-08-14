@@ -3,7 +3,7 @@
 ## Tracking
 
 - **ID:** DEV004
-- **Status:** Ready
+- **Status:** Complete
 - **Milestone:** Developer Tooling — Observation & Control
 - **Blocks:** DEV005
 
@@ -60,14 +60,40 @@ Do not build the eventual gameplay NPC-selection UI in this ticket.
 
 1. Enter Play Mode with several NPCs.
 2. Select NPC A from Game View using the runtime debug harness.
-3. Verify the camera smoothly focuses and follows NPC A.
+3. Verify the camera smoothly centers and zooms toward NPC A, then follows both horizontal and vertical movement.
 4. Select NPC B and verify focus transitions correctly.
-5. Clear selection and verify normal camera control returns.
-6. Test manual camera input while following and verify the intended cancel/release behavior.
-7. Kill/despawn the selected NPC and verify focus clears safely.
+5. Click empty space in Game View, then repeat with the harness **Clear** button. Verify both release focus at the current view without a jump or stuck movement.
+6. Focus an NPC again and use wheel zoom in both directions. Verify viewing distance changes smoothly while the camera continues following the NPC.
+7. Use keyboard pan and middle-mouse drag individually. Verify each releases follow and immediately controls the camera while the NPC remains selected for inspection.
+8. Select NPC B again after a manual cancellation and verify focus can be reacquired.
+9. Kill or allow the selected NPC to despawn and verify focus clears safely while normal camera controls continue working.
+10. Disable **Enable Game View NPC Selection** while focused and verify selection, highlight, and camera focus all clear.
+
+## Implementation Status
+
+- Extended the production `CameraFollow` component with the generic `FocusTarget(Transform)` and `ClearFocus()` APIs. No runtime camera behavior depends on NPC or Editor-only types.
+- Added configurable focus zoom, world-space framing offset, transition/follow smoothing time, and manual-pan cancellation policy as serialized camera settings.
+- Perspective cameras smoothly dolly toward the focus distance while tracking the target framing point. Orthographic cameras smoothly change size and track target X/Y while retaining camera depth.
+- Mouse-wheel zoom adjusts the active focused distance without interrupting tracking. Keyboard pan or middle-mouse drag cancels focus before applying that same input, and control resumes from the current view rather than restoring an old camera pose.
+- A destroyed target is detected through the production component's normal update and releases focus without retaining an invalid transform.
+- The NPC Runtime Debug Harness only adapts selection to the generic camera API. Selecting through Game View or Hierarchy requests focus; empty-space selection, **Clear**, disabling selection mode, closing the window, and leaving Play Mode release it.
+- Existing legacy `followTarget` behavior remains available when the explicit focus API is inactive.
+
+## Known Limitations
+
+- Focus uses one target and a fixed configured framing offset/zoom. Multi-target framing, bookmarks, and cinematic composition remain outside DEV004.
+- Manual pan cancellation does not clear the NPC debug selection; it only hands camera control back to the user. Re-selecting an NPC requests focus again.
+
+## Validation Performed
+
+- Runtime and Editor assemblies compile successfully.
+- Manual Unity validation completed successfully on 2026-08-14.
+- Smooth focus and follow, NPC switching, focused wheel zoom, selection clearing, manual-pan cancellation, focus reacquisition, target death/despawn, and disabling selection mode were validated in Unity.
 
 ## Git
 
 Suggested branch: `dev/DEV004-npc-camera-focus`
+
+Active branch: `tool/dev004-npc-camera-focus` (`dev/` is unavailable because a branch named `dev` already occupies that Git ref namespace.)
 
 Proceed according to `docs/AGENTS.md` and provide the standard post-implementation report when complete.

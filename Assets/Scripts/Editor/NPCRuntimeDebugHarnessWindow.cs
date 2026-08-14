@@ -27,6 +27,7 @@ public sealed class NPCRuntimeDebugHarnessWindow : EditorWindow
     string lastActionMessage;
     double nextRepaintTime;
     InputManager subscribedInputManager;
+    CameraFollow focusedCamera;
 
     GameObject highlightRoot;
     Material highlightMaterial;
@@ -50,6 +51,7 @@ public sealed class NPCRuntimeDebugHarnessWindow : EditorWindow
         EditorApplication.playModeStateChanged -= OnPlayModeStateChanged;
         selectionMode = false;
         ReleaseInputSubscription();
+        ReleaseCameraFocus();
         DestroyHighlight();
     }
 
@@ -65,6 +67,7 @@ public sealed class NPCRuntimeDebugHarnessWindow : EditorWindow
         selectedAgent = null;
         lastActionMessage = null;
         ReleaseInputSubscription();
+        ReleaseCameraFocus();
         DestroyHighlight();
         Repaint();
     }
@@ -79,6 +82,9 @@ public sealed class NPCRuntimeDebugHarnessWindow : EditorWindow
         }
 
         UpdateInputSubscription();
+
+        if (selectedAgent == null && focusedCamera != null)
+            ReleaseCameraFocus();
 
         if (selectionMode && selectedAgent != null)
             UpdateHighlight();
@@ -97,7 +103,10 @@ public sealed class NPCRuntimeDebugHarnessWindow : EditorWindow
         EditorGUILayout.LabelField("NPC Runtime Debug Harness", EditorStyles.boldLabel);
         EditorGUILayout.HelpBox(
             "Play Mode only. Enable selection mode, then left-click an NPC in Game View. " +
-            "When disabled, the harness does not listen for gameplay clicks or draw a highlight.",
+            "Selection focuses the gameplay camera. Wheel zoom remains available while " +
+            "following; keyboard or middle-mouse pan releases camera follow without clearing " +
+            "the selected NPC. When disabled, the harness does not listen " +
+            "for gameplay clicks or draw a highlight.",
             MessageType.Info);
 
         using (new EditorGUI.DisabledScope(!EditorApplication.isPlaying))
@@ -627,7 +636,7 @@ public sealed class NPCRuntimeDebugHarnessWindow : EditorWindow
             : null;
         UpdateInputSubscription();
         if (!selectionMode)
-            DestroyHighlight();
+            SelectAgent(null);
     }
 
     void UpdateInputSubscription()
@@ -704,11 +713,46 @@ public sealed class NPCRuntimeDebugHarnessWindow : EditorWindow
             exactStamina = selectedAgent.Character.CurrentStamina;
         }
 
+        if (selectedAgent != null)
+            RequestCameraFocus(selectedAgent.transform);
+        else
+            ReleaseCameraFocus();
+
         if (selectionMode && selectedAgent != null)
             UpdateHighlight();
         else
             DestroyHighlight();
         Repaint();
+    }
+
+    void RequestCameraFocus(Transform target)
+    {
+        Camera mainCamera = Camera.main;
+        focusedCamera = mainCamera != null
+            ? mainCamera.GetComponent<CameraFollow>()
+            : null;
+        if (focusedCamera == null)
+            focusedCamera = FindAnyObjectByType<CameraFollow>();
+
+        if (focusedCamera == null)
+        {
+            lastActionMessage =
+                "The selected NPC is highlighted, but no active CameraFollow was found.";
+            return;
+        }
+
+        if (!focusedCamera.FocusTarget(target))
+        {
+            lastActionMessage =
+                "The selected NPC is highlighted, but the gameplay camera could not focus it.";
+        }
+    }
+
+    void ReleaseCameraFocus()
+    {
+        if (focusedCamera != null)
+            focusedCamera.ClearFocus();
+        focusedCamera = null;
     }
 
     void TrySelectAgentAt(Vector2 screenPosition)
