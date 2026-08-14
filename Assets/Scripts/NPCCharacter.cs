@@ -119,6 +119,20 @@ public class NPCCharacter : MonoBehaviour
         ProgressChanged?.Invoke(this);
     }
 
+    public void RestoreStamina(float amount)
+    {
+        if (amount <= 0f || currentStamina >= maxStamina)
+            return;
+        currentStamina = Mathf.Min(maxStamina, currentStamina + amount);
+        ProgressChanged?.Invoke(this);
+    }
+
+    public void SetStamina(float value)
+    {
+        currentStamina = Mathf.Clamp(value, 0f, maxStamina);
+        ProgressChanged?.Invoke(this);
+    }
+
     public void RecordCellExplored()
     {
         experience += experiencePerNewCell;
@@ -153,6 +167,14 @@ public class NPCCharacter : MonoBehaviour
             Damaged?.Invoke(this, appliedDamage);
         if (previousHealth > 0 && currentHealth <= 0)
             Died?.Invoke(this);
+    }
+
+    public void Heal(int amount)
+    {
+        if (amount <= 0 || IsDead || currentHealth >= maxHealth)
+            return;
+        currentHealth = Mathf.Min(maxHealth, currentHealth + amount);
+        ProgressChanged?.Invoke(this);
     }
 
     public void GainExperience(int amount)
