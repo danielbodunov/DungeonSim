@@ -56,6 +56,13 @@ public sealed class DungeonTestScenarioWindow : EditorWindow
                 false);
         if (nextScenario != selectedScenario)
             SelectScenario(nextScenario);
+        if (selectedScenario != null)
+        {
+            using (new EditorGUI.DisabledScope(true))
+                EditorGUILayout.EnumPopup(
+                    "Effective Entrance",
+                    selectedScenario.EntranceMode);
+        }
 
         EditorGUILayout.Space();
         EditorGUILayout.LabelField("Scenario Metadata", EditorStyles.boldLabel);
@@ -98,7 +105,7 @@ public sealed class DungeonTestScenarioWindow : EditorWindow
                 $"Pending: {capturedScenario.TileCells.Count} cells, " +
                 $"{capturedScenario.Traps.Count} traps, " +
                 $"{capturedScenario.FloorProps.Count} floor props, " +
-                (capturedScenario.Entrance != null ? "entrance" : "no entrance"),
+                $"entrance mode {capturedScenario.EntranceMode}",
                 EditorStyles.miniBoldLabel);
         }
 

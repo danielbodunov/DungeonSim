@@ -136,6 +136,7 @@ public class NPCTraversal : MonoBehaviour
     }
 
     public NPCTraversalAgent ActiveAgent => agent;
+    public TileGridGenerator DungeonGrid => grid;
     public IReadOnlyList<NPCTraversalAgent> ActiveAgents => agents;
     public int ActiveAgentCount
     {
@@ -813,22 +814,27 @@ public class NPCTraversal : MonoBehaviour
         return grid != null && grid.TryGetDungeonEntrance(out activeEntrance);
     }
 
-    void EnsureDefaultEntrance()
+    internal bool EnsureDefaultEntrance()
     {
         if (grid == null)
-            return;
+            return false;
 
-        if (grid.HasManualEntrance || grid.PlacedCellCount == 0)
-        {
-            ResolveEntrance();
-            return;
-        }
+        if (grid.HasManualEntrance)
+            return ResolveEntrance();
+
+        // A marker authored into the resolved layout already satisfies the
+        // effective entrance contract. Existing fallbacks still flow through
+        // the established selection path so layout changes can reposition them.
+        if (!grid.HasFallbackEntrance && ResolveEntrance())
+            return true;
+
+        if (grid.PlacedCellCount == 0)
+            return false;
 
         if (!TryFindLegacySpawnPose(out Vector2Int cell, out Vector3 position))
-            return;
+            return false;
 
-        grid.EnsureFallbackEntrance(cell, position);
-        ResolveEntrance();
+        return grid.EnsureFallbackEntrance(cell, position) && ResolveEntrance();
     }
 
     bool TryFindLegacySpawnPose(out Vector2Int start, out Vector3 position)

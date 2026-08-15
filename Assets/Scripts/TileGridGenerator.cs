@@ -109,20 +109,55 @@ public class TileGridGenerator : MonoBehaviour
 
         internal bool HasTopologySensitiveEntrance(Vector2Int cell)
         {
+            return GetTopologySensitiveEntranceCount(cell) > 0;
+        }
+
+        internal int CountTopologySensitiveEntrances()
+        {
+            if (owner == null)
+                return 0;
+
+            int count = 0;
+            for (int x = 0; x < owner.width; x++)
+            for (int y = 0; y < owner.height; y++)
+            {
+                var cell = new Vector2Int(x, y);
+                if (IsPlacedCell(x, y))
+                    count += GetTopologySensitiveEntranceCount(cell);
+            }
+            return count;
+        }
+
+        internal bool HasAnyPlacedCell()
+        {
+            if (owner == null)
+                return false;
+
+            for (int x = 0; x < owner.width; x++)
+            for (int y = 0; y < owner.height; y++)
+                if (IsPlacedCell(x, y))
+                    return true;
+            return false;
+        }
+
+        int GetTopologySensitiveEntranceCount(Vector2Int cell)
+        {
             if (layout == null && owner.instantiated != null &&
                 cell.x >= 0 && cell.y >= 0 &&
                 cell.x < owner.instantiated.GetLength(0) &&
                 cell.y < owner.instantiated.GetLength(1))
             {
                 GameObject instance = owner.instantiated[cell.x, cell.y];
-                return instance != null &&
-                    instance.GetComponentInChildren<DungeonEntrance>(true) != null;
+                return instance != null
+                    ? instance.GetComponentsInChildren<DungeonEntrance>(true).Length
+                    : 0;
             }
 
             TileSocketProfile profile = GetCellProfile(cell);
-            return profile != null && profile.sourcePrefab != null &&
-                profile.sourcePrefab
-                    .GetComponentInChildren<DungeonEntrance>(true) != null;
+            return profile != null && profile.sourcePrefab != null
+                ? profile.sourcePrefab
+                    .GetComponentsInChildren<DungeonEntrance>(true).Length
+                : 0;
         }
 
         internal bool HasPointOfInterest(Vector2Int cell)
@@ -494,6 +529,7 @@ public class TileGridGenerator : MonoBehaviour
     public Vector2 GridGenerationDirection => generationDirection;
     public bool IsInitialized => cells != null && instantiated != null && placed != null;
     public bool HasManualEntrance => placedEntrance != null && !placedEntranceIsFallback;
+    public bool HasFallbackEntrance => placedEntrance != null && placedEntranceIsFallback;
     public int PropGenerationSeed => propGenerator != null
         ? propGenerator.SaveGenerationSeed
         : 0;
@@ -1106,6 +1142,97 @@ public class TileGridGenerator : MonoBehaviour
 
         failure = string.Empty;
         return true;
+    }
+
+    /// <summary>
+    /// Validates the layout-owned portion of the normal default-entrance
+    /// contract without instantiating or removing dungeon content.
+    /// </summary>
+    public bool TryValidateDefaultEntrance(
+        PlacementValidationContext context,
+        out string failure)
+    {
+        return TryValidateDefaultEntrance(context, null, out failure);
+    }
+
+    public bool TryValidateDefaultEntrance(
+        PlacementValidationContext context,
+        Vector2Int? expectedCell,
+        out string failure)
+    {
+        if (!TryValidatePlacementContext(context, out failure))
+            return false;
+
+        int authoredMarkerCount = context.CountTopologySensitiveEntrances();
+        if (authoredMarkerCount > 1)
+        {
+            failure = "The layout contains multiple built-in dungeon entrances.";
+            return false;
+        }
+        if (expectedCell.HasValue)
+        {
+            Vector2Int cell = expectedCell.Value;
+            if (!context.IsPlacedCell(cell.x, cell.y))
+            {
+                failure = $"The captured default entrance cell ({cell.x},{cell.y}) " +
+                    "is not a built dungeon tile.";
+                return false;
+            }
+            if (context.HasTrap(cell) || context.HasFloorProp(cell))
+            {
+                failure = $"The captured default entrance cell ({cell.x},{cell.y}) " +
+                    "is occupied by other authored content.";
+                return false;
+            }
+            if (authoredMarkerCount == 1 &&
+                !context.HasTopologySensitiveEntrance(cell))
+            {
+                failure = $"The layout's built-in entrance is not at the captured " +
+                    $"default entrance cell ({cell.x},{cell.y}).";
+                return false;
+            }
+        }
+        if (authoredMarkerCount == 1)
+        {
+            failure = string.Empty;
+            return true;
+        }
+        if (!context.HasAnyPlacedCell())
+        {
+            failure = "A default entrance requires at least one built dungeon tile.";
+            return false;
+        }
+
+        GameObject fallbackPrefab =
+            Resources.Load<GameObject>("Props/DungeonEntrance");
+        if (fallbackPrefab == null)
+        {
+            failure = "The default entrance prefab could not be resolved from " +
+                "Resources/Props/DungeonEntrance.";
+            return false;
+        }
+        if (fallbackPrefab.GetComponentInChildren<DungeonEntrance>(true) == null)
+        {
+            failure = "The default entrance prefab has no DungeonEntrance component.";
+            return false;
+        }
+
+        failure = string.Empty;
+        return true;
+    }
+
+    public bool TryValidateDefaultEntrance(out string failure)
+    {
+        return TryValidateDefaultEntrance(
+            GetLivePlacementValidationContext(), out failure);
+    }
+
+    public bool TryValidateDefaultEntrance(
+        Vector2Int expectedCell,
+        out string failure)
+    {
+        return TryValidateDefaultEntrance(
+            GetLivePlacementValidationContext(), expectedCell, out failure);
     }
 
     public bool TryValidateFloorPropPlacement(
