@@ -8,11 +8,33 @@ None.
 
 ## Ready
 
-None.
+- [DEV007 — Scenario Default Entrance Compatibility](DEV007-Scenario-Default-Entrance-Compatibility.md)
 
-## Planned / Near-Term — Sinister Dungeon Expedition
+## Planned — Near-Term Tooling
+
+- [DEV008 — Single Authoritative Entrance Placement](DEV008-Single-Entrance-Replacement.md)
+
+## Planned — Current Vertical Slice
 
 - [t011 — Sinister Dungeon Vertical Slice Validation](t011-Sinister-Dungeon-Vertical-Slice.md)
+
+## Planned — Physical Consequences & Dungeon Economy
+
+- [t012 — Visible Adventurer Carried Loot](t012-Visible-Adventurer-Carried-Loot.md)
+- [t013 — Physical Death Loot Drops](t013-Physical-Death-Loot-Drops.md)
+- [t014 — Adventurer Loot Rediscovery](t014-Adventurer-Loot-Rediscovery.md)
+- [t015 — Player Recovery Phase](t015-Player-Recovery-Phase.md)
+- [t016 — Aura Spend & Dungeon Growth Foundation](t016-Aura-Spend-Dungeon-Growth.md)
+- [t017 — Adventurer Physical Resource Drops](t017-Adventurer-Physical-Resource-Drops.md)
+- [t018 — Build Cost Foundation](t018-Build-Cost-Foundation.md)
+
+## Planned — Strategic Construction
+
+- [t019 — External Trap Attachment Model](t019-External-Trap-Attachment-Model.md)
+- [t020 — Rotatable Trap Placement](t020-Rotatable-Trap-Placement.md)
+- [t021 — Modular Tile Construction Surfaces](t021-Modular-Tile-Construction-Surfaces.md)
+- [t022 — Trap Space & Compatibility Validation](t022-Trap-Space-Compatibility-Validation.md)
+- [t023 — Strategic Building Vertical Slice](t023-Strategic-Building-Vertical-Slice.md)
 
 ## Awaiting Unity Validation
 
@@ -37,10 +59,6 @@ None.
 - [t008 — Successful Escape & Lost Treasure](t008-Successful-Escape-Lost-Treasure.md)
 - [t009 — Soul / Aura Harvesting Foundation](t009-Soul-Aura-Harvesting.md)
 - [t010 — Expedition Outcomes](t010-Expedition-Outcomes.md)
-
-## Developer Tooling Gate — Complete
-
-DEV001–DEV003 are complete and Unity validated as required. The immediate testing-environment milestone is satisfied and gameplay work resumes with t007.
 
 ## Roadmaps
 
