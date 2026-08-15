@@ -3,7 +3,7 @@
 ## Tracking
 
 - **ID:** t010
-- **Status:** Planned
+- **Status:** Complete
 - **Milestone:** Sinister Dungeon Expedition Loop
 - **Depends on:** t007, t008, t009
 - **Blocks:** t011 — Sinister Dungeon Vertical Slice
@@ -51,8 +51,39 @@ If the current architecture makes escape and retreat identical, preserve the sma
 
 Run representative visits ending in death and successful exit/return. Verify each produces exactly one correct outcome and that associated treasure/Aura consequences match the outcome.
 
+### Focused Unity Steps
+
+1. Enter Play Mode and open **Tools > NPC Runtime Debug Harness**.
+2. Let an adventurer return to the entrance naturally or use **Force Return Home**. Verify one `SuccessfulEscape` appears under **Expedition Outcomes**, with the visited-cell, carried/lost treasure, and settled visit-Aura summaries matching the lower-level records.
+3. Kill a different adventurer during its active visit. Verify one `Defeated` outcome reports recovered treasure and death-harvest Aura, and that no escape or retreat outcome appears for that agent.
+4. With another visit still active, end the exploration phase or use the gameplay loop's clear-adventurers action. Verify one `Retreated` outcome is recorded. If it carried treasure, verify the outcome reports that custody as lost when the visitor is removed.
+5. Exercise repeated death/cleanup paths. Verify each runtime agent has only one expedition record and any repeated completion attempt increments that record's rejected-duplicate count instead of adding another result or consequence.
+6. Confirm the Aura and Dungeon Recovery sections still match the unified outcome summaries.
+
+## Implementation Status
+
+- Added `ExpeditionOutcomeType`, `ExpeditionOutcomeRequest`, and an immutable `ExpeditionOutcomeRecord` carrying identity, traversal, treasure, recovery, and Aura summary context.
+- `GameplayLoopController` now owns the authoritative, idempotent `TryCompleteExpedition` path and publishes an `ExpeditionCompleted` event for downstream debug, UI, reputation, or story consumers.
+- Natural arrival at the exact entrance completes as `SuccessfulEscape`; active visits removed by phase/session cleanup complete as `Retreated`; in-visit death completes as `Defeated`.
+- Existing production consequence order is preserved: escape loss or death recovery runs first, death Aura harvest runs independently, and the unified result then summarizes the accepted consequence records before settling visit Aura.
+- Per-agent retreat finalization is mutually exclusive with existing escape/death claims, stops active traversal without resetting the character record, clears visit-local custody, and prevents deferred cleanup from creating a second outcome.
+- The NPC runtime debug harness exposes all completed results without taking ownership of NPC lifecycle state.
+
+## Known Limitations
+
+- The current architecture has no separate voluntary retreat behavior. `Retreated` therefore means an active visit was ended by phase/session cleanup; a return that physically reaches the entrance remains `SuccessfulEscape`.
+- Forced cleanup removes the visitor from the dungeon, so treasure still in its custody is finalized as lost. It does not create a successful-escape loot audit record because the visitor did not reach the entrance.
+- Expedition records are runtime diagnostic/event history and are not serialized. Their authoritative effects already persist through the existing Aura total and resolved/recoverable treasure state.
+
+## Validation Notes
+
+- Runtime and Editor assemblies compile successfully.
+- Manual Unity validation completed successfully on 2026-08-14.
+
 ## Git
 
 Suggested branch: `feature/t010-expedition-outcomes`
+
+Active branch: `feature/t010-expedition-outcomes`
 
 Proceed according to `docs/AGENTS.md`.
