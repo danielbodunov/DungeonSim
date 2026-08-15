@@ -1140,6 +1140,7 @@ public class NPCTraversalAgent : MonoBehaviour
     bool performingTask;
     bool deathLootRecoveryClaimed;
     bool successfulEscapeLootFinalizationClaimed;
+    bool retreatFinalizationClaimed;
     bool diedDuringDungeonVisit;
     int runtimeAgentId;
 
@@ -1178,6 +1179,7 @@ public class NPCTraversalAgent : MonoBehaviour
     public bool DeathLootRecoveryProcessed => deathLootRecoveryClaimed;
     public bool SuccessfulEscapeLootFinalizationProcessed =>
         successfulEscapeLootFinalizationClaimed;
+    public bool RetreatFinalizationProcessed => retreatFinalizationClaimed;
     public bool DiedDuringDungeonVisit => diedDuringDungeonVisit;
     public DungeonPointOfInterest ActiveInvestigationTarget => activeInvestigationTarget;
     public float InvestigationTimeRemaining => investigationTimeRemaining;
@@ -1234,6 +1236,7 @@ public class NPCTraversalAgent : MonoBehaviour
         carriedDungeonTreasure ??= new List<CarriedDungeonTreasure>();
         deathLootRecoveryClaimed = false;
         successfulEscapeLootFinalizationClaimed = false;
+        retreatFinalizationClaimed = false;
         diedDuringDungeonVisit = false;
         character = GetComponent<NPCCharacter>();
         if (character == null)
@@ -1249,7 +1252,8 @@ public class NPCTraversalAgent : MonoBehaviour
 
     internal bool TryClaimDeathLootRecovery()
     {
-        if (deathLootRecoveryClaimed || successfulEscapeLootFinalizationClaimed)
+        if (deathLootRecoveryClaimed || successfulEscapeLootFinalizationClaimed ||
+            retreatFinalizationClaimed)
             return false;
         deathLootRecoveryClaimed = true;
         return true;
@@ -1257,7 +1261,8 @@ public class NPCTraversalAgent : MonoBehaviour
 
     internal bool TryClaimSuccessfulEscapeLootFinalization()
     {
-        if (successfulEscapeLootFinalizationClaimed || deathLootRecoveryClaimed)
+        if (successfulEscapeLootFinalizationClaimed || deathLootRecoveryClaimed ||
+            retreatFinalizationClaimed)
             return false;
         successfulEscapeLootFinalizationClaimed = true;
         return true;
@@ -1273,8 +1278,39 @@ public class NPCTraversalAgent : MonoBehaviour
         carriedDungeonTreasure.Clear();
     }
 
+    /// <summary>
+    /// Finalizes a still-active visit removed by phase/session cleanup. This is
+    /// mutually exclusive with both entrance escape and defeat processing.
+    /// </summary>
+    internal bool TryFinalizeForcedRetreat()
+    {
+        if (!visitInProgress || retreatFinalizationClaimed ||
+            deathLootRecoveryClaimed || successfulEscapeLootFinalizationClaimed)
+        {
+            return false;
+        }
+
+        retreatFinalizationClaimed = true;
+        if (movement != null)
+            StopCoroutine(movement);
+        movement = null;
+        activeRoute = null;
+        nextWaypointIndex = -1;
+        returningHome = false;
+        visitInProgress = false;
+        ClearActiveActivityState();
+        carriedDungeonTreasure.Clear();
+        return true;
+    }
+
     void OnCharacterDied(NPCCharacter deadCharacter)
     {
+        if (retreatFinalizationClaimed)
+        {
+            diedDuringDungeonVisit = false;
+            return;
+        }
+
         diedDuringDungeonVisit = visitInProgress;
         if (movement != null)
             StopCoroutine(movement);
@@ -1323,6 +1359,7 @@ public class NPCTraversalAgent : MonoBehaviour
         carriedDungeonTreasure.Clear();
         deathLootRecoveryClaimed = false;
         successfulEscapeLootFinalizationClaimed = false;
+        retreatFinalizationClaimed = false;
         diedDuringDungeonVisit = false;
         if (character == null)
             return false;

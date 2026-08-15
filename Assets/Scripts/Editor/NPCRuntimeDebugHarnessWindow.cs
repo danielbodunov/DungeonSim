@@ -19,6 +19,7 @@ public sealed class NPCRuntimeDebugHarnessWindow : EditorWindow
     bool showDeathLootOutcomes = true;
     bool showSuccessfulEscapeLootOutcomes = true;
     bool showAuraHarvests = true;
+    bool showExpeditionOutcomes = true;
     int damageAmount = 1;
     int healAmount = 1;
     float staminaAmount = 1f;
@@ -162,6 +163,7 @@ public sealed class NPCRuntimeDebugHarnessWindow : EditorWindow
 
         DrawSimulationControls();
         scroll = EditorGUILayout.BeginScrollView(scroll);
+        DrawExpeditionOutcomeState();
         DrawAuraHarvestState();
         DrawRecoverableLootState();
         if (selectedAgent == null)
@@ -177,6 +179,71 @@ public sealed class NPCRuntimeDebugHarnessWindow : EditorWindow
         DrawGameplayActions();
         DrawRawDebugActions();
         EditorGUILayout.EndScrollView();
+    }
+
+    void DrawExpeditionOutcomeState()
+    {
+        GameplayLoopController loop = GameplayLoopController.Instance ??
+            FindAnyObjectByType<GameplayLoopController>();
+
+        EditorGUILayout.Space();
+        EditorGUILayout.LabelField("Expedition Outcomes", EditorStyles.boldLabel);
+        if (loop == null)
+        {
+            EditorGUILayout.HelpBox(
+                "No running GameplayLoopController was found.",
+                MessageType.None);
+            return;
+        }
+
+        DrawReadOnlyText("Completed Visits", loop.ExpeditionOutcomeCount.ToString());
+        showExpeditionOutcomes = EditorGUILayout.Foldout(
+            showExpeditionOutcomes,
+            "Outcome Details",
+            true);
+        if (!showExpeditionOutcomes)
+            return;
+
+        IReadOnlyList<ExpeditionOutcomeRecord> outcomes = loop.ExpeditionOutcomes;
+        if (outcomes.Count == 0)
+        {
+            EditorGUILayout.LabelField("  None");
+            return;
+        }
+
+        for (int i = 0; i < outcomes.Count; i++)
+        {
+            ExpeditionOutcomeRecord outcome = outcomes[i];
+            if (outcome == null)
+            {
+                EditorGUILayout.LabelField($"  {i + 1}. Missing outcome record");
+                continue;
+            }
+
+            EditorGUILayout.LabelField(
+                $"  {outcome.Outcome} | {outcome.AdventurerName} " +
+                $"[agent {outcome.RuntimeAgentId}, level {outcome.AdventurerLevel}] | " +
+                $"opening {outcome.DungeonOpenCount}");
+            EditorGUILayout.LabelField(
+                $"      cells {outcome.StartCell} -> {outcome.CompletionCell} | " +
+                $"visited {outcome.VisitedCellCount}");
+            EditorGUILayout.LabelField(
+                $"      carried {outcome.CarriedTreasureItemCount} item(s), " +
+                $"value {outcome.CarriedTreasureValue} | " +
+                $"lost {outcome.LostTreasureItemCount}, value {outcome.LostTreasureValue} | " +
+                $"recovered {outcome.RecoveredTreasureItemCount}, " +
+                $"value {outcome.RecoveredTreasureValue}");
+
+            string drop = string.IsNullOrEmpty(outcome.RecoveryDropId)
+                ? "none"
+                : outcome.RecoveryDropId;
+            EditorGUILayout.LabelField(
+                $"      Aura harvest {outcome.AuraHarvested} + visit {outcome.VisitAuraSettled} " +
+                $"= {outcome.TotalAuraAwarded} | recovery drop {drop}");
+            EditorGUILayout.LabelField(
+                $"      {outcome.ExpeditionId} | duplicate completions rejected " +
+                $"{outcome.DuplicateCompletionAttempts}");
+        }
     }
 
     void DrawAuraHarvestState()

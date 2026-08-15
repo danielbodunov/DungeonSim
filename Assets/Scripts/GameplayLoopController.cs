@@ -44,9 +44,12 @@ public class GameplayLoopController : MonoBehaviour
     [SerializeField] List<NPCCharacterRecord> adventurerRoster = new();
     readonly List<NPCCharacterRecord> roundVisitors = new();
     readonly Dictionary<NPCCharacter, NPCCharacterRecord> activeRecords = new();
+    readonly Dictionary<NPCCharacter, NPCTraversalAgent> activeVisitors = new();
     readonly Dictionary<NPCCharacter, int> pendingVisitAura = new();
     readonly List<AuraHarvestRecord> auraHarvests = new();
     readonly Dictionary<string, AuraHarvestRecord> auraHarvestsById = new();
+    readonly List<ExpeditionOutcomeRecord> expeditionOutcomes = new();
+    readonly Dictionary<string, ExpeditionOutcomeRecord> expeditionOutcomesById = new();
 
     public static GameplayLoopController Instance { get; private set; }
 
@@ -69,6 +72,9 @@ public class GameplayLoopController : MonoBehaviour
     public int AdventurerAura => adventurerAura;
     public IReadOnlyList<AuraHarvestRecord> AuraHarvests => auraHarvests;
     public int AuraHarvestCount => auraHarvests.Count;
+    public IReadOnlyList<ExpeditionOutcomeRecord> ExpeditionOutcomes =>
+        expeditionOutcomes;
+    public int ExpeditionOutcomeCount => expeditionOutcomes.Count;
     public int TotalHarvestedAura
     {
         get
@@ -95,6 +101,7 @@ public class GameplayLoopController : MonoBehaviour
 
     public event Action StateChanged;
     public event Action<AuraHarvestRecord> AuraHarvested;
+    public event Action<ExpeditionOutcomeRecord> ExpeditionCompleted;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     static void BootstrapGameplayLoop()
@@ -268,6 +275,7 @@ public class GameplayLoopController : MonoBehaviour
         adventurerAura = Mathf.Max(0, savedAdventurerAura);
         dungeonLevel = Mathf.Max(1, savedDungeonLevel);
         ClearAuraHarvestHistory();
+        ClearExpeditionOutcomeHistory();
         adventurerRoster.Clear();
 
         var ids = new HashSet<string>();
@@ -323,6 +331,7 @@ public class GameplayLoopController : MonoBehaviour
         if (spawned != null)
         {
             activeRecords[spawned.Character] = record;
+            activeVisitors[spawned.Character] = spawned;
             pendingVisitAura[spawned.Character] = 0;
             spawned.Character.Damaged += OnAdventurerDamaged;
             spawned.DungeonVisitCompleted += OnDungeonVisitCompleted;
@@ -330,7 +339,9 @@ public class GameplayLoopController : MonoBehaviour
             if (!spawned.BeginDungeonVisit())
             {
                 spawned.Character.Damaged -= OnAdventurerDamaged;
+                spawned.DungeonVisitCompleted -= OnDungeonVisitCompleted;
                 activeRecords.Remove(spawned.Character);
+                activeVisitors.Remove(spawned.Character);
                 pendingVisitAura.Remove(spawned.Character);
                 npcTraversal.DespawnAdventurer(spawned);
             }
@@ -358,16 +369,10 @@ public class GameplayLoopController : MonoBehaviour
 
     void OnDungeonVisitCompleted(NPCTraversalAgent visitor)
     {
-        if (visitor != null && visitor.Character != null &&
-            activeRecords.TryGetValue(visitor.Character, out NPCCharacterRecord record))
-        {
-            visitor.DungeonVisitCompleted -= OnDungeonVisitCompleted;
-            visitor.Character.WriteToRecord(record);
-            visitor.Character.Damaged -= OnAdventurerDamaged;
-            SettleVisitAura(visitor.Character);
-            activeRecords.Remove(visitor.Character);
-        }
-        StateChanged?.Invoke();
+        TryCompleteExpedition(
+            visitor,
+            ExpeditionOutcomeType.SuccessfulEscape,
+            null);
     }
 
     void OnAdventurerDefeated(NPCTraversalAgent visitor)
@@ -377,8 +382,8 @@ public class GameplayLoopController : MonoBehaviour
         bool hasActiveRecord = character != null &&
             activeRecords.TryGetValue(character, out record);
 
-        if (visitor != null && character != null &&
-            visitor.DiedDuringDungeonVisit)
+        AuraHarvestRecord deathHarvest = null;
+        if (visitor != null && character != null && visitor.DiedDuringDungeonVisit)
         {
             string harvestId =
                 $"aura:death:opening-{dungeonOpenCount}:agent-{visitor.RuntimeAgentId}";
@@ -394,18 +399,180 @@ public class GameplayLoopController : MonoBehaviour
                     dungeonOpenCount,
                     visitor.CurrentCell,
                     visitor.transform.position),
-                out _);
+                out deathHarvest);
+        }
+
+        if (visitor != null && character != null && visitor.DiedDuringDungeonVisit)
+        {
+            TryCompleteExpedition(
+                visitor,
+                ExpeditionOutcomeType.Defeated,
+                deathHarvest);
+            return;
         }
 
         if (hasActiveRecord)
-        {
-            character.RecordDungeonVisitCompleted();
-            character.WriteToRecord(record);
-            character.Damaged -= OnAdventurerDamaged;
-            SettleVisitAura(character);
-            activeRecords.Remove(character);
-        }
+            CleanupActiveVisitor(visitor, character, record, false);
         StateChanged?.Invoke();
+    }
+
+    /// <summary>
+    /// Finalizes one visit after its outcome-specific loot and Aura consequences
+    /// have run. The stable expedition ID makes every completion path idempotent.
+    /// </summary>
+    bool TryCompleteExpedition(
+        NPCTraversalAgent visitor,
+        ExpeditionOutcomeType outcome,
+        AuraHarvestRecord auraHarvest)
+    {
+        NPCCharacter character = visitor != null ? visitor.Character : null;
+        if (visitor == null || character == null)
+            return false;
+
+        string expeditionId =
+            $"expedition:opening-{dungeonOpenCount}:agent-{visitor.RuntimeAgentId}";
+        if (expeditionOutcomesById.TryGetValue(
+            expeditionId,
+            out ExpeditionOutcomeRecord existing))
+        {
+            existing.RecordDuplicateCompletionAttempt();
+            StateChanged?.Invoke();
+            return false;
+        }
+
+        activeRecords.TryGetValue(character, out NPCCharacterRecord characterRecord);
+        int carriedItemCount = visitor.CarriedDungeonTreasureCount;
+        int carriedValue = visitor.CarriedDungeonTreasureValue;
+        int lostItemCount = 0;
+        int lostValue = 0;
+        int recoveredItemCount = 0;
+        int recoveredValue = 0;
+        string recoveryDropId = string.Empty;
+
+        if (outcome == ExpeditionOutcomeType.SuccessfulEscape)
+        {
+            AdventurerEscapeLootOutcome escape =
+                FindSuccessfulEscapeLootOutcome(visitor.RuntimeAgentId);
+            if (escape != null)
+            {
+                carriedItemCount = escape.CarriedItemCountBefore;
+                carriedValue = escape.CarriedValueBefore;
+                lostItemCount = escape.EscapedItemCount;
+                lostValue = escape.EscapedValue;
+            }
+        }
+        else if (outcome == ExpeditionOutcomeType.Defeated)
+        {
+            AdventurerDeathLootOutcome defeat =
+                FindDeathLootOutcome(visitor.RuntimeAgentId);
+            if (defeat != null)
+            {
+                carriedItemCount = defeat.CarriedItemCountBefore;
+                carriedValue = defeat.CarriedValueBefore;
+                recoveredItemCount = defeat.RecoveredItemCount;
+                recoveredValue = defeat.RecoveredValue;
+                recoveryDropId = defeat.RecoveryDropId;
+            }
+        }
+        else
+        {
+            // Phase/session cleanup removes this visitor from the dungeon. Any
+            // treasure still in its custody remains resolved and leaves with it.
+            if (!visitor.TryFinalizeForcedRetreat())
+                return false;
+            lostItemCount = carriedItemCount;
+            lostValue = carriedValue;
+        }
+
+        if (outcome != ExpeditionOutcomeType.SuccessfulEscape)
+            character.RecordDungeonVisitCompleted();
+
+        int visitAuraSettled = SettleVisitAura(character);
+        if (characterRecord != null)
+            character.WriteToRecord(characterRecord);
+
+        var completed = new ExpeditionOutcomeRecord(
+            new ExpeditionOutcomeRequest(
+                expeditionId,
+                outcome,
+                characterRecord != null ? characterRecord.id : string.Empty,
+                character.CharacterName,
+                visitor.RuntimeAgentId,
+                character.Level,
+                dungeonOpenCount,
+                visitor.StartCell,
+                visitor.CurrentCell,
+                visitor.transform.position,
+                visitor.VisitedCells.Count,
+                carriedItemCount,
+                carriedValue,
+                lostItemCount,
+                lostValue,
+                recoveredItemCount,
+                recoveredValue,
+                recoveryDropId,
+                auraHarvest != null ? auraHarvest.Amount : 0,
+                visitAuraSettled,
+                auraHarvest != null ? auraHarvest.HarvestId : string.Empty));
+
+        expeditionOutcomes.Add(completed);
+        expeditionOutcomesById.Add(completed.ExpeditionId, completed);
+        CleanupActiveVisitor(visitor, character, characterRecord, false);
+        ExpeditionCompleted?.Invoke(completed);
+        StateChanged?.Invoke();
+        return true;
+    }
+
+    AdventurerDeathLootOutcome FindDeathLootOutcome(int runtimeAgentId)
+    {
+        if (npcTraversal == null)
+            return null;
+
+        IReadOnlyList<AdventurerDeathLootOutcome> outcomes =
+            npcTraversal.DeathLootOutcomes;
+        for (int i = outcomes.Count - 1; i >= 0; i--)
+        {
+            AdventurerDeathLootOutcome candidate = outcomes[i];
+            if (candidate != null && candidate.SourceRuntimeAgentId == runtimeAgentId)
+                return candidate;
+        }
+        return null;
+    }
+
+    AdventurerEscapeLootOutcome FindSuccessfulEscapeLootOutcome(int runtimeAgentId)
+    {
+        if (npcTraversal == null)
+            return null;
+
+        IReadOnlyList<AdventurerEscapeLootOutcome> outcomes =
+            npcTraversal.SuccessfulEscapeLootOutcomes;
+        for (int i = outcomes.Count - 1; i >= 0; i--)
+        {
+            AdventurerEscapeLootOutcome candidate = outcomes[i];
+            if (candidate != null && candidate.SourceRuntimeAgentId == runtimeAgentId)
+                return candidate;
+        }
+        return null;
+    }
+
+    void CleanupActiveVisitor(
+        NPCTraversalAgent visitor,
+        NPCCharacter character,
+        NPCCharacterRecord characterRecord,
+        bool settleAura)
+    {
+        if (character == null)
+            return;
+
+        if (characterRecord != null)
+            character.WriteToRecord(characterRecord);
+        character.Damaged -= OnAdventurerDamaged;
+        if (visitor != null)
+            visitor.DungeonVisitCompleted -= OnDungeonVisitCompleted;
+        if (settleAura)
+            SettleVisitAura(character);
+        activeRecords.Remove(character);
+        activeVisitors.Remove(character);
     }
 
     /// <summary>
@@ -442,6 +609,12 @@ public class GameplayLoopController : MonoBehaviour
         auraHarvestsById.Clear();
     }
 
+    void ClearExpeditionOutcomeHistory()
+    {
+        expeditionOutcomes.Clear();
+        expeditionOutcomesById.Clear();
+    }
+
     void OnAdventurerCellEntered(
         NPCTraversalAgent visitor,
         Vector2Int cell,
@@ -464,12 +637,14 @@ public class GameplayLoopController : MonoBehaviour
         pendingVisitAura[character] += amount;
     }
 
-    void SettleVisitAura(NPCCharacter character)
+    int SettleVisitAura(NPCCharacter character)
     {
         if (character == null || !pendingVisitAura.TryGetValue(character, out int amount))
-            return;
-        adventurerAura += Mathf.Max(0, amount);
+            return 0;
+        int settledAmount = Mathf.Max(0, amount);
+        adventurerAura += settledAmount;
         pendingVisitAura.Remove(character);
+        return settledAmount;
     }
 
     public int GetDeathAuraHarvestAmount(int adventurerLevel)
@@ -506,12 +681,26 @@ public class GameplayLoopController : MonoBehaviour
 
     void ReturnAllActiveAdventurersOutside()
     {
+        if (activeVisitors.Count > 0)
+        {
+            var visitors = new List<NPCTraversalAgent>(activeVisitors.Values);
+            for (int i = 0; i < visitors.Count; i++)
+                if (visitors[i] != null)
+                    TryCompleteExpedition(
+                        visitors[i],
+                        ExpeditionOutcomeType.Retreated,
+                        null);
+        }
+
         if (activeRecords.Count == 0)
         {
             pendingVisitAura.Clear();
+            activeVisitors.Clear();
             return;
         }
 
+        // Defensive cleanup for a character whose traversal agent was removed
+        // externally before the gameplay loop could observe a visit outcome.
         var activeCharacters = new List<NPCCharacter>(activeRecords.Keys);
         foreach (NPCCharacter character in activeCharacters)
         {
@@ -523,11 +712,10 @@ public class GameplayLoopController : MonoBehaviour
 
             if (!character.IsDead)
                 character.RecordDungeonVisitCompleted();
-            character.WriteToRecord(record);
-            character.Damaged -= OnAdventurerDamaged;
-            SettleVisitAura(character);
+            CleanupActiveVisitor(null, character, record, true);
         }
         activeRecords.Clear();
+        activeVisitors.Clear();
         pendingVisitAura.Clear();
     }
 
