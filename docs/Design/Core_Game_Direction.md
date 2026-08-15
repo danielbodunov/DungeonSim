@@ -85,6 +85,18 @@ Likely long-term player tools include:
 
 Each system should be evaluated partly by how it helps the player influence adventurer behavior.
 
+## Capability-Gated Traversal
+
+Different adventurers should not necessarily perceive the dungeon as the same usable navigation graph. Physical capabilities may make a discovered connection viable, risky, or impossible for one NPC while another can use it confidently.
+
+The long-term traversal decision model is:
+
+**knowledge × capability × risk × reward**
+
+This creates room for athletic adventurers to jump gaps or use traversal shortcuts unavailable to others, and for dungeon geometry to filter or favor different adventurer types. Discovery remains personal: global navigation knowledge must never automatically become character knowledge.
+
+See `docs/Design/Capability_Gated_Traversal.md` for the detailed design direction.
+
 ## Overview and Embodied Dungeon Modes
 
 The long-term player experience may expose two complementary interfaces onto the same dungeon simulation.
@@ -173,7 +185,8 @@ Do not introduce raid-specific abstractions into core systems unless a future ti
 4. **Death is valuable but should not always be the only optimal outcome.**
 5. **Escapes, retreats, discoveries, and deaths should create understandable stories.**
 6. **Dungeon layout should meaningfully influence NPC choices and outcomes.**
-7. **Add complexity only when it strengthens the core management loop.**
-8. **Overview and embodied interaction must operate on the same authoritative dungeon systems.**
-9. **Embodied interaction should make dungeon management spatial and tactile, not redefine the game as an action platformer.**
-10. **Preserve room for future raids without designing the core game around tower defense.**
+7. **Adventurer route choice may depend on personal knowledge, physical capability, risk, and reward.**
+8. **Add complexity only when it strengthens the core management loop.**
+9. **Overview and embodied interaction must operate on the same authoritative dungeon systems.**
+10. **Embodied interaction should make dungeon management spatial and tactile, not redefine the game as an action platformer.**
+11. **Preserve room for future raids without designing the core game around tower defense.**
