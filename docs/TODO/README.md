@@ -12,7 +12,6 @@ None.
 
 ## Planned / Near-Term — Sinister Dungeon Expedition
 
-- [t009 — Soul / Aura Harvesting Foundation](t009-Soul-Aura-Harvesting.md)
 - [t010 — Expedition Outcomes](t010-Expedition-Outcomes.md)
 - [t011 — Sinister Dungeon Vertical Slice Validation](t011-Sinister-Dungeon-Vertical-Slice.md)
 
@@ -37,6 +36,7 @@ None.
 - [t006 — Treasure Pickup & Ownership](t006-NPC-Carried-Treasure.md)
 - [t007 — Adventurer Loot Drop & Dungeon Recovery](t007-Expedition-Vertical-Slice-Validation.md)
 - [t008 — Successful Escape & Lost Treasure](t008-Successful-Escape-Lost-Treasure.md)
+- [t009 — Soul / Aura Harvesting Foundation](t009-Soul-Aura-Harvesting.md)
 
 ## Developer Tooling Gate — Complete
 
