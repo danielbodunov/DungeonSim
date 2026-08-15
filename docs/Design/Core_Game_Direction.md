@@ -4,7 +4,7 @@
 
 The player is a sinister force inhabiting and cultivating a dungeon.
 
-The player does not primarily explore the dungeon themselves. They shape it to attract, manipulate, exploit, and sometimes kill adventurers who enter seeking wealth, glory, or discovery.
+The player primarily shapes the dungeon to attract, manipulate, exploit, and sometimes kill adventurers who enter seeking wealth, glory, or discovery. The player may also physically manifest within the dungeon during preparation, maintenance, recovery, and other local interactions; this embodied role supports dungeon management rather than replacing it with a conventional action-game loop.
 
 The dungeon should feel like an active predatory ecosystem rather than a static maze or conventional tower-defense board.
 
@@ -80,9 +80,82 @@ Likely long-term player tools include:
 - rooms and specialized dungeon functions;
 - resource investment;
 - manipulation of adventurer choices and risk;
-- observation/debug-like information presented as player-facing dungeon knowledge.
+- observation/debug-like information presented as player-facing dungeon knowledge;
+- embodied local interaction for construction, installation, recovery, repair, and inspection.
 
 Each system should be evaluated partly by how it helps the player influence adventurer behavior.
+
+## Overview and Embodied Dungeon Modes
+
+The long-term player experience may expose two complementary interfaces onto the same dungeon simulation.
+
+### Overview / Planning Mode
+
+The existing side-view dungeon presentation remains the macro-management interface. It supports broad planning, expansion, inspection, economy management, and observation of expeditions.
+
+### Embodied Dungeon Mode
+
+The player can enter the dungeon as a controllable manifestation/entity while retaining the same side-view visual language. The camera becomes substantially more zoomed in and follows the player character through the dungeon.
+
+Initial movement direction:
+
+- WASD-based character movement;
+- Space to jump;
+- normal gravity and grounded traversal;
+- contextual vertical traversal such as ladders where appropriate.
+
+The embodied character should obey the dungeon's spatial rules rather than functioning as a free camera. It should allow the player to physically experience corridor lengths, elevation, service access, room scale, and other consequences of dungeon layout.
+
+Potential embodied interactions include:
+
+- recovering treasure and physical resources after expeditions;
+- installing and rotating traps from valid local positions;
+- repairing or maintaining dungeon mechanisms;
+- placing or interacting with treasure/bait;
+- inspecting local dungeon state;
+- interacting with future construction infrastructure.
+
+The exact player manifestation is intentionally unresolved. It may represent the sinister dungeon force itself, a keeper-like avatar, summoned servant, possessed minion, or another thematic embodiment.
+
+### Shared-System Requirement
+
+Overview and Embodied modes are two interfaces onto **one production simulation**, not separate implementations of dungeon management.
+
+Both should use the same underlying systems for:
+
+- placement validation;
+- trap compatibility;
+- construction costs;
+- inventory/resources;
+- dungeon state;
+- save/load;
+- interactions and recoverable loot.
+
+For example, Overview Mode may designate or preview a trap location while Embodied Mode may require local installation, but both must resolve through the same authoritative trap-placement rules.
+
+### Strategic and Logistical Purpose
+
+Embodied interaction should reinforce management rather than turn DungeonSim into a conventional platformer or action RPG. Its value is making construction, maintenance, recovery, and dungeon geometry spatially meaningful.
+
+This direction may support a preparation/expedition/aftermath rhythm:
+
+**Plan and prepare → run expedition → inspect aftermath → physically recover/repair/install → expand and prepare again**
+
+It also creates room for future logistics progression. Early dungeon management may require more direct player labor, while later minions, infrastructure, workshops, or supernatural upgrades could automate repetitive tasks.
+
+Service spaces and maintenance routes may eventually become strategically important alongside adventurer-facing corridors, especially for externally mounted traps and other infrastructure.
+
+### Scope Guardrails
+
+Embodied Dungeon Mode should not automatically imply:
+
+- elaborate player combat;
+- RPG equipment/stat systems;
+- precision platforming as a core pillar;
+- a separate first-person/third-person game mode;
+- duplicated construction or interaction systems.
+
+Prototype the embodied interaction model when strategic construction and physical recovery systems are mature enough to benefit from it rather than implementing a standalone character controller without supporting gameplay.
 
 ## Tower-Defense-Style Raids
 
@@ -101,4 +174,6 @@ Do not introduce raid-specific abstractions into core systems unless a future ti
 5. **Escapes, retreats, discoveries, and deaths should create understandable stories.**
 6. **Dungeon layout should meaningfully influence NPC choices and outcomes.**
 7. **Add complexity only when it strengthens the core management loop.**
-8. **Preserve room for future raids without designing the core game around tower defense.**
+8. **Overview and embodied interaction must operate on the same authoritative dungeon systems.**
+9. **Embodied interaction should make dungeon management spatial and tactile, not redefine the game as an action platformer.**
+10. **Preserve room for future raids without designing the core game around tower defense.**
