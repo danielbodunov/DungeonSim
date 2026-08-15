@@ -2,6 +2,15 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
+public enum DungeonScenarioEntranceMode
+{
+    // Default is intentionally zero so existing entrance-less scenario assets
+    // retain the historical gameplay-default interpretation after migration.
+    Default,
+    Manual,
+    None
+}
+
 [Serializable]
 public sealed class DungeonScenarioPlacedObject
 {
@@ -33,7 +42,10 @@ public sealed class DungeonTestScenario : ScriptableObject
     [SerializeField] List<SavedConnectionEdge> connectionEdges = new();
     [SerializeField] List<DungeonScenarioPlacedObject> traps = new();
     [SerializeField] List<DungeonScenarioPlacedObject> floorProps = new();
+    [SerializeField] DungeonScenarioEntranceMode entranceMode;
     [SerializeField] DungeonScenarioPlacedObject entrance;
+    [SerializeField] bool hasDefaultEntranceCell;
+    [SerializeField] Vector2Int defaultEntranceCell;
 
     public string ScenarioName => scenarioName;
     public string Description => description;
@@ -45,6 +57,7 @@ public sealed class DungeonTestScenario : ScriptableObject
     public IReadOnlyList<SavedConnectionEdge> ConnectionEdges => connectionEdges;
     public IReadOnlyList<DungeonScenarioPlacedObject> Traps => traps;
     public IReadOnlyList<DungeonScenarioPlacedObject> FloorProps => floorProps;
+    public DungeonScenarioEntranceMode EntranceMode => GetEffectiveEntranceMode();
     public DungeonScenarioPlacedObject Entrance => entrance;
 
     public void SetMetadata(
@@ -82,9 +95,12 @@ public sealed class DungeonTestScenario : ScriptableObject
             ObjectPlacementType.FloorProp);
 
         SavedEntrance capturedEntrance = grid.CaptureEntranceLayout();
-        entrance = capturedEntrance == null
-            ? null
-            : CreatePlacedObject(
+        if (capturedEntrance != null)
+        {
+            entranceMode = DungeonScenarioEntranceMode.Manual;
+            hasDefaultEntranceCell = false;
+            defaultEntranceCell = default;
+            entrance = CreatePlacedObject(
                 capturedEntrance.x,
                 capturedEntrance.y,
                 capturedEntrance.objectId,
@@ -92,6 +108,40 @@ public sealed class DungeonTestScenario : ScriptableObject
                 false,
                 objectCatalog,
                 ObjectPlacementType.Entrance);
+        }
+        else if (grid.TryGetDungeonEntrance(out DungeonEntrance effectiveEntrance))
+        {
+            entranceMode = DungeonScenarioEntranceMode.Default;
+            entrance = null;
+            hasDefaultEntranceCell = true;
+            defaultEntranceCell = effectiveEntrance.Cell;
+            if (FindEntranceOwner(grid) == null)
+            {
+                report = "Capture is incomplete: the gameplay default entrance " +
+                    "has no active NPCTraversal owner assigned to this grid.";
+                return false;
+            }
+            if (!grid.TryValidateDefaultEntrance(
+                    defaultEntranceCell, out string entranceFailure))
+            {
+                report = "Capture is incomplete: the gameplay default entrance " +
+                    $"contract is invalid. {entranceFailure}";
+                return false;
+            }
+        }
+        else if (grid.PlacedCellCount == 0)
+        {
+            entranceMode = DungeonScenarioEntranceMode.None;
+            entrance = null;
+            hasDefaultEntranceCell = false;
+            defaultEntranceCell = default;
+        }
+        else
+        {
+            report = "Capture is incomplete: the built dungeon has no effective " +
+                "manual or default entrance.";
+            return false;
+        }
 
         if (!ValidatePrefabReferences(out string contentFailure))
         {
@@ -101,7 +151,7 @@ public sealed class DungeonTestScenario : ScriptableObject
 
         report = $"Captured {tileCells.Count} cells, {traps.Count} traps, " +
             $"{floorProps.Count} floor props, and " +
-            (entrance != null ? "an entrance." : "no entrance.");
+            GetEntranceReportDescription() + ".";
         return true;
     }
 
@@ -120,7 +170,10 @@ public sealed class DungeonTestScenario : ScriptableObject
         connectionEdges = CopyConnectionEdges(source.connectionEdges);
         traps = CopyPlacedObjects(source.traps);
         floorProps = CopyPlacedObjects(source.floorProps);
+        entranceMode = source.GetEffectiveEntranceMode();
         entrance = CopyPlacedObject(source.entrance);
+        hasDefaultEntranceCell = source.hasDefaultEntranceCell;
+        defaultEntranceCell = source.defaultEntranceCell;
     }
 
     public bool TryApplyTo(TileGridGenerator grid, out string report)
@@ -150,7 +203,10 @@ public sealed class DungeonTestScenario : ScriptableObject
             report = $"Scenario layout is invalid: {report}";
             return false;
         }
-        if (!ValidateAuthoredContent(grid, placementContext, out report))
+        DungeonScenarioEntranceMode effectiveEntranceMode =
+            GetEffectiveEntranceMode();
+        if (!ValidateAuthoredContent(
+                grid, placementContext, effectiveEntranceMode, out report))
             return false;
         if (!grid.RestoreTileLayout(
                 CopyTileCells(tileCells),
@@ -175,8 +231,8 @@ public sealed class DungeonTestScenario : ScriptableObject
             restoredTraps++;
         }
 
-        bool restoredEntrance = entrance != null;
-        if (entrance != null && !grid.PlaceEntranceCell(
+        if (effectiveEntranceMode == DungeonScenarioEntranceMode.Manual &&
+            !grid.PlaceEntranceCell(
                 entrance.x,
                 entrance.y,
                 ResolvePrefab(entrance, ObjectPlacementType.Entrance),
@@ -206,15 +262,27 @@ public sealed class DungeonTestScenario : ScriptableObject
         }
 
         grid.RegenerateProps(propGenerationSeed);
+        if (effectiveEntranceMode == DungeonScenarioEntranceMode.Default)
+        {
+            NPCTraversal traversal = FindEntranceOwner(grid);
+            if (traversal == null || !traversal.EnsureDefaultEntrance())
+            {
+                report = "The validated layout loaded, but its production " +
+                    "default entrance could not be recreated.";
+                return false;
+            }
+        }
+
         report = $"Loaded '{scenarioName}': {tileCells.Count} cells, " +
             $"{restoredTraps} traps, {restoredFloorProps} floor props, and " +
-            (restoredEntrance ? "an entrance." : "no entrance.");
+            GetEntranceReportDescription() + ".";
         return true;
     }
 
     bool ValidateAuthoredContent(
         TileGridGenerator grid,
         TileGridGenerator.PlacementValidationContext placementContext,
+        DungeonScenarioEntranceMode effectiveEntranceMode,
         out string report)
     {
         if (traps == null)
@@ -249,8 +317,21 @@ public sealed class DungeonTestScenario : ScriptableObject
             placementContext.ReserveTrap(cell);
         }
 
-        if (entrance != null)
+        if (effectiveEntranceMode == DungeonScenarioEntranceMode.Manual)
         {
+            if (!HasManualEntranceRecord())
+            {
+                report = "The scenario requires a manual entrance, but its " +
+                    "entrance record has no prefab identity.";
+                return false;
+            }
+            if (placementContext.CountTopologySensitiveEntrances() > 0)
+            {
+                report = "The scenario combines a manual entrance with a " +
+                    "built-in layout entrance.";
+                return false;
+            }
+
             GameObject prefab = ResolvePrefab(
                 entrance, ObjectPlacementType.Entrance);
             var cell = new Vector2Int(entrance.x, entrance.y);
@@ -262,6 +343,34 @@ public sealed class DungeonTestScenario : ScriptableObject
                 return false;
             }
             placementContext.ReserveEntrance(cell);
+        }
+        else if (effectiveEntranceMode == DungeonScenarioEntranceMode.Default)
+        {
+            if (FindEntranceOwner(grid) == null)
+            {
+                report = "The scenario requires the gameplay default entrance, " +
+                    "but no active NPCTraversal owner is assigned to this grid.";
+                return false;
+            }
+            if (!grid.TryValidateDefaultEntrance(
+                    placementContext,
+                    hasDefaultEntranceCell
+                        ? defaultEntranceCell
+                        : (Vector2Int?)null,
+                    out string failure))
+            {
+                report = $"The scenario default entrance is invalid: {failure}";
+                return false;
+            }
+            if (hasDefaultEntranceCell)
+                placementContext.ReserveEntrance(defaultEntranceCell);
+        }
+        else if (placementContext.HasAnyPlacedCell() ||
+                 placementContext.CountTopologySensitiveEntrances() > 0)
+        {
+            report = "A no-entrance scenario cannot contain built dungeon tiles; " +
+                "normal gameplay would create a default entrance for them.";
+            return false;
         }
 
         for (int i = 0; i < floorProps.Count; i++)
@@ -290,6 +399,62 @@ public sealed class DungeonTestScenario : ScriptableObject
         return true;
     }
 
+    DungeonScenarioEntranceMode GetEffectiveEntranceMode()
+    {
+        // Older manual-entrance assets predate entranceMode. Their existing
+        // meaningful record remains authoritative and migrates without asset
+        // rewriting. Unity may deserialize null inline classes as empty
+        // records, so object existence alone cannot identify manual authoring.
+        return HasManualEntranceRecord()
+            ? DungeonScenarioEntranceMode.Manual
+            : entranceMode;
+    }
+
+    bool HasManualEntranceRecord()
+    {
+        return entrance != null &&
+            (entrance.prefab != null ||
+             !string.IsNullOrWhiteSpace(entrance.prefabName) ||
+             entrance.objectId >= 0);
+    }
+
+    string GetEntranceReportDescription()
+    {
+        return GetEffectiveEntranceMode() switch
+        {
+            DungeonScenarioEntranceMode.Manual => "a manual entrance",
+            DungeonScenarioEntranceMode.Default => "the gameplay default entrance",
+            _ => "no entrance"
+        };
+    }
+
+    static NPCTraversal FindEntranceOwner(TileGridGenerator grid)
+    {
+        if (grid == null)
+            return null;
+
+        NPCTraversal attached = grid.GetComponent<NPCTraversal>();
+        if (attached != null && attached.isActiveAndEnabled &&
+            attached.DungeonGrid == grid)
+        {
+            return attached;
+        }
+
+        NPCTraversal[] candidates =
+            UnityEngine.Object.FindObjectsByType<NPCTraversal>(
+                FindObjectsInactive.Exclude);
+        for (int i = 0; i < candidates.Length; i++)
+        {
+            NPCTraversal candidate = candidates[i];
+            if (candidate != null && candidate.isActiveAndEnabled &&
+                candidate.DungeonGrid == grid)
+            {
+                return candidate;
+            }
+        }
+        return null;
+    }
+
     bool ValidatePrefabReferences(out string report)
     {
         for (int i = 0; i < traps.Count; i++)
@@ -302,7 +467,7 @@ public sealed class DungeonTestScenario : ScriptableObject
             }
         }
 
-        if (entrance != null)
+        if (GetEffectiveEntranceMode() == DungeonScenarioEntranceMode.Manual)
         {
             GameObject prefab = ResolvePrefab(
                 entrance, ObjectPlacementType.Entrance);
