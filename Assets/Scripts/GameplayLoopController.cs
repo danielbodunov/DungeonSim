@@ -45,6 +45,8 @@ public class GameplayLoopController : MonoBehaviour
     readonly List<NPCCharacterRecord> roundVisitors = new();
     readonly Dictionary<NPCCharacter, NPCCharacterRecord> activeRecords = new();
     readonly Dictionary<NPCCharacter, int> pendingVisitAura = new();
+    readonly List<AuraHarvestRecord> auraHarvests = new();
+    readonly Dictionary<string, AuraHarvestRecord> auraHarvestsById = new();
 
     public static GameplayLoopController Instance { get; private set; }
 
@@ -65,6 +67,19 @@ public class GameplayLoopController : MonoBehaviour
     public int DungeonOpenCount => dungeonOpenCount;
     public int DaysOpened => dungeonOpenCount;
     public int AdventurerAura => adventurerAura;
+    public IReadOnlyList<AuraHarvestRecord> AuraHarvests => auraHarvests;
+    public int AuraHarvestCount => auraHarvests.Count;
+    public int TotalHarvestedAura
+    {
+        get
+        {
+            int total = 0;
+            for (int i = 0; i < auraHarvests.Count; i++)
+                if (auraHarvests[i] != null)
+                    total += auraHarvests[i].Amount;
+            return total;
+        }
+    }
     public int DungeonLevel => dungeonLevel;
     public int PendingAdventurerAura
     {
@@ -79,6 +94,7 @@ public class GameplayLoopController : MonoBehaviour
     public IReadOnlyList<NPCCharacterRecord> AdventurerRoster => adventurerRoster;
 
     public event Action StateChanged;
+    public event Action<AuraHarvestRecord> AuraHarvested;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     static void BootstrapGameplayLoop()
@@ -108,7 +124,7 @@ public class GameplayLoopController : MonoBehaviour
         npcTraversal = FindAnyObjectByType<NPCTraversal>();
         if (npcTraversal != null)
         {
-            npcTraversal.AdventurerDied += OnAdventurerDied;
+            npcTraversal.AdventurerDefeated += OnAdventurerDefeated;
             npcTraversal.AdventurerCellEntered += OnAdventurerCellEntered;
         }
         if (GetComponent<GameSaveManager>() == null)
@@ -251,6 +267,7 @@ public class GameplayLoopController : MonoBehaviour
         dungeonOpenCount = Mathf.Max(0, savedDungeonOpenCount);
         adventurerAura = Mathf.Max(0, savedAdventurerAura);
         dungeonLevel = Mathf.Max(1, savedDungeonLevel);
+        ClearAuraHarvestHistory();
         adventurerRoster.Clear();
 
         var ids = new HashSet<string>();
@@ -353,11 +370,35 @@ public class GameplayLoopController : MonoBehaviour
         StateChanged?.Invoke();
     }
 
-    void OnAdventurerDied(NPCCharacter character)
+    void OnAdventurerDefeated(NPCTraversalAgent visitor)
     {
-        if (character != null && activeRecords.TryGetValue(character, out NPCCharacterRecord record))
+        NPCCharacter character = visitor != null ? visitor.Character : null;
+        NPCCharacterRecord record = null;
+        bool hasActiveRecord = character != null &&
+            activeRecords.TryGetValue(character, out record);
+
+        if (visitor != null && character != null &&
+            visitor.DiedDuringDungeonVisit)
         {
-            AddPendingAura(character, CalculateDefeatAura(character.Level));
+            string harvestId =
+                $"aura:death:opening-{dungeonOpenCount}:agent-{visitor.RuntimeAgentId}";
+            TryHarvestAura(
+                new AuraHarvestRequest(
+                    harvestId,
+                    AuraHarvestSource.AdventurerDeath,
+                    GetDeathAuraHarvestAmount(character.Level),
+                    hasActiveRecord ? record.id : string.Empty,
+                    character.CharacterName,
+                    visitor.RuntimeAgentId,
+                    character.Level,
+                    dungeonOpenCount,
+                    visitor.CurrentCell,
+                    visitor.transform.position),
+                out _);
+        }
+
+        if (hasActiveRecord)
+        {
             character.RecordDungeonVisitCompleted();
             character.WriteToRecord(record);
             character.Damaged -= OnAdventurerDamaged;
@@ -365,6 +406,40 @@ public class GameplayLoopController : MonoBehaviour
             activeRecords.Remove(character);
         }
         StateChanged?.Invoke();
+    }
+
+    /// <summary>
+    /// Credits an Aura harvest exactly once. Callers provide a stable harvest
+    /// ID plus source context; the currency mutation remains owned here.
+    /// </summary>
+    public bool TryHarvestAura(
+        AuraHarvestRequest request,
+        out AuraHarvestRecord harvest)
+    {
+        harvest = null;
+        if (string.IsNullOrWhiteSpace(request.HarvestId) || request.Amount <= 0)
+            return false;
+
+        if (auraHarvestsById.TryGetValue(request.HarvestId, out harvest))
+        {
+            harvest.RecordDuplicateAttempt();
+            StateChanged?.Invoke();
+            return false;
+        }
+
+        harvest = new AuraHarvestRecord(request);
+        auraHarvests.Add(harvest);
+        auraHarvestsById.Add(harvest.HarvestId, harvest);
+        adventurerAura += harvest.Amount;
+        AuraHarvested?.Invoke(harvest);
+        StateChanged?.Invoke();
+        return true;
+    }
+
+    void ClearAuraHarvestHistory()
+    {
+        auraHarvests.Clear();
+        auraHarvestsById.Clear();
     }
 
     void OnAdventurerCellEntered(
@@ -397,7 +472,7 @@ public class GameplayLoopController : MonoBehaviour
         pendingVisitAura.Remove(character);
     }
 
-    int CalculateDefeatAura(int adventurerLevel)
+    public int GetDeathAuraHarvestAmount(int adventurerLevel)
     {
         return Mathf.Max(0, Mathf.RoundToInt(
             baseDefeatAura * Mathf.Pow(Mathf.Max(1, adventurerLevel), defeatLevelExponent)));
@@ -466,7 +541,7 @@ public class GameplayLoopController : MonoBehaviour
         Time.timeScale = 1f;
         if (npcTraversal != null)
         {
-            npcTraversal.AdventurerDied -= OnAdventurerDied;
+            npcTraversal.AdventurerDefeated -= OnAdventurerDefeated;
             npcTraversal.AdventurerCellEntered -= OnAdventurerCellEntered;
         }
         Instance = null;

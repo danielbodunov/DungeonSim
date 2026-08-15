@@ -204,6 +204,7 @@ public class NPCTraversal : MonoBehaviour
     internal float MaximumUnplannedDrop => maxStepHeight;
     internal float FallRecoveryDelay => fallRecoveryDelay;
     public event System.Action<NPCCharacter> AdventurerDied;
+    public event System.Action<NPCTraversalAgent> AdventurerDefeated;
     public event System.Action<NPCTraversalAgent, Vector2Int, bool> AdventurerCellEntered;
     public event System.Func<NPCTraversalAgent, Vector2Int, bool> InvestigationDecisionRequested;
     public event System.Action<RecoverableLootDrop> RecoverableLootCreated;
@@ -233,6 +234,7 @@ public class NPCTraversal : MonoBehaviour
     internal void NotifyAdventurerDied(NPCTraversalAgent visitor)
     {
         TryCreateRecoverableLootDrop(visitor);
+        AdventurerDefeated?.Invoke(visitor);
         AdventurerDied?.Invoke(visitor != null ? visitor.Character : null);
     }
 
@@ -1138,6 +1140,7 @@ public class NPCTraversalAgent : MonoBehaviour
     bool performingTask;
     bool deathLootRecoveryClaimed;
     bool successfulEscapeLootFinalizationClaimed;
+    bool diedDuringDungeonVisit;
     int runtimeAgentId;
 
     public IReadOnlyList<Vector3> ActiveRoute => activeRoute;
@@ -1175,6 +1178,7 @@ public class NPCTraversalAgent : MonoBehaviour
     public bool DeathLootRecoveryProcessed => deathLootRecoveryClaimed;
     public bool SuccessfulEscapeLootFinalizationProcessed =>
         successfulEscapeLootFinalizationClaimed;
+    public bool DiedDuringDungeonVisit => diedDuringDungeonVisit;
     public DungeonPointOfInterest ActiveInvestigationTarget => activeInvestigationTarget;
     public float InvestigationTimeRemaining => investigationTimeRemaining;
     public bool IsInvestigating => isInvestigating;
@@ -1230,6 +1234,7 @@ public class NPCTraversalAgent : MonoBehaviour
         carriedDungeonTreasure ??= new List<CarriedDungeonTreasure>();
         deathLootRecoveryClaimed = false;
         successfulEscapeLootFinalizationClaimed = false;
+        diedDuringDungeonVisit = false;
         character = GetComponent<NPCCharacter>();
         if (character == null)
             character = gameObject.AddComponent<NPCCharacter>();
@@ -1270,6 +1275,7 @@ public class NPCTraversalAgent : MonoBehaviour
 
     void OnCharacterDied(NPCCharacter deadCharacter)
     {
+        diedDuringDungeonVisit = visitInProgress;
         if (movement != null)
             StopCoroutine(movement);
         movement = null;
@@ -1317,6 +1323,7 @@ public class NPCTraversalAgent : MonoBehaviour
         carriedDungeonTreasure.Clear();
         deathLootRecoveryClaimed = false;
         successfulEscapeLootFinalizationClaimed = false;
+        diedDuringDungeonVisit = false;
         if (character == null)
             return false;
         character.ResetVisitResources();

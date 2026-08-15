@@ -18,6 +18,7 @@ public sealed class NPCRuntimeDebugHarnessWindow : EditorWindow
     bool showRecoverableLoot = true;
     bool showDeathLootOutcomes = true;
     bool showSuccessfulEscapeLootOutcomes = true;
+    bool showAuraHarvests = true;
     int damageAmount = 1;
     int healAmount = 1;
     float staminaAmount = 1f;
@@ -161,6 +162,7 @@ public sealed class NPCRuntimeDebugHarnessWindow : EditorWindow
 
         DrawSimulationControls();
         scroll = EditorGUILayout.BeginScrollView(scroll);
+        DrawAuraHarvestState();
         DrawRecoverableLootState();
         if (selectedAgent == null)
         {
@@ -175,6 +177,98 @@ public sealed class NPCRuntimeDebugHarnessWindow : EditorWindow
         DrawGameplayActions();
         DrawRawDebugActions();
         EditorGUILayout.EndScrollView();
+    }
+
+    void DrawAuraHarvestState()
+    {
+        GameplayLoopController loop = GameplayLoopController.Instance ??
+            FindAnyObjectByType<GameplayLoopController>();
+
+        EditorGUILayout.Space();
+        EditorGUILayout.LabelField("Aura Harvesting", EditorStyles.boldLabel);
+        if (loop == null)
+        {
+            EditorGUILayout.HelpBox(
+                "No running GameplayLoopController was found.",
+                MessageType.None);
+            return;
+        }
+
+        DrawReadOnlyText("Current Aura", loop.AdventurerAura.ToString());
+        DrawReadOnlyText("Pending Visit Aura", loop.PendingAdventurerAura.ToString());
+        DrawReadOnlyText("Recorded Harvests", loop.AuraHarvestCount.ToString());
+        DrawReadOnlyText("Recorded Harvest Value", loop.TotalHarvestedAura.ToString());
+        if (selectedAgent != null && selectedAgent.Character != null)
+        {
+            DrawReadOnlyText(
+                "Selected NPC Death Harvest",
+                loop.GetDeathAuraHarvestAmount(
+                    selectedAgent.Character.Level).ToString());
+        }
+
+        showAuraHarvests = EditorGUILayout.Foldout(
+            showAuraHarvests,
+            "Harvest Details",
+            true);
+        if (!showAuraHarvests)
+            return;
+
+        IReadOnlyList<AuraHarvestRecord> harvests = loop.AuraHarvests;
+        if (harvests.Count == 0)
+        {
+            EditorGUILayout.LabelField("  None");
+            return;
+        }
+
+        AuraHarvestRecord latest = harvests[harvests.Count - 1];
+        using (new EditorGUI.DisabledScope(latest == null))
+        {
+            if (GUILayout.Button("Retry Latest Harvest (Duplicate Test)"))
+                RetryHarvestForDuplicateTest(loop, latest);
+        }
+
+        for (int i = 0; i < harvests.Count; i++)
+        {
+            AuraHarvestRecord harvest = harvests[i];
+            if (harvest == null)
+            {
+                EditorGUILayout.LabelField($"  {i + 1}. Missing harvest record");
+                continue;
+            }
+
+            EditorGUILayout.LabelField(
+                $"  +{harvest.Amount} | {harvest.Source} | {harvest.SourceName} " +
+                $"[agent {harvest.SourceRuntimeAgentId}, level {harvest.SourceLevel}]");
+            EditorGUILayout.LabelField(
+                $"      opening {harvest.DungeonOpenCount} | cell {harvest.Cell} | " +
+                $"duplicates rejected {harvest.DuplicateAttempts}");
+            EditorGUILayout.LabelField($"      {harvest.HarvestId}");
+        }
+    }
+
+    void RetryHarvestForDuplicateTest(
+        GameplayLoopController loop,
+        AuraHarvestRecord harvest)
+    {
+        int auraBefore = loop.AdventurerAura;
+        bool accepted = loop.TryHarvestAura(
+            new AuraHarvestRequest(
+                harvest.HarvestId,
+                harvest.Source,
+                harvest.Amount,
+                harvest.SourceId,
+                harvest.SourceName,
+                harvest.SourceRuntimeAgentId,
+                harvest.SourceLevel,
+                harvest.DungeonOpenCount,
+                harvest.Cell,
+                harvest.WorldPosition),
+            out AuraHarvestRecord result);
+
+        lastActionMessage = !accepted && loop.AdventurerAura == auraBefore
+            ? $"Duplicate rejected; Aura remains {auraBefore}. " +
+              $"Rejected attempts: {result?.DuplicateAttempts ?? 0}."
+            : "Unexpected duplicate-test result; inspect the harvest record and Aura total.";
     }
 
     void DrawSimulationControls()
