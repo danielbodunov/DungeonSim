@@ -4,31 +4,26 @@
 
 Create practical Unity testing tools that make gameplay scenarios quick to reproduce while continuing to exercise normal production systems.
 
-## Immediate milestone — Complete
-
-The initial testing-environment milestone is complete:
+## Testing Environment — Complete
 
 - DEV001 — Generic Prop & Treasure Placement — **Complete**
 - DEV002 — Reusable Dungeon Test Scenarios — **Complete**
 - DEV003 — NPC Runtime Debug Harness — **Complete**
 
-DEV001's targeted cross-layout generated-prop/floor-prop regression was validated in the Unity Editor. The original developer-tooling gate before t007 is therefore satisfied.
+## Observation & Control — Complete
 
-## Observation & Control milestone
+- DEV004 — NPC Camera Focus & Follow — **Complete**
+- DEV005 — Editor Window Input Isolation — **Complete**
+- DEV006 — Selective Simulation Pause — **Complete**
 
-A second tooling pass improves day-to-day observation and debugging before returning to gameplay-loop work:
+Camera focus/follow is production-capable functionality exposed through developer tooling and may later support normal player-facing NPC observation. Input isolation and selective simulation pause remain developer infrastructure unless explicitly promoted into gameplay features.
 
-- DEV004 — NPC Camera Focus & Follow — **Ready**
-- DEV005 — Editor Window Input Isolation — **Planned**
-- DEV006 — Selective Simulation Pause — **Planned**
+## Scenario Reliability / Entrance Rules
 
-### Direction
+- DEV007 — Scenario Default Entrance Compatibility — **Ready**
+- DEV008 — Single Authoritative Entrance Placement — **Planned**
 
-Camera focus/follow should be implemented as production-capable camera functionality exposed through developer tooling. It is expected to become useful for normal player-facing NPC selection and observation later.
-
-Editor input isolation and selective simulation pause are developer infrastructure unless later promoted into explicit gameplay features.
-
-Selective simulation pause should distinguish presentation/observation from gameplay simulation rather than globally freezing Unity. The architecture may later support simulation-speed controls and single-step debugging, but those features are outside DEV006.
+DEV007 fixes scenario validation/apply when the dungeon relies on its normal/default entrance rather than a manually authored entrance. DEV008 establishes a 0-or-1 entrance invariant: a valid newly placed entrance replaces the previous one, while manual removal remains available.
 
 ## Future tooling
 
