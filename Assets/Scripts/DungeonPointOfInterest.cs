@@ -6,7 +6,8 @@ public enum DungeonPointOfInterestType
     Generic,
     Treasure,
     Shrine,
-    Door
+    Door,
+    RecoverableLoot
 }
 
 public interface IDungeonPointOfInterestInteraction
@@ -46,6 +47,27 @@ public sealed class DungeonPointOfInterest : MonoBehaviour
     public TileGridGenerator Grid => grid;
 
     public event Action<DungeonPointOfInterest> AvailabilityChanged;
+
+    /// <summary>
+    /// Configures a runtime-created POI before it is bound to a dungeon cell.
+    /// Authored POIs may continue to use their serialized Inspector values.
+    /// </summary>
+    public void Configure(
+        DungeonPointOfInterestType pointType,
+        string pointTargetId,
+        float duration,
+        Transform point = null,
+        bool isAvailable = true)
+    {
+        bool availabilityChanged = available != isAvailable;
+        type = pointType;
+        targetId = pointTargetId;
+        investigationDuration = Mathf.Max(0f, duration);
+        interactionPoint = point;
+        available = isAvailable;
+        if (availabilityChanged)
+            AvailabilityChanged?.Invoke(this);
+    }
 
     void OnEnable()
     {

@@ -4,7 +4,7 @@ using System.Collections.Generic;
 [Serializable]
 public class DungeonSaveData
 {
-    public const int CurrentVersion = 6;
+    public const int CurrentVersion = 7;
 
     public int version = CurrentVersion;
     public string saveName;
@@ -21,6 +21,7 @@ public class DungeonSaveData
     public List<SavedConnectionEdge> connectionEdges = new();
     public List<SavedTrapCell> traps = new();
     public List<SavedFloorPropCell> floorProps = new();
+    public List<RecoverableLootDrop> recoverableLootDrops = new();
     public SavedEntrance entrance;
 }
 

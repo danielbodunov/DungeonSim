@@ -19,9 +19,6 @@ public sealed class NPCCarriedLootVisual : MonoBehaviour
 {
     const string VisualRootName = "Carried Loot Bundle";
 
-    static Material sackMaterial;
-    static Material tieMaterial;
-
     ICarriedLootPresentationSource source;
     Transform visualRoot;
     int representedItemCount = -1;
@@ -78,8 +75,7 @@ public sealed class NPCCarriedLootVisual : MonoBehaviour
             return;
 
         visualRoot.gameObject.SetActive(itemCount > 0);
-        float fullness = 1f + Mathf.Min(3, Mathf.Max(0, itemCount - 1)) * 0.08f;
-        visualRoot.localScale = Vector3.one * fullness;
+        LootBundleVisualFactory.ApplyItemCount(visualRoot, itemCount);
     }
 
     void EnsureVisual()
@@ -94,40 +90,17 @@ public sealed class NPCCarriedLootVisual : MonoBehaviour
             return;
         }
 
-        CalculatePlacement(
-            out Vector3 localPosition,
-            out float bundleSize);
-
-        var root = new GameObject(VisualRootName);
-        root.layer = gameObject.layer;
-        visualRoot = root.transform;
-        visualRoot.SetParent(transform, false);
-        visualRoot.localPosition = localPosition;
-        visualRoot.localRotation = Quaternion.identity;
-
-        CreatePart(
-            "Sack",
-            PrimitiveType.Sphere,
-            new Vector3(0f, 0f, 0f),
-            new Vector3(0.82f, 1f, 0.62f) * bundleSize,
-            GetSackMaterial());
-        CreatePart(
-            "Neck",
-            PrimitiveType.Cylinder,
-            new Vector3(0f, bundleSize * 0.48f, 0f),
-            new Vector3(0.25f, 0.16f, 0.25f) * bundleSize,
-            GetSackMaterial());
-        CreatePart(
-            "Tie",
-            PrimitiveType.Cylinder,
-            new Vector3(0f, bundleSize * 0.36f, 0f),
-            new Vector3(0.34f, 0.055f, 0.34f) * bundleSize,
-            GetTieMaterial());
-
-        root.SetActive(false);
+        CalculatePlacement(out Vector3 localPosition);
+        visualRoot = LootBundleVisualFactory.CreateBundle(
+            transform,
+            VisualRootName,
+            gameObject.layer,
+            localPosition,
+            0);
+        visualRoot.gameObject.SetActive(false);
     }
 
-    void CalculatePlacement(out Vector3 localPosition, out float bundleSize)
+    void CalculatePlacement(out Vector3 localPosition)
     {
         Renderer[] renderers = GetComponentsInChildren<Renderer>(true);
         bool hasBounds = false;
@@ -150,7 +123,6 @@ public sealed class NPCCarriedLootVisual : MonoBehaviour
 
         if (!hasBounds)
         {
-            bundleSize = 0.12f;
             localPosition = new Vector3(0.14f, 0.18f, 0.08f);
             return;
         }
@@ -163,74 +135,10 @@ public sealed class NPCCarriedLootVisual : MonoBehaviour
         float localHalfDepth = bounds.extents.z /
             Mathf.Max(0.0001f, Mathf.Abs(scale.z));
 
-        bundleSize = Mathf.Clamp(localHeight * 0.22f, 0.08f, 0.2f);
+        float bundleSize = LootBundleVisualFactory.BundleSize;
         localPosition = new Vector3(
             localCenter.x + localHalfWidth + bundleSize * 0.2f,
             localCenter.y - localHeight * 0.08f,
             localCenter.z + localHalfDepth + bundleSize * 0.15f);
-    }
-
-    void CreatePart(
-        string partName,
-        PrimitiveType primitiveType,
-        Vector3 localPosition,
-        Vector3 localScale,
-        Material material)
-    {
-        GameObject part = GameObject.CreatePrimitive(primitiveType);
-        part.name = partName;
-        part.layer = gameObject.layer;
-        part.transform.SetParent(visualRoot, false);
-        part.transform.localPosition = localPosition;
-        part.transform.localRotation = Quaternion.identity;
-        part.transform.localScale = localScale;
-
-        Collider generatedCollider = part.GetComponent<Collider>();
-        if (generatedCollider != null)
-        {
-            generatedCollider.enabled = false;
-            Destroy(generatedCollider);
-        }
-
-        Renderer targetRenderer = part.GetComponent<Renderer>();
-        if (targetRenderer != null && material != null)
-            targetRenderer.sharedMaterial = material;
-    }
-
-    static Material GetSackMaterial()
-    {
-        if (sackMaterial == null)
-            sackMaterial = CreateMaterial(
-                "Runtime Carried Loot Sack",
-                new Color(0.34f, 0.16f, 0.065f, 1f));
-        return sackMaterial;
-    }
-
-    static Material GetTieMaterial()
-    {
-        if (tieMaterial == null)
-            tieMaterial = CreateMaterial(
-                "Runtime Carried Loot Tie",
-                new Color(0.72f, 0.52f, 0.2f, 1f));
-        return tieMaterial;
-    }
-
-    static Material CreateMaterial(string materialName, Color color)
-    {
-        Shader shader = Shader.Find("Universal Render Pipeline/Lit")
-            ?? Shader.Find("Standard");
-        if (shader == null)
-            return null;
-
-        var material = new Material(shader)
-        {
-            name = materialName,
-            hideFlags = HideFlags.HideAndDontSave
-        };
-        if (material.HasProperty("_BaseColor"))
-            material.SetColor("_BaseColor", color);
-        if (material.HasProperty("_Color"))
-            material.SetColor("_Color", color);
-        return material;
     }
 }

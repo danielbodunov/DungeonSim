@@ -210,6 +210,16 @@ public sealed class RecoverableLootItem
         this.sourceCell = sourceCell;
         this.hasSourceCell = hasSourceCell;
     }
+
+    internal RecoverableLootItem Copy()
+    {
+        return new RecoverableLootItem(
+            itemId,
+            value,
+            origin,
+            sourceCell,
+            hasSourceCell);
+    }
 }
 
 /// <summary>Recoverable loot created atomically from one adventurer death.</summary>
@@ -226,13 +236,16 @@ public sealed class RecoverableLootDrop
     public Vector2Int DropCell => dropCell;
     public Vector3 WorldPosition => worldPosition;
     public string SourceAdventurerName => sourceAdventurerName;
-    public IReadOnlyList<RecoverableLootItem> Items => items;
-    public int ItemCount => items.Count;
+    public IReadOnlyList<RecoverableLootItem> Items =>
+        items ?? (IReadOnlyList<RecoverableLootItem>)Array.Empty<RecoverableLootItem>();
+    public int ItemCount => items?.Count ?? 0;
     public int TotalValue
     {
         get
         {
             int total = 0;
+            if (items == null)
+                return 0;
             for (int i = 0; i < items.Count; i++)
                 if (items[i] != null)
                     total += items[i].Value;
@@ -254,5 +267,23 @@ public sealed class RecoverableLootDrop
         this.items = items != null
             ? new List<RecoverableLootItem>(items)
             : new List<RecoverableLootItem>();
+    }
+
+    internal RecoverableLootDrop Copy()
+    {
+        var copiedItems = new List<RecoverableLootItem>(ItemCount);
+        if (items != null)
+        {
+            for (int i = 0; i < items.Count; i++)
+                if (items[i] != null)
+                    copiedItems.Add(items[i].Copy());
+        }
+
+        return new RecoverableLootDrop(
+            dropId,
+            dropCell,
+            worldPosition,
+            sourceAdventurerName,
+            copiedItems);
     }
 }
