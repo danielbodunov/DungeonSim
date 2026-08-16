@@ -743,6 +743,8 @@ public class NPCTraversal : MonoBehaviour
             movementStaminaCost, ladderStaminaMultiplier,
             taskStaminaCostPerSecond,
             nextRuntimeAgentId++);
+        if (instance.GetComponent<NPCCarriedLootVisual>() == null)
+            instance.AddComponent<NPCCarriedLootVisual>();
         if (beginVisit)
             agent.BeginDungeonVisit();
         return agent;
@@ -1118,7 +1120,7 @@ public class NPCTraversal : MonoBehaviour
         grid.GetCellWorldPosition(cell.x, cell.y);
 }
 
-public class NPCTraversalAgent : MonoBehaviour
+public class NPCTraversalAgent : MonoBehaviour, ICarriedLootPresentationSource
 {
     NPCTraversal navigation;
     NPCCharacter character;
@@ -1168,6 +1170,8 @@ public class NPCTraversalAgent : MonoBehaviour
     public IReadOnlyList<CarriedDungeonTreasure> CarriedDungeonTreasure =>
         carriedDungeonTreasure;
     public int CarriedDungeonTreasureCount => carriedDungeonTreasure.Count;
+    public int CarriedLootPresentationItemCount =>
+        carriedDungeonTreasure != null ? carriedDungeonTreasure.Count : 0;
     public int CarriedDungeonTreasureValue
     {
         get
@@ -1213,6 +1217,7 @@ public class NPCTraversalAgent : MonoBehaviour
     /// <summary>The bool is true when this is the cell's first visit this round.</summary>
     public event System.Action<NPCTraversalAgent, Vector2Int, bool> CellEntered;
     public event System.Action<NPCTraversalAgent> DungeonVisitCompleted;
+    public event System.Action CarriedLootPresentationChanged;
 
     public void Configure(
         NPCTraversal owner,
@@ -1276,12 +1281,12 @@ public class NPCTraversalAgent : MonoBehaviour
 
     internal void ClearCarriedLootAfterDeath()
     {
-        carriedDungeonTreasure.Clear();
+        ClearCarriedLoot();
     }
 
     internal void ClearCarriedLootAfterSuccessfulEscape()
     {
-        carriedDungeonTreasure.Clear();
+        ClearCarriedLoot();
     }
 
     /// <summary>
@@ -1305,7 +1310,7 @@ public class NPCTraversalAgent : MonoBehaviour
         returningHome = false;
         visitInProgress = false;
         ClearActiveActivityState();
-        carriedDungeonTreasure.Clear();
+        ClearCarriedLoot();
         return true;
     }
 
@@ -1362,7 +1367,7 @@ public class NPCTraversalAgent : MonoBehaviour
 
         visitedCells.Clear();
         familiarConnections.Clear();
-        carriedDungeonTreasure.Clear();
+        ClearCarriedLoot();
         deathLootRecoveryClaimed = false;
         successfulEscapeLootFinalizationClaimed = false;
         retreatFinalizationClaimed = false;
@@ -1576,7 +1581,17 @@ public class NPCTraversalAgent : MonoBehaviour
             treasure.RewardValue,
             pointOfInterest.Cell,
             true));
+        CarriedLootPresentationChanged?.Invoke();
         return true;
+    }
+
+    void ClearCarriedLoot()
+    {
+        if (carriedDungeonTreasure == null || carriedDungeonTreasure.Count == 0)
+            return;
+
+        carriedDungeonTreasure.Clear();
+        CarriedLootPresentationChanged?.Invoke();
     }
 
     void RecordArrival(Vector2Int cell)
