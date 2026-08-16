@@ -387,9 +387,11 @@ public class GameSaveManager : MonoBehaviour
 
     bool RestoreEntrance(SavedEntrance entrance)
     {
-        tileGrid.ClearEntrance();
         if (entrance == null)
-            return false;
+        {
+            tileGrid.UseDefaultEntrance();
+            return tileGrid.TryGetDungeonEntrance(out _);
+        }
 
         GameObject prefab = FindObjectPrefab(entrance.objectId);
         if (prefab == null && !string.IsNullOrWhiteSpace(entrance.prefabName))

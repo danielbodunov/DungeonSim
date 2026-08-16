@@ -12,7 +12,7 @@ None.
 
 ## Planned — Near-Term Tooling
 
-- [DEV008 — Single Authoritative Entrance Placement](DEV008-Single-Entrance-Replacement.md)
+None.
 
 ## Planned — Current Vertical Slice
 
@@ -50,6 +50,7 @@ None.
 - [DEV005 — Editor Window Input Isolation](DEV005-Editor-Input-Isolation.md)
 - [DEV006 — Selective Simulation Pause](DEV006-Selective-Simulation-Pause.md)
 - [DEV007 — Scenario Default Entrance Compatibility](DEV007-Scenario-Default-Entrance-Compatibility.md)
+- [DEV008 — Single Authoritative Entrance Placement](DEV008-Single-Entrance-Replacement.md)
 - [t001 — NPC Traversal Memory](t001-NPC-Traversal-Memory.md)
 - [t002 — Dungeon Entrance / Adventurer Spawn Contract](t002-Dungeon-Entrance.md)
 - [t003 — Point-of-Interest Foundation](t003-Point-of-Interest-Foundation.md)
