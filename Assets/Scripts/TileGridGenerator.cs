@@ -98,10 +98,6 @@ public class TileGridGenerator : MonoBehaviour
                 owner.placedEntranceCell == cell;
         }
 
-        internal bool HasEntrance => reservedEntrance.HasValue ||
-            (layout == null && owner.placedEntrance != null &&
-                !owner.placedEntranceIsFallback);
-
         internal void ReserveTrap(Vector2Int cell) => reservedTraps.Add(cell);
         internal void ReserveFloorProp(Vector2Int cell) =>
             reservedFloorProps.Add(cell);
@@ -576,6 +572,7 @@ public class TileGridGenerator : MonoBehaviour
     public void NotifyLayoutChanged()
     {
         RefreshPlacedEntrance();
+        ApplyTopologyEntranceAuthority();
         RefreshPlacedFloorProps();
         if (propGenerator != null)
             propGenerator.GenerateProps();
@@ -613,6 +610,16 @@ public class TileGridGenerator : MonoBehaviour
     {
         if (placedEntrance == null)
             return;
+
+        // Gameplay fallbacks do not use authored entrance sockets.
+        // NPCTraversal repositions a surviving fallback after LayoutChanged;
+        // only retire it here when its owning cell itself disappeared.
+        if (placedEntranceIsFallback)
+        {
+            if (!IsPlacedCell(placedEntranceCell.x, placedEntranceCell.y))
+                DestroyPlacedEntrance();
+            return;
+        }
 
         BakedPropSocket socket = FindEntranceSocket(
             placedEntranceCell.x, placedEntranceCell.y);
@@ -730,7 +737,7 @@ public class TileGridGenerator : MonoBehaviour
         propGenerator?.ClearGeneratedProps();
         ClearTraps();
         ClearFloorProps();
-        ClearEntrance();
+        ResetEntranceState();
         DestroyInstantiatedGrid();
         InitializeGrid();
         cells = CopyCellOptions(validated.cellOptions);
@@ -1105,21 +1112,19 @@ public class TileGridGenerator : MonoBehaviour
             failure = "An entrance prefab must be assigned before it can be placed.";
             return false;
         }
-        if (entrancePrefab.GetComponentInChildren<DungeonEntrance>(true) == null)
+        DungeonEntrance[] prefabEntrances =
+            entrancePrefab.GetComponentsInChildren<DungeonEntrance>(true);
+        if (prefabEntrances.Length != 1)
         {
-            failure = $"Entrance prefab '{entrancePrefab.name}' needs a " +
-                "DungeonEntrance component.";
+            failure = $"Entrance prefab '{entrancePrefab.name}' must contain " +
+                $"exactly one DungeonEntrance component (found " +
+                $"{prefabEntrances.Length}).";
             return false;
         }
         if (!context.IsPlacedCell(cell.x, cell.y))
         {
             failure = $"Entrances can only be placed on a built dungeon tile. " +
                 $"Cell ({cell.x},{cell.y}) is not available.";
-            return false;
-        }
-        if (context.HasEntrance)
-        {
-            failure = "The dungeon already contains a manually placed entrance.";
             return false;
         }
         if (context.HasTrap(cell))
@@ -1211,9 +1216,12 @@ public class TileGridGenerator : MonoBehaviour
                 "Resources/Props/DungeonEntrance.";
             return false;
         }
-        if (fallbackPrefab.GetComponentInChildren<DungeonEntrance>(true) == null)
+        int fallbackEntranceCount = fallbackPrefab
+            .GetComponentsInChildren<DungeonEntrance>(true).Length;
+        if (fallbackEntranceCount != 1)
         {
-            failure = "The default entrance prefab has no DungeonEntrance component.";
+            failure = "The default entrance prefab must contain exactly one " +
+                $"DungeonEntrance component (found {fallbackEntranceCount}).";
             return false;
         }
 
@@ -1573,6 +1581,8 @@ public class TileGridGenerator : MonoBehaviour
             for (int i = 0; i < markers.Length; i++)
             {
                 DungeonEntrance marker = markers[i];
+                if (!marker.isActiveAndEnabled)
+                    continue;
                 marker.Bind(this, new Vector2Int(x, y));
                 if (entrance != null)
                 {
@@ -1632,9 +1642,6 @@ public class TileGridGenerator : MonoBehaviour
             return false;
         }
 
-        if (placedEntranceIsFallback)
-            ClearEntrance();
-
         if (entranceContainer == null)
         {
             var container = new GameObject("Placed Entrance");
@@ -1654,12 +1661,17 @@ public class TileGridGenerator : MonoBehaviour
             return false;
         }
 
+        // The proposed entrance is fully validated and instantiated before the
+        // current authority is removed. From this point onward the placed
+        // entrance suppresses any layout-authored default marker.
+        DestroyPlacedEntrance();
         placedEntrance = entrance;
         placedEntranceInstance = instance;
         placedEntranceCell = new Vector2Int(x, y);
         placedEntranceObjectId = objectId;
         placedEntrancePrefabName = entrancePrefab.name;
         placedEntranceIsFallback = false;
+        ApplyTopologyEntranceAuthority();
         placedEntrance.Bind(this, placedEntranceCell);
         LayoutChanged?.Invoke();
         return true;
@@ -1681,6 +1693,31 @@ public class TileGridGenerator : MonoBehaviour
 
     public void ClearEntrance()
     {
+        DestroyPlacedEntrance();
+        ApplyTopologyEntranceAuthority();
+    }
+
+    public void UseDefaultEntrance()
+    {
+        if (placedEntrance != null && !placedEntranceIsFallback)
+            DestroyPlacedEntrance();
+        ApplyTopologyEntranceAuthority();
+    }
+
+    void ResetEntranceState()
+    {
+        DestroyPlacedEntrance();
+    }
+
+    void DestroyPlacedEntrance()
+    {
+        if (placedEntranceInstance != null)
+        {
+            DungeonEntrance[] instanceEntrances = placedEntranceInstance
+                .GetComponentsInChildren<DungeonEntrance>(true);
+            for (int i = 0; i < instanceEntrances.Length; i++)
+                instanceEntrances[i].enabled = false;
+        }
         if (placedEntranceInstance != null)
             Destroy(placedEntranceInstance);
         placedEntrance = null;
@@ -1691,6 +1728,25 @@ public class TileGridGenerator : MonoBehaviour
         placedEntranceIsFallback = false;
     }
 
+    void ApplyTopologyEntranceAuthority()
+    {
+        if (!IsInitialized)
+            return;
+
+        bool enabled = placedEntrance == null;
+        for (int y = 0; y < height; y++)
+        for (int x = 0; x < width; x++)
+        {
+            if (instantiated[x, y] == null)
+                continue;
+
+            DungeonEntrance[] markers =
+                instantiated[x, y].GetComponentsInChildren<DungeonEntrance>(true);
+            for (int i = 0; i < markers.Length; i++)
+                markers[i].enabled = enabled;
+        }
+    }
+
     public bool EnsureFallbackEntrance(Vector2Int cell, Vector3 position)
     {
         if (placedEntrance != null && !placedEntranceIsFallback)
@@ -1699,7 +1755,7 @@ public class TileGridGenerator : MonoBehaviour
         if (!IsPlacedCell(cell.x, cell.y))
         {
             if (placedEntranceIsFallback)
-                ClearEntrance();
+                DestroyPlacedEntrance();
             return false;
         }
 
@@ -1712,7 +1768,7 @@ public class TileGridGenerator : MonoBehaviour
         }
 
         if (placedEntranceIsFallback)
-            ClearEntrance();
+            DestroyPlacedEntrance();
 
         GameObject entrancePrefab =
             Resources.Load<GameObject>("Props/DungeonEntrance");
@@ -1721,6 +1777,16 @@ public class TileGridGenerator : MonoBehaviour
             Debug.LogWarning(
                 "The fallback entrance prefab could not be loaded from " +
                 "Resources/Props/DungeonEntrance.", this);
+            return false;
+        }
+        int entranceCount = entrancePrefab
+            .GetComponentsInChildren<DungeonEntrance>(true).Length;
+        if (entranceCount != 1)
+        {
+            Debug.LogWarning(
+                "The fallback entrance prefab must contain exactly one " +
+                $"DungeonEntrance component (found {entranceCount}).",
+                entrancePrefab);
             return false;
         }
 
@@ -1750,6 +1816,7 @@ public class TileGridGenerator : MonoBehaviour
         placedEntranceObjectId = -1;
         placedEntrancePrefabName = entrancePrefab.name;
         placedEntranceIsFallback = true;
+        ApplyTopologyEntranceAuthority();
         placedEntrance.Bind(this, cell);
         return true;
     }
@@ -1778,7 +1845,11 @@ public class TileGridGenerator : MonoBehaviour
 
     bool RemoveEntranceAtCell(Vector2Int cell)
     {
-        if (placedEntrance == null || placedEntranceCell != cell)
+        // Gameplay-default entrances are part of the dungeon contract and are
+        // not removable. The removal tool only retires a manual placement;
+        // LayoutChanged then lets NPCTraversal resolve or recreate the default.
+        if (placedEntrance == null || placedEntranceIsFallback ||
+            placedEntranceCell != cell)
             return false;
 
         ClearEntrance();

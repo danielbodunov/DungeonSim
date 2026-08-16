@@ -242,6 +242,10 @@ public sealed class DungeonTestScenario : ScriptableObject
                 $"({entrance.x},{entrance.y}).";
             return false;
         }
+        if (effectiveEntranceMode == DungeonScenarioEntranceMode.None)
+            grid.ClearEntrance();
+        else if (effectiveEntranceMode == DungeonScenarioEntranceMode.Default)
+            grid.UseDefaultEntrance();
 
         int restoredFloorProps = 0;
         for (int i = 0; i < floorProps.Count; i++)
@@ -325,13 +329,6 @@ public sealed class DungeonTestScenario : ScriptableObject
                     "entrance record has no prefab identity.";
                 return false;
             }
-            if (placementContext.CountTopologySensitiveEntrances() > 0)
-            {
-                report = "The scenario combines a manual entrance with a " +
-                    "built-in layout entrance.";
-                return false;
-            }
-
             GameObject prefab = ResolvePrefab(
                 entrance, ObjectPlacementType.Entrance);
             var cell = new Vector2Int(entrance.x, entrance.y);
@@ -369,10 +366,9 @@ public sealed class DungeonTestScenario : ScriptableObject
                  placementContext.CountTopologySensitiveEntrances() > 0)
         {
             report = "A no-entrance scenario cannot contain built dungeon tiles; " +
-                "normal gameplay would create a default entrance for them.";
+                "normal gameplay requires a default entrance for them.";
             return false;
         }
-
         for (int i = 0; i < floorProps.Count; i++)
         {
             DungeonScenarioPlacedObject floorProp = floorProps[i];
