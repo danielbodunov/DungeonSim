@@ -33,6 +33,7 @@ void Bake()
     var prefabs = Resources.LoadAll<GameObject>(resourcesFolder);
 
     var db = ScriptableObject.CreateInstance<TileAdjacencyDatabase>();
+    db.name = "TileAdjacencyDatabase";
     db.tiles = new();
 
     string folder = "Assets/Resources/TileProfiles";
