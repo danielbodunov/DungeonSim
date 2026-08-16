@@ -27,6 +27,7 @@ public class GameSaveManager : MonoBehaviour
     GameplayLoopController gameplayLoop;
     TileGridGenerator tileGrid;
     TilePlacement tilePlacement;
+    NPCTraversal npcTraversal;
 
     public string SavesDirectory => Path.Combine(
         Application.persistentDataPath, SavesFolderName);
@@ -75,6 +76,9 @@ public class GameSaveManager : MonoBehaviour
             connectionEdges = tileGrid.CaptureConnectionIntents(),
             traps = tileGrid.CaptureTrapLayout(),
             floorProps = tileGrid.CaptureFloorPropLayout(),
+            recoverableLootDrops = npcTraversal != null
+                ? npcTraversal.CaptureRecoverableLootDrops()
+                : new List<RecoverableLootDrop>(),
             entrance = tileGrid.CaptureEntranceLayout()
         };
 
@@ -96,7 +100,8 @@ public class GameSaveManager : MonoBehaviour
 
         return ReportSuccess(
             $"Saved '{saveName}' with {save.tileCells.Count} cells, " +
-            $"{save.floorProps.Count} floor props, and " +
+            $"{save.floorProps.Count} floor props, " +
+            $"{save.recoverableLootDrops.Count} recoverable loot drops, and " +
             $"{save.livingAdventurers.Count} adventurers.");
     }
 
@@ -208,6 +213,9 @@ public class GameSaveManager : MonoBehaviour
         bool restoredEntrance = RestoreEntrance(save.entrance);
         int restoredFloorProps = RestoreFloorProps(save.floorProps);
         tileGrid.RegenerateProps(save.propGenerationSeed);
+        int restoredRecoverableLoot = npcTraversal != null
+            ? npcTraversal.RestoreRecoverableLootDrops(save.recoverableLootDrops)
+            : 0;
         string displayName = string.IsNullOrWhiteSpace(save.saveName)
             ? Path.GetFileNameWithoutExtension(savePath)
             : save.saveName;
@@ -215,6 +223,7 @@ public class GameSaveManager : MonoBehaviour
             $"Loaded '{displayName}': {save.tileCells.Count} cells, " +
             $"{restoredTraps} traps, " +
             $"{restoredFloorProps} floor props, " +
+            $"{restoredRecoverableLoot} recoverable loot drops, " +
             $"{(restoredEntrance ? "an entrance" : "no entrance")}, and " +
             $"{gameplayLoop.AdventurerRoster.Count} adventurers.");
     }
@@ -433,6 +442,12 @@ public class GameSaveManager : MonoBehaviour
             tileGrid = FindAnyObjectByType<TileGridGenerator>();
         if (tilePlacement == null)
             tilePlacement = FindAnyObjectByType<TilePlacement>();
+        if (npcTraversal == null)
+            npcTraversal = tileGrid != null
+                ? tileGrid.GetComponent<NPCTraversal>()
+                : null;
+        if (npcTraversal == null)
+            npcTraversal = FindAnyObjectByType<NPCTraversal>();
     }
 
     bool ReportSuccess(string message)

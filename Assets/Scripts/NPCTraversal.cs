@@ -116,6 +116,8 @@ public class NPCTraversal : MonoBehaviour
     [SerializeField] List<RecoverableLootDrop> recoverableLootDrops = new();
     [SerializeField] List<AdventurerDeathLootOutcome> deathLootOutcomes = new();
     [SerializeField] List<AdventurerEscapeLootOutcome> successfulEscapeLootOutcomes = new();
+    readonly Dictionary<string, RecoverableLootWorldDrop> recoverableLootWorldDrops =
+        new();
     [SerializeField, HideInInspector] int nextRecoverableLootDropNumber = 1;
     [SerializeField, HideInInspector] int nextRuntimeAgentId = 1;
     int floorConnectionCount;
@@ -158,6 +160,14 @@ public class NPCTraversal : MonoBehaviour
     public int DeathLootOutcomeCount => deathLootOutcomes.Count;
     public int SuccessfulEscapeLootOutcomeCount => successfulEscapeLootOutcomes.Count;
     public int RecoverableLootDropCount => recoverableLootDrops.Count;
+    public int PhysicalRecoverableLootDropCount
+    {
+        get
+        {
+            PruneRecoverableLootWorldDrops();
+            return recoverableLootWorldDrops.Count;
+        }
+    }
     public int RecoverableLootItemCount
     {
         get
@@ -209,6 +219,7 @@ public class NPCTraversal : MonoBehaviour
     public event System.Action<NPCTraversalAgent, Vector2Int, bool> AdventurerCellEntered;
     public event System.Func<NPCTraversalAgent, Vector2Int, bool> InvestigationDecisionRequested;
     public event System.Action<RecoverableLootDrop> RecoverableLootCreated;
+    public event System.Action<RecoverableLootDrop> RecoverableLootClaimed;
     public event System.Action<AdventurerDeathLootOutcome> DeathLootOutcomeRecorded;
     public event System.Action<AdventurerEscapeLootOutcome> SuccessfulEscapeLootOutcomeRecorded;
 
@@ -303,6 +314,8 @@ public class NPCTraversal : MonoBehaviour
             visitor.CarriedDungeonTreasure;
         int carriedItemCountBefore = visitor.CarriedDungeonTreasureCount;
         int carriedValueBefore = visitor.CarriedDungeonTreasureValue;
+        Vector3 deathPosition = visitor.transform.position;
+        Vector2Int deathCell = ResolveDeathCell(visitor, deathPosition);
         var recoveredItems = new List<RecoverableLootItem>(carried.Count);
         for (int i = 0; i < carried.Count; i++)
         {
@@ -322,17 +335,23 @@ public class NPCTraversal : MonoBehaviour
         RecoverableLootDrop drop = null;
         if (recoveredItems.Count > 0)
         {
-            string dropId = $"recovered-loot-{nextRecoverableLootDropNumber:D4}";
-            nextRecoverableLootDropNumber++;
+            string dropId = CreateUniqueRecoverableLootDropId();
             drop = new RecoverableLootDrop(
                 dropId,
-                visitor.CurrentCell,
-                visitor.transform.position,
+                deathCell,
+                deathPosition,
                 visitor.Character != null
                     ? visitor.Character.CharacterName
                     : visitor.name,
                 recoveredItems);
             recoverableLootDrops.Add(drop);
+            if (!MaterializeRecoverableLootDrop(drop))
+            {
+                Debug.LogWarning(
+                    $"Recovery record '{drop.DropId}' was created, but its physical " +
+                    $"drop could not be placed at cell {drop.DropCell}.",
+                    this);
+            }
         }
 
         visitor.ClearCarriedLootAfterDeath();
@@ -341,8 +360,8 @@ public class NPCTraversal : MonoBehaviour
             visitor.Character != null
                 ? visitor.Character.CharacterName
                 : visitor.name,
-            visitor.CurrentCell,
-            visitor.transform.position,
+            deathCell,
+            deathPosition,
             carriedItemCountBefore,
             carriedValueBefore,
             recoveredItems.Count,
@@ -355,6 +374,221 @@ public class NPCTraversal : MonoBehaviour
             RecoverableLootCreated?.Invoke(drop);
         DeathLootOutcomeRecorded?.Invoke(outcome);
         return drop != null;
+    }
+
+    Vector2Int ResolveDeathCell(
+        NPCTraversalAgent visitor,
+        Vector3 deathPosition)
+    {
+        if (grid != null &&
+            grid.TryWorldToCell(deathPosition, out Vector2Int positionCell) &&
+            grid.IsPlacedCell(positionCell.x, positionCell.y))
+        {
+            return positionCell;
+        }
+
+        return visitor != null ? visitor.CurrentCell : default;
+    }
+
+    public bool TryGetRecoverableLootDrop(
+        string dropId,
+        out RecoverableLootDrop drop)
+    {
+        if (!string.IsNullOrWhiteSpace(dropId))
+        {
+            for (int i = 0; i < recoverableLootDrops.Count; i++)
+            {
+                RecoverableLootDrop candidate = recoverableLootDrops[i];
+                if (candidate != null && candidate.DropId == dropId)
+                {
+                    drop = candidate;
+                    return true;
+                }
+            }
+        }
+
+        drop = null;
+        return false;
+    }
+
+    public bool TryGetRecoverableLootWorldDrop(
+        string dropId,
+        out RecoverableLootWorldDrop worldDrop)
+    {
+        PruneRecoverableLootWorldDrops();
+        worldDrop = null;
+        return !string.IsNullOrWhiteSpace(dropId) &&
+            recoverableLootWorldDrops.TryGetValue(dropId, out worldDrop) &&
+            worldDrop != null;
+    }
+
+    /// <summary>
+    /// Removes one recovery record and its world presentation atomically from
+    /// the dungeon side. Future consumers own what happens to the returned
+    /// immutable snapshot.
+    /// </summary>
+    public bool TryClaimRecoverableLoot(
+        string dropId,
+        out RecoverableLootDrop claimedDrop)
+    {
+        for (int i = 0; i < recoverableLootDrops.Count; i++)
+        {
+            RecoverableLootDrop candidate = recoverableLootDrops[i];
+            if (candidate == null || candidate.DropId != dropId)
+                continue;
+
+            recoverableLootDrops.RemoveAt(i);
+            claimedDrop = candidate;
+            DestroyRecoverableLootWorldDrop(dropId);
+            RecoverableLootClaimed?.Invoke(claimedDrop);
+            return true;
+        }
+
+        claimedDrop = null;
+        return false;
+    }
+
+    public List<RecoverableLootDrop> CaptureRecoverableLootDrops()
+    {
+        var snapshot = new List<RecoverableLootDrop>(recoverableLootDrops.Count);
+        for (int i = 0; i < recoverableLootDrops.Count; i++)
+        {
+            RecoverableLootDrop drop = recoverableLootDrops[i];
+            if (drop != null && drop.ItemCount > 0)
+                snapshot.Add(drop.Copy());
+        }
+        return snapshot;
+    }
+
+    public int RestoreRecoverableLootDrops(
+        IReadOnlyList<RecoverableLootDrop> savedDrops)
+    {
+        ClearRecoverableLootDrops();
+        if (savedDrops == null)
+            return 0;
+
+        var restoredIds = new HashSet<string>();
+        for (int i = 0; i < savedDrops.Count; i++)
+        {
+            RecoverableLootDrop savedDrop = savedDrops[i];
+            if (savedDrop == null ||
+                string.IsNullOrWhiteSpace(savedDrop.DropId) ||
+                savedDrop.ItemCount == 0 ||
+                grid == null ||
+                !grid.IsPlacedCell(savedDrop.DropCell.x, savedDrop.DropCell.y) ||
+                !restoredIds.Add(savedDrop.DropId))
+            {
+                Debug.LogWarning(
+                    $"Skipped invalid recoverable loot drop at save index {i}.",
+                    this);
+                continue;
+            }
+
+            RecoverableLootDrop restored = savedDrop.Copy();
+            recoverableLootDrops.Add(restored);
+            if (!MaterializeRecoverableLootDrop(restored))
+            {
+                recoverableLootDrops.RemoveAt(recoverableLootDrops.Count - 1);
+                restoredIds.Remove(restored.DropId);
+                Debug.LogWarning(
+                    $"Could not restore physical loot drop '{restored.DropId}' at " +
+                    $"cell {restored.DropCell}.",
+                    this);
+            }
+        }
+
+        return recoverableLootDrops.Count;
+    }
+
+    public void ClearRecoverableLootDrops()
+    {
+        recoverableLootDrops.Clear();
+        foreach (RecoverableLootWorldDrop worldDrop in
+                 recoverableLootWorldDrops.Values)
+        {
+            if (worldDrop == null)
+                continue;
+            worldDrop.gameObject.SetActive(false);
+            Destroy(worldDrop.gameObject);
+        }
+        recoverableLootWorldDrops.Clear();
+        nextRecoverableLootDropNumber = 1;
+    }
+
+    string CreateUniqueRecoverableLootDropId()
+    {
+        string candidate;
+        do
+        {
+            candidate = $"recovered-loot-{nextRecoverableLootDropNumber:D4}";
+            nextRecoverableLootDropNumber++;
+        }
+        while (TryGetRecoverableLootDrop(candidate, out _));
+        return candidate;
+    }
+
+    bool MaterializeRecoverableLootDrop(RecoverableLootDrop drop)
+    {
+        if (drop == null || string.IsNullOrWhiteSpace(drop.DropId) ||
+            drop.ItemCount == 0 || grid == null ||
+            !grid.IsPlacedCell(drop.DropCell.x, drop.DropCell.y))
+        {
+            return false;
+        }
+
+        if (TryGetRecoverableLootWorldDrop(drop.DropId, out _))
+            return true;
+
+        var instance = new GameObject($"Recoverable Loot [{drop.DropId}]");
+        instance.SetActive(false);
+        instance.layer = gameObject.layer;
+        instance.transform.SetParent(transform, true);
+        instance.transform.SetPositionAndRotation(
+            drop.WorldPosition,
+            Quaternion.identity);
+        instance.AddComponent<DungeonPointOfInterest>();
+        var worldDrop = instance.AddComponent<RecoverableLootWorldDrop>();
+        if (instance.GetComponentInChildren<DungeonLightReceiver>(true) == null)
+            instance.AddComponent<DungeonLightReceiver>();
+        worldDrop.Initialize(this, drop, grid);
+        recoverableLootWorldDrops.Add(drop.DropId, worldDrop);
+        instance.SetActive(true);
+        return true;
+    }
+
+    void DestroyRecoverableLootWorldDrop(string dropId)
+    {
+        if (!recoverableLootWorldDrops.TryGetValue(dropId, out var worldDrop))
+            return;
+
+        recoverableLootWorldDrops.Remove(dropId);
+        if (worldDrop != null)
+        {
+            worldDrop.gameObject.SetActive(false);
+            Destroy(worldDrop.gameObject);
+        }
+    }
+
+    void PruneRecoverableLootWorldDrops()
+    {
+        if (recoverableLootWorldDrops.Count == 0)
+            return;
+
+        var missingIds = new List<string>();
+        foreach (KeyValuePair<string, RecoverableLootWorldDrop> pair in
+                 recoverableLootWorldDrops)
+        {
+            if (pair.Value == null)
+                missingIds.Add(pair.Key);
+        }
+        for (int i = 0; i < missingIds.Count; i++)
+            recoverableLootWorldDrops.Remove(missingIds[i]);
+    }
+
+    void MaterializeExistingRecoverableLootDrops()
+    {
+        for (int i = 0; i < recoverableLootDrops.Count; i++)
+            MaterializeRecoverableLootDrop(recoverableLootDrops[i]);
     }
 
     void RecordDuplicateDeathLootAttempt(int sourceRuntimeAgentId)
@@ -427,6 +661,7 @@ public class NPCTraversal : MonoBehaviour
         // Also supports scenes where prop generation has already completed.
         if (props != null && props.StructureVersion > 0)
             RebuildNavigation();
+        MaterializeExistingRecoverableLootDrops();
     }
 
     void OnDisable()

@@ -380,6 +380,9 @@ public sealed class NPCRuntimeDebugHarnessWindow : EditorWindow
         }
 
         DrawReadOnlyText("Recoverable Drops", traversal.RecoverableLootDropCount.ToString());
+        DrawReadOnlyText(
+            "Physical Drop Views",
+            traversal.PhysicalRecoverableLootDropCount.ToString());
         DrawReadOnlyText("Recoverable Items", traversal.RecoverableLootItemCount.ToString());
         DrawReadOnlyText("Recoverable Value", traversal.RecoverableLootValue.ToString());
         showRecoverableLoot = EditorGUILayout.Foldout(
@@ -387,7 +390,7 @@ public sealed class NPCRuntimeDebugHarnessWindow : EditorWindow
             "Recovery Details",
             true);
         if (showRecoverableLoot)
-            DrawRecoverableDrops(traversal.RecoverableLootDrops);
+            DrawRecoverableDrops(traversal);
 
         showDeathLootOutcomes = EditorGUILayout.Foldout(
             showDeathLootOutcomes,
@@ -413,8 +416,9 @@ public sealed class NPCRuntimeDebugHarnessWindow : EditorWindow
         }
     }
 
-    static void DrawRecoverableDrops(IReadOnlyList<RecoverableLootDrop> drops)
+    static void DrawRecoverableDrops(NPCTraversal traversal)
     {
+        IReadOnlyList<RecoverableLootDrop> drops = traversal.RecoverableLootDrops;
         if (drops.Count == 0)
         {
             EditorGUILayout.LabelField("  None");
@@ -430,9 +434,17 @@ public sealed class NPCRuntimeDebugHarnessWindow : EditorWindow
                 continue;
             }
 
+            bool hasWorldDrop = traversal.TryGetRecoverableLootWorldDrop(
+                drop.DropId,
+                out RecoverableLootWorldDrop worldDrop);
+            EditorGUILayout.BeginHorizontal();
             EditorGUILayout.LabelField(
                 $"  {drop.DropId} | {drop.SourceAdventurerName} | cell {drop.DropCell} | " +
-                $"{drop.ItemCount} item(s), value {drop.TotalValue}");
+                $"{drop.ItemCount} item(s), value {drop.TotalValue} | " +
+                $"world {(hasWorldDrop ? "present" : "missing")}");
+            if (hasWorldDrop && GUILayout.Button("Select Drop", GUILayout.Width(90f)))
+                Selection.activeGameObject = worldDrop.gameObject;
+            EditorGUILayout.EndHorizontal();
             IReadOnlyList<RecoverableLootItem> items = drop.Items;
             for (int itemIndex = 0; itemIndex < items.Count; itemIndex++)
             {
