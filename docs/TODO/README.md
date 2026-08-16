@@ -20,7 +20,6 @@ None.
 
 ## Planned — Physical Consequences & Dungeon Economy
 
-- [t012 — Visible Adventurer Carried Loot](t012-Visible-Adventurer-Carried-Loot.md)
 - [t013 — Physical Death Loot Drops](t013-Physical-Death-Loot-Drops.md)
 - [t014 — Adventurer Loot Rediscovery](t014-Adventurer-Loot-Rediscovery.md)
 - [t015 — Player Recovery Phase](t015-Player-Recovery-Phase.md)
@@ -61,6 +60,7 @@ None.
 - [t008 — Successful Escape & Lost Treasure](t008-Successful-Escape-Lost-Treasure.md)
 - [t009 — Soul / Aura Harvesting Foundation](t009-Soul-Aura-Harvesting.md)
 - [t010 — Expedition Outcomes](t010-Expedition-Outcomes.md)
+- [t012 — Visible Adventurer Carried Loot](t012-Visible-Adventurer-Carried-Loot.md)
 
 ## Roadmaps
 
