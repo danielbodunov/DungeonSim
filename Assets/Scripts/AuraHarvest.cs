@@ -94,4 +94,22 @@ public sealed class AuraHarvestRecord
     {
         duplicateAttempts++;
     }
+
+    internal AuraHarvestRecord Copy()
+    {
+        var copy = new AuraHarvestRecord(
+            new AuraHarvestRequest(
+                harvestId,
+                source,
+                amount,
+                sourceId,
+                sourceName,
+                sourceRuntimeAgentId,
+                sourceLevel,
+                dungeonOpenCount,
+                cell,
+                worldPosition));
+        copy.duplicateAttempts = duplicateAttempts;
+        return copy;
+    }
 }

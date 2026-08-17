@@ -46,6 +46,9 @@ public sealed class DungeonTestScenario : ScriptableObject
     [SerializeField] DungeonScenarioPlacedObject entrance;
     [SerializeField] bool hasDefaultEntranceCell;
     [SerializeField] Vector2Int defaultEntranceCell;
+    [SerializeField] bool hasRuntimeStateSnapshot;
+    [SerializeField] NPCTraversalScenarioState traversalState;
+    [SerializeField] GameplayLoopScenarioState gameplayState;
 
     public string ScenarioName => scenarioName;
     public string Description => description;
@@ -149,9 +152,22 @@ public sealed class DungeonTestScenario : ScriptableObject
             return false;
         }
 
+        NPCTraversal traversal = FindEntranceOwner(grid);
+        GameplayLoopController gameplayLoop = FindGameplayLoop(grid);
+        hasRuntimeStateSnapshot = true;
+        traversalState = traversal != null
+            ? traversal.CaptureScenarioState()
+            : new NPCTraversalScenarioState(null, null, null, 1, 1);
+        gameplayState = gameplayLoop != null
+            ? gameplayLoop.CaptureScenarioState()
+            : null;
+
         report = $"Captured {tileCells.Count} cells, {traps.Count} traps, " +
             $"{floorProps.Count} floor props, and " +
-            GetEntranceReportDescription() + ".";
+            GetEntranceReportDescription() +
+            $" Runtime baseline: {traversalState.RecoverableLootDrops.Count} " +
+            $"recoverable drops and {gameplayState?.ExpeditionOutcomes.Count ?? 0} " +
+            "expedition outcomes.";
         return true;
     }
 
@@ -174,6 +190,9 @@ public sealed class DungeonTestScenario : ScriptableObject
         entrance = CopyPlacedObject(source.entrance);
         hasDefaultEntranceCell = source.hasDefaultEntranceCell;
         defaultEntranceCell = source.defaultEntranceCell;
+        hasRuntimeStateSnapshot = source.hasRuntimeStateSnapshot;
+        traversalState = source.traversalState?.Copy();
+        gameplayState = source.gameplayState?.Copy();
     }
 
     public bool TryApplyTo(TileGridGenerator grid, out string report)
@@ -208,6 +227,16 @@ public sealed class DungeonTestScenario : ScriptableObject
         if (!ValidateAuthoredContent(
                 grid, placementContext, effectiveEntranceMode, out report))
             return false;
+        if (!ValidateRuntimeState(grid, placementContext, out report))
+            return false;
+
+        NPCTraversal traversal = FindEntranceOwner(grid);
+        GameplayLoopController gameplayLoop = FindGameplayLoop(grid);
+        if (gameplayLoop != null)
+            gameplayLoop.PrepareForScenarioApply();
+        else
+            traversal?.ClearAdventurers();
+
         if (!grid.RestoreTileLayout(
                 CopyTileCells(tileCells),
                 CopyConnectionEdges(connectionEdges)))
@@ -268,7 +297,6 @@ public sealed class DungeonTestScenario : ScriptableObject
         grid.RegenerateProps(propGenerationSeed);
         if (effectiveEntranceMode == DungeonScenarioEntranceMode.Default)
         {
-            NPCTraversal traversal = FindEntranceOwner(grid);
             if (traversal == null || !traversal.EnsureDefaultEntrance())
             {
                 report = "The validated layout loaded, but its production " +
@@ -277,9 +305,71 @@ public sealed class DungeonTestScenario : ScriptableObject
             }
         }
 
+        if (hasRuntimeStateSnapshot)
+        {
+            gameplayLoop?.RestoreScenarioState(gameplayState);
+            traversal?.RestoreScenarioState(traversalState);
+        }
+        else
+        {
+            // Assets captured before runtime snapshots must still provide a
+            // clean authored baseline rather than retaining stale records and
+            // world POIs from whichever test ran immediately beforehand.
+            gameplayLoop?.RestoreScenarioState(null);
+            traversal?.RestoreScenarioState(null);
+        }
+
         report = $"Loaded '{scenarioName}': {tileCells.Count} cells, " +
             $"{restoredTraps} traps, {restoredFloorProps} floor props, and " +
-            GetEntranceReportDescription() + ".";
+            GetEntranceReportDescription() +
+            $" Restored {traversalState?.RecoverableLootDrops.Count ?? 0} " +
+            $"recoverable drops and {gameplayState?.ExpeditionOutcomes.Count ?? 0} " +
+            "expedition outcomes.";
+        return true;
+    }
+
+    bool ValidateRuntimeState(
+        TileGridGenerator grid,
+        TileGridGenerator.PlacementValidationContext placementContext,
+        out string report)
+    {
+        report = string.Empty;
+        if (!hasRuntimeStateSnapshot)
+            return true;
+
+        NPCTraversal traversal = FindEntranceOwner(grid);
+        if (traversalState != null)
+        {
+            if (traversal == null)
+            {
+                report = "The scenario contains NPC traversal state, but no " +
+                    "active NPCTraversal owner is assigned to this grid.";
+                return false;
+            }
+            if (!traversal.TryValidateScenarioState(
+                    traversalState, placementContext, out string failure))
+            {
+                report = $"Scenario runtime loot state is invalid: {failure}";
+                return false;
+            }
+        }
+
+        if (gameplayState != null)
+        {
+            GameplayLoopController gameplayLoop = FindGameplayLoop(grid);
+            if (gameplayLoop == null)
+            {
+                report = "The scenario contains gameplay-loop state, but no " +
+                    "active GameplayLoopController owns this grid.";
+                return false;
+            }
+            if (!gameplayLoop.TryValidateScenarioState(
+                    gameplayState, out string failure))
+            {
+                report = $"Scenario gameplay state is invalid: {failure}";
+                return false;
+            }
+        }
         return true;
     }
 
@@ -442,6 +532,30 @@ public sealed class DungeonTestScenario : ScriptableObject
         for (int i = 0; i < candidates.Length; i++)
         {
             NPCTraversal candidate = candidates[i];
+            if (candidate != null && candidate.isActiveAndEnabled &&
+                candidate.DungeonGrid == grid)
+            {
+                return candidate;
+            }
+        }
+        return null;
+    }
+
+    static GameplayLoopController FindGameplayLoop(TileGridGenerator grid)
+    {
+        GameplayLoopController current = GameplayLoopController.Instance;
+        if (current != null && current.isActiveAndEnabled &&
+            current.DungeonGrid == grid)
+        {
+            return current;
+        }
+
+        GameplayLoopController[] candidates =
+            UnityEngine.Object.FindObjectsByType<GameplayLoopController>(
+                FindObjectsInactive.Exclude);
+        for (int i = 0; i < candidates.Length; i++)
+        {
+            GameplayLoopController candidate = candidates[i];
             if (candidate != null && candidate.isActiveAndEnabled &&
                 candidate.DungeonGrid == grid)
             {

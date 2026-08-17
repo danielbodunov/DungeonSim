@@ -275,11 +275,9 @@ public class NPCTraversal : MonoBehaviour
             escapedItems.Add(new EscapedLootItem(
                 item.TreasureId,
                 item.Value,
-                item.OriginatedAsDungeonBait
-                    ? RecoverableLootOrigin.DungeonTreasure
-                    : RecoverableLootOrigin.AdventurerPossession,
+                item.Origin,
                 item.SourceCell,
-                item.OriginatedAsDungeonBait));
+                item.HasSourceCell));
         }
 
         visitor.ClearCarriedLootAfterSuccessfulEscape();
@@ -304,18 +302,32 @@ public class NPCTraversal : MonoBehaviour
         if (visitor == null)
             return false;
         int sourceRuntimeAgentId = visitor.RuntimeAgentId;
-        if (!visitor.TryClaimDeathLootRecovery())
-        {
-            RecordDuplicateDeathLootAttempt(sourceRuntimeAgentId);
-            return false;
-        }
-
         IReadOnlyList<CarriedDungeonTreasure> carried =
             visitor.CarriedDungeonTreasure;
         int carriedItemCountBefore = visitor.CarriedDungeonTreasureCount;
         int carriedValueBefore = visitor.CarriedDungeonTreasureValue;
         Vector3 deathPosition = visitor.transform.position;
         Vector2Int deathCell = ResolveDeathCell(visitor, deathPosition);
+        Vector2Int dropCell = deathCell;
+        Vector3 dropPosition = deathPosition;
+        if (carriedItemCountBefore > 0 &&
+            !TryResolveRecoverableLootRestingPosition(
+                deathPosition,
+                out dropCell,
+                out dropPosition))
+        {
+            Debug.LogError(
+                "Recoverable loot could not find any supported, reachable " +
+                "resting location. Death-loot custody was left unchanged.",
+                this);
+            return false;
+        }
+
+        if (!visitor.TryClaimDeathLootRecovery())
+        {
+            RecordDuplicateDeathLootAttempt(sourceRuntimeAgentId);
+            return false;
+        }
         var recoveredItems = new List<RecoverableLootItem>(carried.Count);
         for (int i = 0; i < carried.Count; i++)
         {
@@ -325,11 +337,9 @@ public class NPCTraversal : MonoBehaviour
             recoveredItems.Add(new RecoverableLootItem(
                 item.TreasureId,
                 item.Value,
-                item.OriginatedAsDungeonBait
-                    ? RecoverableLootOrigin.DungeonTreasure
-                    : RecoverableLootOrigin.AdventurerPossession,
+                item.Origin,
                 item.SourceCell,
-                item.OriginatedAsDungeonBait));
+                item.HasSourceCell));
         }
 
         RecoverableLootDrop drop = null;
@@ -338,8 +348,8 @@ public class NPCTraversal : MonoBehaviour
             string dropId = CreateUniqueRecoverableLootDropId();
             drop = new RecoverableLootDrop(
                 dropId,
-                deathCell,
-                deathPosition,
+                dropCell,
+                dropPosition,
                 visitor.Character != null
                     ? visitor.Character.CharacterName
                     : visitor.name,
@@ -374,6 +384,96 @@ public class NPCTraversal : MonoBehaviour
             RecoverableLootCreated?.Invoke(drop);
         DeathLootOutcomeRecorded?.Invoke(outcome);
         return drop != null;
+    }
+
+    bool TryResolveRecoverableLootRestingPosition(
+        Vector3 deathPosition,
+        out Vector2Int restingCell,
+        out Vector3 restingPosition)
+    {
+        if (TryGetFallRecoveryLanding(
+                deathPosition,
+                out restingCell,
+                out restingPosition,
+                out _) &&
+            grid != null &&
+            grid.TryWorldToCell(restingPosition, out Vector2Int mappedCell) &&
+            mappedCell == restingCell &&
+            IsReachableFromEntrance(restingCell))
+        {
+            return true;
+        }
+
+        if (TryFindNearestSupportedGraphPosition(
+                deathPosition, out restingCell, out restingPosition))
+        {
+            return true;
+        }
+
+        if (TryFindSpawnPose(
+                out restingCell, out restingPosition, out _) &&
+            grid.TryWorldToCell(restingPosition, out Vector2Int spawnCell) &&
+            spawnCell == restingCell &&
+            restingPosition.y <= deathPosition.y + maxSurfaceRise)
+        {
+            return true;
+        }
+
+        restingCell = default;
+        restingPosition = deathPosition;
+        return false;
+    }
+
+    bool TryFindNearestSupportedGraphPosition(
+        Vector3 origin,
+        out Vector2Int cell,
+        out Vector3 position)
+    {
+        cell = default;
+        position = origin;
+        bool found = false;
+        float nearestSqrDistance = float.PositiveInfinity;
+        foreach (Vector2Int candidateCell in graph.Keys)
+        {
+            if (!IsReachableFromEntrance(candidateCell))
+                continue;
+            Vector3 anchor = grid.GetCellWorldPosition(
+                candidateCell.x, candidateCell.y);
+            if (!TryGetWalkableGround(anchor, out RaycastHit hit))
+                continue;
+
+            Vector3 candidatePosition = anchor;
+            candidatePosition.y = hit.point.y + groundOffset;
+            if (candidatePosition.y > origin.y + maxSurfaceRise)
+                continue;
+            if (!grid.TryWorldToCell(
+                    candidatePosition, out Vector2Int positionCell) ||
+                positionCell != candidateCell)
+            {
+                continue;
+            }
+            float sqrDistance = (candidatePosition - origin).sqrMagnitude;
+            if (found && sqrDistance > nearestSqrDistance + 0.0001f)
+                continue;
+            if (found && Mathf.Abs(sqrDistance - nearestSqrDistance) <= 0.0001f &&
+                (candidateCell.x > cell.x ||
+                 (candidateCell.x == cell.x && candidateCell.y >= cell.y)))
+            {
+                continue;
+            }
+
+            found = true;
+            nearestSqrDistance = sqrDistance;
+            cell = candidateCell;
+            position = candidatePosition;
+        }
+        return found;
+    }
+
+    bool IsReachableFromEntrance(Vector2Int cell)
+    {
+        return ResolveEntrance() &&
+            FindRouteSteps(activeEntrance.Cell, cell) != null;
     }
 
     Vector2Int ResolveDeathCell(
@@ -458,6 +558,147 @@ public class NPCTraversal : MonoBehaviour
                 snapshot.Add(drop.Copy());
         }
         return snapshot;
+    }
+
+    public NPCTraversalScenarioState CaptureScenarioState()
+    {
+        return new NPCTraversalScenarioState(
+            recoverableLootDrops,
+            deathLootOutcomes,
+            successfulEscapeLootOutcomes,
+            nextRecoverableLootDropNumber,
+            nextRuntimeAgentId);
+    }
+
+    public void RestoreScenarioState(NPCTraversalScenarioState snapshot)
+    {
+        ClearAdventurers();
+        ClearRecoverableLootDrops();
+        deathLootOutcomes.Clear();
+        successfulEscapeLootOutcomes.Clear();
+
+        if (snapshot == null)
+        {
+            nextRuntimeAgentId = 1;
+            return;
+        }
+
+        RestoreRecoverableLootDrops(snapshot.RecoverableLootDrops);
+        IReadOnlyList<AdventurerDeathLootOutcome> restoredDeathOutcomes =
+            snapshot.DeathLootOutcomes;
+        for (int i = 0; i < restoredDeathOutcomes.Count; i++)
+            if (restoredDeathOutcomes[i] != null)
+                deathLootOutcomes.Add(restoredDeathOutcomes[i].Copy());
+
+        IReadOnlyList<AdventurerEscapeLootOutcome> restoredEscapeOutcomes =
+            snapshot.EscapeLootOutcomes;
+        for (int i = 0; i < restoredEscapeOutcomes.Count; i++)
+            if (restoredEscapeOutcomes[i] != null)
+                successfulEscapeLootOutcomes.Add(
+                    restoredEscapeOutcomes[i].Copy());
+
+        nextRecoverableLootDropNumber =
+            snapshot.NextRecoverableLootDropNumber;
+        nextRuntimeAgentId = snapshot.NextRuntimeAgentId;
+    }
+
+    public bool TryValidateScenarioState(
+        NPCTraversalScenarioState snapshot,
+        TileGridGenerator.PlacementValidationContext placementContext,
+        out string failure)
+    {
+        failure = string.Empty;
+        if (snapshot == null)
+            return true;
+        if (grid == null || placementContext == null)
+        {
+            failure = "No dungeon placement context is available for runtime state.";
+            return false;
+        }
+
+        var dropIds = new HashSet<string>();
+        IReadOnlyList<RecoverableLootDrop> drops = snapshot.RecoverableLootDrops;
+        for (int i = 0; i < drops.Count; i++)
+        {
+            RecoverableLootDrop drop = drops[i];
+            if (drop == null)
+            {
+                failure = $"Recoverable loot record {i + 1} is empty.";
+                return false;
+            }
+            if (string.IsNullOrWhiteSpace(drop.DropId) ||
+                !dropIds.Add(drop.DropId))
+            {
+                failure = $"Recoverable loot record {i + 1} has a missing or duplicate drop ID.";
+                return false;
+            }
+            if (drop.ItemCount == 0)
+            {
+                failure = $"Recoverable loot '{drop.DropId}' has no items.";
+                return false;
+            }
+            if (!placementContext.IsPlacedCell(
+                    drop.DropCell.x, drop.DropCell.y))
+            {
+                failure = $"Recoverable loot '{drop.DropId}' targets unplaced cell {drop.DropCell}.";
+                return false;
+            }
+            if (!grid.TryWorldToCell(
+                    drop.WorldPosition, out Vector2Int positionCell) ||
+                positionCell != drop.DropCell)
+            {
+                failure = $"Recoverable loot '{drop.DropId}' has a world position outside its recorded cell {drop.DropCell}.";
+                return false;
+            }
+            for (int itemIndex = 0; itemIndex < drop.Items.Count; itemIndex++)
+            {
+                RecoverableLootItem item = drop.Items[itemIndex];
+                if (item == null || string.IsNullOrWhiteSpace(item.ItemId))
+                {
+                    failure = $"Recoverable loot '{drop.DropId}' contains an item without an identity.";
+                    return false;
+                }
+            }
+        }
+
+        var processedAgentIds = new HashSet<int>();
+        int greatestRuntimeAgentId = 0;
+        IReadOnlyList<AdventurerDeathLootOutcome> deathOutcomes =
+            snapshot.DeathLootOutcomes;
+        for (int i = 0; i < deathOutcomes.Count; i++)
+        {
+            AdventurerDeathLootOutcome outcome = deathOutcomes[i];
+            if (outcome == null || outcome.SourceRuntimeAgentId <= 0 ||
+                !processedAgentIds.Add(outcome.SourceRuntimeAgentId))
+            {
+                failure = $"Death-loot outcome {i + 1} has a missing or duplicate runtime agent ID.";
+                return false;
+            }
+            greatestRuntimeAgentId = Mathf.Max(
+                greatestRuntimeAgentId, outcome.SourceRuntimeAgentId);
+        }
+
+        IReadOnlyList<AdventurerEscapeLootOutcome> escapeOutcomes =
+            snapshot.EscapeLootOutcomes;
+        for (int i = 0; i < escapeOutcomes.Count; i++)
+        {
+            AdventurerEscapeLootOutcome outcome = escapeOutcomes[i];
+            if (outcome == null || outcome.SourceRuntimeAgentId <= 0 ||
+                !processedAgentIds.Add(outcome.SourceRuntimeAgentId))
+            {
+                failure = $"Escape-loot outcome {i + 1} has a missing or duplicate runtime agent ID.";
+                return false;
+            }
+            greatestRuntimeAgentId = Mathf.Max(
+                greatestRuntimeAgentId, outcome.SourceRuntimeAgentId);
+        }
+
+        if (snapshot.NextRuntimeAgentId <= greatestRuntimeAgentId)
+        {
+            failure = "The next runtime agent ID would collide with captured outcome history.";
+            return false;
+        }
+        return true;
     }
 
     public int RestoreRecoverableLootDrops(
@@ -1614,7 +1855,7 @@ public class NPCTraversalAgent : MonoBehaviour, ICarriedLootPresentationSource
         ClearActiveActivityState();
         visitInProgress = true;
         RecordArrival(currentCell);
-        StartNextExplorationStep();
+        StartCurrentCellActivity();
         return true;
     }
 
@@ -1700,31 +1941,7 @@ public class NPCTraversalAgent : MonoBehaviour, ICarriedLootPresentationSource
                 navigation.TryGetInvestigationTarget(
                     this, currentCell, out DungeonPointOfInterest investigationTarget))
             {
-                activeInvestigationTarget = investigationTarget;
-                isInvestigating = true;
-                float investigationDuration = investigationTarget != null
-                    ? investigationTarget.InvestigationDuration
-                    : waitTime;
-                investigationTimeRemaining = investigationDuration;
-                bool investigationCompleted = investigationDuration <= 0f;
-                if (investigationDuration > 0f)
-                {
-                    yield return SpendStaminaWhileWaiting(
-                        investigationDuration,
-                        completed => investigationCompleted = completed);
-                }
-
-                if (DungeonSimulationState.IsPaused)
-                    yield return DungeonSimulationState.WaitUntilRunning();
-                if (investigationCompleted && investigationTarget != null &&
-                    investigationTarget.IsAvailable &&
-                    investigationTarget.Cell == currentCell)
-                {
-                    investigationTarget.TryCompleteInvestigation(this);
-                }
-                activeInvestigationTarget = null;
-                investigationTimeRemaining = 0f;
-                isInvestigating = false;
+                yield return InvestigatePointOfInterest(investigationTarget);
             }
         }
 
@@ -1793,7 +2010,92 @@ public class NPCTraversalAgent : MonoBehaviour, ICarriedLootPresentationSource
             yield break;
 
         RecordArrival(currentCell);
+        StartCurrentCellActivity();
+    }
+
+    void StartCurrentCellActivity()
+    {
+        if (!returningHome && character != null &&
+            character.CurrentStamina > 0f && navigation != null &&
+            navigation.TryGetInvestigationTarget(
+                this,
+                currentCell,
+                out DungeonPointOfInterest investigationTarget))
+        {
+            movement = StartCoroutine(
+                InvestigateCurrentCellThenContinue(investigationTarget));
+            return;
+        }
+
         StartNextExplorationStep();
+    }
+
+    IEnumerator InvestigateCurrentCellThenContinue(
+        DungeonPointOfInterest investigationTarget)
+    {
+        yield return InvestigatePointOfInterest(investigationTarget);
+        movement = null;
+        if (visitInProgress && character != null && !character.IsDead)
+            StartNextExplorationStep();
+    }
+
+    IEnumerator InvestigatePointOfInterest(
+        DungeonPointOfInterest investigationTarget)
+    {
+        if (investigationTarget == null || !investigationTarget.IsAvailable ||
+            investigationTarget.Cell != currentCell)
+        {
+            yield break;
+        }
+
+        activeInvestigationTarget = investigationTarget;
+        Vector3 interactionPosition = navigation.GetGroundedPosition(
+            investigationTarget.InteractionPosition);
+        while (investigationTarget != null &&
+               investigationTarget.IsAvailable &&
+               investigationTarget.Cell == currentCell &&
+               (transform.position - interactionPosition).sqrMagnitude > 0.0001f)
+        {
+            Vector3 next = Vector3.MoveTowards(
+                transform.position,
+                interactionPosition,
+                speed * DungeonSimulationState.DeltaTime);
+            next = navigation.GetGroundedPosition(next);
+            float distanceMoved = Vector3.Distance(transform.position, next);
+            transform.position = next;
+            if (character != null)
+                character.SpendStamina(distanceMoved * movementStaminaCost);
+            yield return null;
+        }
+
+        if (investigationTarget == null || !investigationTarget.IsAvailable ||
+            investigationTarget.Cell != currentCell || character == null ||
+            character.IsDead || character.CurrentStamina <= 0f)
+        {
+            ClearActiveActivityState();
+            yield break;
+        }
+
+        isInvestigating = true;
+        float investigationDuration = investigationTarget.InvestigationDuration;
+        investigationTimeRemaining = investigationDuration;
+        bool investigationCompleted = investigationDuration <= 0f;
+        if (investigationDuration > 0f)
+        {
+            yield return SpendStaminaWhileWaiting(
+                investigationDuration,
+                completed => investigationCompleted = completed);
+        }
+
+        if (DungeonSimulationState.IsPaused)
+            yield return DungeonSimulationState.WaitUntilRunning();
+        if (investigationCompleted && investigationTarget != null &&
+            investigationTarget.IsAvailable &&
+            investigationTarget.Cell == currentCell)
+        {
+            investigationTarget.TryCompleteInvestigation(this);
+        }
+        ClearActiveActivityState();
     }
 
     public bool TryTakeTreasure(TreasureProp treasure)
@@ -1818,6 +2120,46 @@ public class NPCTraversalAgent : MonoBehaviour, ICarriedLootPresentationSource
             true));
         CarriedLootPresentationChanged?.Invoke();
         return true;
+    }
+
+    public bool TryTakeRecoverableLoot(RecoverableLootWorldDrop worldDrop)
+    {
+        if (!visitInProgress || worldDrop == null ||
+            worldDrop.PointOfInterest == null ||
+            !worldDrop.PointOfInterest.IsAvailable ||
+            worldDrop.PointOfInterest.Cell != currentCell ||
+            !worldDrop.TryGetContents(out RecoverableLootDrop availableDrop) ||
+            availableDrop.ItemCount == 0)
+        {
+            return false;
+        }
+
+        if (!worldDrop.TryClaim(out RecoverableLootDrop claimedDrop) ||
+            claimedDrop == null)
+        {
+            return false;
+        }
+
+        IReadOnlyList<RecoverableLootItem> items = claimedDrop.Items;
+        int acquiredItemCount = 0;
+        for (int i = 0; i < items.Count; i++)
+        {
+            RecoverableLootItem item = items[i];
+            if (item == null)
+                continue;
+
+            carriedDungeonTreasure.Add(new CarriedDungeonTreasure(
+                item.ItemId,
+                item.Value,
+                item.Origin,
+                item.SourceCell,
+                item.HasSourceCell));
+            acquiredItemCount++;
+        }
+
+        if (acquiredItemCount > 0)
+            CarriedLootPresentationChanged?.Invoke();
+        return acquiredItemCount > 0;
     }
 
     void ClearCarriedLoot()

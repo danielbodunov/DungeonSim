@@ -607,7 +607,7 @@ public sealed class NPCRuntimeDebugHarnessWindow : EditorWindow
 
         showCarriedTreasure = EditorGUILayout.Foldout(
             showCarriedTreasure,
-            $"Carried Dungeon Treasure ({selectedAgent.CarriedDungeonTreasureCount}, " +
+            $"Carried Loot ({selectedAgent.CarriedDungeonTreasureCount}, " +
             $"value {selectedAgent.CarriedDungeonTreasureValue})",
             true);
         if (showCarriedTreasure)
@@ -789,9 +789,12 @@ public sealed class NPCRuntimeDebugHarnessWindow : EditorWindow
                 continue;
             }
 
+            string source = item.HasSourceCell
+                ? item.SourceCell.ToString()
+                : "none";
             EditorGUILayout.LabelField(
                 $"  {i + 1}. {item.TreasureId} | value {item.Value} | " +
-                $"source {item.SourceCell} | dungeon bait {item.OriginatedAsDungeonBait}");
+                $"origin {item.Origin} | source {source}");
         }
     }
 

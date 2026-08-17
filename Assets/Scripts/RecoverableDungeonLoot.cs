@@ -111,6 +111,36 @@ public sealed class AdventurerEscapeLootOutcome
     {
         duplicateProcessingAttempts++;
     }
+
+    internal AdventurerEscapeLootOutcome Copy()
+    {
+        var copiedItems = new List<EscapedLootItem>(escapedItems.Count);
+        for (int i = 0; i < escapedItems.Count; i++)
+        {
+            EscapedLootItem item = escapedItems[i];
+            if (item == null)
+                continue;
+            copiedItems.Add(new EscapedLootItem(
+                item.ItemId,
+                item.Value,
+                item.Origin,
+                item.SourceCell,
+                item.HasSourceCell));
+        }
+
+        var copy = new AdventurerEscapeLootOutcome(
+            sourceRuntimeAgentId,
+            sourceAdventurerName,
+            exitCell,
+            worldPosition,
+            carriedItemCountBefore,
+            carriedValueBefore,
+            copiedItems,
+            carriedItemCountAfter,
+            carriedValueAfter);
+        copy.duplicateProcessingAttempts = duplicateProcessingAttempts;
+        return copy;
+    }
 }
 
 /// <summary>Auditable result of processing one dead adventurer's loot custody.</summary>
@@ -178,6 +208,24 @@ public sealed class AdventurerDeathLootOutcome
     internal void RecordDuplicateProcessingAttempt()
     {
         duplicateProcessingAttempts++;
+    }
+
+    internal AdventurerDeathLootOutcome Copy()
+    {
+        var copy = new AdventurerDeathLootOutcome(
+            sourceRuntimeAgentId,
+            sourceAdventurerName,
+            deathCell,
+            worldPosition,
+            carriedItemCountBefore,
+            carriedValueBefore,
+            recoveredItemCount,
+            recoveredValue,
+            recoveryDropId,
+            carriedItemCountAfter,
+            carriedValueAfter);
+        copy.duplicateProcessingAttempts = duplicateProcessingAttempts;
+        return copy;
     }
 }
 
@@ -285,5 +333,92 @@ public sealed class RecoverableLootDrop
             worldPosition,
             sourceAdventurerName,
             copiedItems);
+    }
+}
+
+/// <summary>
+/// Scenario-owned snapshot of the traversal service's persistent loot and
+/// outcome state. Runtime world objects remain derived from recovery records.
+/// </summary>
+[Serializable]
+public sealed class NPCTraversalScenarioState
+{
+    [SerializeField] List<RecoverableLootDrop> recoverableLootDrops = new();
+    [SerializeField] List<AdventurerDeathLootOutcome> deathLootOutcomes = new();
+    [SerializeField] List<AdventurerEscapeLootOutcome> escapeLootOutcomes = new();
+    [SerializeField, Min(1)] int nextRecoverableLootDropNumber = 1;
+    [SerializeField, Min(1)] int nextRuntimeAgentId = 1;
+
+    public IReadOnlyList<RecoverableLootDrop> RecoverableLootDrops =>
+        recoverableLootDrops ??
+        (IReadOnlyList<RecoverableLootDrop>)Array.Empty<RecoverableLootDrop>();
+    public IReadOnlyList<AdventurerDeathLootOutcome> DeathLootOutcomes =>
+        deathLootOutcomes ??
+        (IReadOnlyList<AdventurerDeathLootOutcome>)Array.Empty<AdventurerDeathLootOutcome>();
+    public IReadOnlyList<AdventurerEscapeLootOutcome> EscapeLootOutcomes =>
+        escapeLootOutcomes ??
+        (IReadOnlyList<AdventurerEscapeLootOutcome>)Array.Empty<AdventurerEscapeLootOutcome>();
+    public int NextRecoverableLootDropNumber =>
+        Mathf.Max(1, nextRecoverableLootDropNumber);
+    public int NextRuntimeAgentId => Mathf.Max(1, nextRuntimeAgentId);
+
+    public NPCTraversalScenarioState(
+        IReadOnlyList<RecoverableLootDrop> drops,
+        IReadOnlyList<AdventurerDeathLootOutcome> deathOutcomes,
+        IReadOnlyList<AdventurerEscapeLootOutcome> escapeOutcomes,
+        int nextDropNumber,
+        int nextAgentId)
+    {
+        recoverableLootDrops = CopyDrops(drops);
+        deathLootOutcomes = CopyDeathOutcomes(deathOutcomes);
+        escapeLootOutcomes = CopyEscapeOutcomes(escapeOutcomes);
+        nextRecoverableLootDropNumber = Mathf.Max(1, nextDropNumber);
+        nextRuntimeAgentId = Mathf.Max(1, nextAgentId);
+    }
+
+    internal NPCTraversalScenarioState Copy()
+    {
+        return new NPCTraversalScenarioState(
+            RecoverableLootDrops,
+            DeathLootOutcomes,
+            EscapeLootOutcomes,
+            NextRecoverableLootDropNumber,
+            NextRuntimeAgentId);
+    }
+
+    static List<RecoverableLootDrop> CopyDrops(
+        IReadOnlyList<RecoverableLootDrop> source)
+    {
+        var result = new List<RecoverableLootDrop>(source?.Count ?? 0);
+        if (source == null)
+            return result;
+        for (int i = 0; i < source.Count; i++)
+            if (source[i] != null)
+                result.Add(source[i].Copy());
+        return result;
+    }
+
+    static List<AdventurerDeathLootOutcome> CopyDeathOutcomes(
+        IReadOnlyList<AdventurerDeathLootOutcome> source)
+    {
+        var result = new List<AdventurerDeathLootOutcome>(source?.Count ?? 0);
+        if (source == null)
+            return result;
+        for (int i = 0; i < source.Count; i++)
+            if (source[i] != null)
+                result.Add(source[i].Copy());
+        return result;
+    }
+
+    static List<AdventurerEscapeLootOutcome> CopyEscapeOutcomes(
+        IReadOnlyList<AdventurerEscapeLootOutcome> source)
+    {
+        var result = new List<AdventurerEscapeLootOutcome>(source?.Count ?? 0);
+        if (source == null)
+            return result;
+        for (int i = 0; i < source.Count; i++)
+            if (source[i] != null)
+                result.Add(source[i].Copy());
+        return result;
     }
 }
