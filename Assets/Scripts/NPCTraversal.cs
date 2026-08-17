@@ -160,6 +160,8 @@ public class NPCTraversal : MonoBehaviour
     public int DeathLootOutcomeCount => deathLootOutcomes.Count;
     public int SuccessfulEscapeLootOutcomeCount => successfulEscapeLootOutcomes.Count;
     public int RecoverableLootDropCount => recoverableLootDrops.Count;
+    public int NextRecoverableLootDropNumber =>
+        Mathf.Max(1, nextRecoverableLootDropNumber);
     public int PhysicalRecoverableLootDropCount
     {
         get
@@ -702,11 +704,16 @@ public class NPCTraversal : MonoBehaviour
     }
 
     public int RestoreRecoverableLootDrops(
-        IReadOnlyList<RecoverableLootDrop> savedDrops)
+        IReadOnlyList<RecoverableLootDrop> savedDrops,
+        int restoredNextDropNumber = 1)
     {
         ClearRecoverableLootDrops();
         if (savedDrops == null)
+        {
+            nextRecoverableLootDropNumber = Mathf.Max(
+                1, restoredNextDropNumber);
             return 0;
+        }
 
         var restoredIds = new HashSet<string>();
         for (int i = 0; i < savedDrops.Count; i++)
@@ -738,6 +745,9 @@ public class NPCTraversal : MonoBehaviour
             }
         }
 
+        nextRecoverableLootDropNumber = Mathf.Max(
+            nextRecoverableLootDropNumber,
+            restoredNextDropNumber);
         return recoverableLootDrops.Count;
     }
 

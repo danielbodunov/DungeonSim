@@ -161,7 +161,21 @@ public class InputManager : MonoBehaviour
 
     public bool IsPointerOverUI()
     {
-        return UnityEngine.EventSystems.EventSystem.current.IsPointerOverGameObject();
+        return UnityEngine.EventSystems.EventSystem.current != null &&
+            UnityEngine.EventSystems.EventSystem.current.IsPointerOverGameObject();
+    }
+
+    public bool TryGetPointerRay(out Ray ray)
+    {
+        ray = default;
+        if (!ResolveInputOwnership().PointerInputOwned ||
+            sceneCamera == null || Mouse.current == null)
+        {
+            return false;
+        }
+
+        ray = sceneCamera.ScreenPointToRay(Mouse.current.position.ReadValue());
+        return true;
     }
 
     /// <summary>

@@ -48,6 +48,8 @@ public class TilePlacement : MonoBehaviour
     public bool IsRemovingTraps => removingTraps;
     public bool IsRemovingEntrance => removingEntrance;
     public bool IsEditingEdges => editingEdges;
+    public bool IsPlacementActive => removingTraps || removingEntrance ||
+        editingEdges || selectedObjectIndex >= 0;
     public CellWidthIntent WidthIntent => widthIntent;
     public int SelectedObjectId => selectedObjectIndex >= 0 &&
         database != null && selectedObjectIndex < database.objectsData.Count

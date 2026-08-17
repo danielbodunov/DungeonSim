@@ -337,6 +337,110 @@ public sealed class RecoverableLootDrop
 }
 
 /// <summary>
+/// One physical item deliberately recovered into dungeon storage by the
+/// player. This is inventory state, not an Aura balance.
+/// </summary>
+[Serializable]
+public sealed class DungeonStoredLootItem
+{
+    [SerializeField] string itemId;
+    [SerializeField, Min(0)] int value;
+    [SerializeField] RecoverableLootOrigin origin;
+    [SerializeField] Vector2Int sourceCell;
+    [SerializeField] bool hasSourceCell;
+    [SerializeField] string recoveryDropId;
+
+    public string ItemId => itemId;
+    public int Value => value;
+    public RecoverableLootOrigin Origin => origin;
+    public Vector2Int SourceCell => sourceCell;
+    public bool HasSourceCell => hasSourceCell;
+    public string RecoveryDropId => recoveryDropId;
+
+    public DungeonStoredLootItem(
+        RecoverableLootItem source,
+        string sourceRecoveryDropId)
+    {
+        itemId = source?.ItemId ?? string.Empty;
+        value = source != null ? source.Value : 0;
+        origin = source != null
+            ? source.Origin
+            : RecoverableLootOrigin.AdventurerPossession;
+        sourceCell = source != null ? source.SourceCell : default;
+        hasSourceCell = source != null && source.HasSourceCell;
+        recoveryDropId = sourceRecoveryDropId;
+    }
+
+    internal DungeonStoredLootItem Copy()
+    {
+        return new DungeonStoredLootItem(
+            new RecoverableLootItem(
+                itemId,
+                value,
+                origin,
+                sourceCell,
+                hasSourceCell),
+            recoveryDropId);
+    }
+}
+
+/// <summary>Auditable result of one accepted player recovery action.</summary>
+[Serializable]
+public sealed class PlayerLootRecoveryRecord
+{
+    [SerializeField] string sourceDropId;
+    [SerializeField] Vector2Int recoveryCell;
+    [SerializeField] Vector3 worldPosition;
+    [SerializeField] string sourceAdventurerName;
+    [SerializeField, Min(0)] int recoveredItemCount;
+    [SerializeField, Min(0)] int recoveredValue;
+    [SerializeField, Min(0)] int dungeonTreasureValue;
+    [SerializeField, Min(0)] int adventurerLootValue;
+
+    public string SourceDropId => sourceDropId;
+    public Vector2Int RecoveryCell => recoveryCell;
+    public Vector3 WorldPosition => worldPosition;
+    public string SourceAdventurerName => sourceAdventurerName;
+    public int RecoveredItemCount => recoveredItemCount;
+    public int RecoveredValue => recoveredValue;
+    public int DungeonTreasureValue => dungeonTreasureValue;
+    public int AdventurerLootValue => adventurerLootValue;
+
+    public PlayerLootRecoveryRecord(
+        RecoverableLootDrop sourceDrop,
+        int itemCount,
+        int totalValue,
+        int dungeonOriginValue,
+        int adventurerOriginValue)
+    {
+        sourceDropId = sourceDrop?.DropId ?? string.Empty;
+        recoveryCell = sourceDrop != null ? sourceDrop.DropCell : default;
+        worldPosition = sourceDrop != null ? sourceDrop.WorldPosition : default;
+        sourceAdventurerName = sourceDrop?.SourceAdventurerName ?? string.Empty;
+        recoveredItemCount = Mathf.Max(0, itemCount);
+        recoveredValue = Mathf.Max(0, totalValue);
+        dungeonTreasureValue = Mathf.Max(0, dungeonOriginValue);
+        adventurerLootValue = Mathf.Max(0, adventurerOriginValue);
+    }
+
+    internal PlayerLootRecoveryRecord Copy()
+    {
+        var source = new RecoverableLootDrop(
+            sourceDropId,
+            recoveryCell,
+            worldPosition,
+            sourceAdventurerName,
+            null);
+        return new PlayerLootRecoveryRecord(
+            source,
+            recoveredItemCount,
+            recoveredValue,
+            dungeonTreasureValue,
+            adventurerLootValue);
+    }
+}
+
+/// <summary>
 /// Scenario-owned snapshot of the traversal service's persistent loot and
 /// outcome state. Runtime world objects remain derived from recovery records.
 /// </summary>
