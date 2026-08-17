@@ -8,7 +8,7 @@ None.
 
 ## Awaiting Unity Validation
 
-- [t017 — Adventurer Physical Resource Drops](t017-Adventurer-Physical-Resource-Drops.md)
+None.
 
 ## Ready
 
@@ -60,6 +60,7 @@ None.
 - [t014 — Adventurer Loot Rediscovery](t014-Adventurer-Loot-Rediscovery.md)
 - [t015 — Player Recovery Phase](t015-Player-Recovery-Phase.md)
 - [t016 — Dread Spend & Dungeon Growth Foundation](t016-Dread-Spend-Dungeon-Growth.md)
+- [t017 — Adventurer Physical Resource Drops](t017-Adventurer-Physical-Resource-Drops.md)
 
 ## Roadmaps
 
