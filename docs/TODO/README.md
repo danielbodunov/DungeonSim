@@ -6,6 +6,10 @@ This directory is the working queue for prioritized, actionable tickets. Broader
 
 None.
 
+## Awaiting Unity Validation
+
+None.
+
 ## Ready
 
 None.
@@ -20,7 +24,6 @@ None.
 
 ## Planned — Physical Consequences & Dungeon Economy
 
-- [t017 — Adventurer Physical Resource Drops](t017-Adventurer-Physical-Resource-Drops.md)
 - [t018 — Build Cost Foundation](t018-Build-Cost-Foundation.md)
 
 ## Planned — Strategic Construction
@@ -57,6 +60,7 @@ None.
 - [t014 — Adventurer Loot Rediscovery](t014-Adventurer-Loot-Rediscovery.md)
 - [t015 — Player Recovery Phase](t015-Player-Recovery-Phase.md)
 - [t016 — Dread Spend & Dungeon Growth Foundation](t016-Dread-Spend-Dungeon-Growth.md)
+- [t017 — Adventurer Physical Resource Drops](t017-Adventurer-Physical-Resource-Drops.md)
 
 ## Roadmaps
 

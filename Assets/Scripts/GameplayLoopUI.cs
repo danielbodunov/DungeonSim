@@ -928,6 +928,13 @@ public class GameplayLoopUI : MonoBehaviour
             if (summary.Length > 0)
                 summary.Append(", ");
             summary.Append(item.ItemId);
+            if (item.IsPhysicalResource)
+            {
+                summary.Append(" x");
+                summary.Append(item.ResourceQuantity);
+                summary.Append(" ");
+                summary.Append(item.ResourceCategory);
+            }
             summary.Append(" (");
             summary.Append(item.Value);
             summary.Append(')');

@@ -276,10 +276,13 @@ public class NPCTraversal : MonoBehaviour
                 continue;
             escapedItems.Add(new EscapedLootItem(
                 item.TreasureId,
-                item.Value,
+                item.IsPhysicalResource ? item.UnitValue : item.Value,
                 item.Origin,
                 item.SourceCell,
-                item.HasSourceCell));
+                item.HasSourceCell,
+                item.ContentKind,
+                item.ResourceCategory,
+                item.ResourceQuantity));
         }
 
         visitor.ClearCarriedLootAfterSuccessfulEscape();
@@ -338,10 +341,13 @@ public class NPCTraversal : MonoBehaviour
                 continue;
             recoveredItems.Add(new RecoverableLootItem(
                 item.TreasureId,
-                item.Value,
+                item.IsPhysicalResource ? item.UnitValue : item.Value,
                 item.Origin,
                 item.SourceCell,
-                item.HasSourceCell));
+                item.HasSourceCell,
+                item.ContentKind,
+                item.ResourceCategory,
+                item.ResourceQuantity));
         }
 
         RecoverableLootDrop drop = null;
@@ -1669,6 +1675,30 @@ public class NPCTraversalAgent : MonoBehaviour, ICarriedLootPresentationSource
             return total;
         }
     }
+    public int CarriedPhysicalResourceQuantity
+    {
+        get
+        {
+            int total = 0;
+            for (int i = 0; i < carriedDungeonTreasure.Count; i++)
+                if (carriedDungeonTreasure[i] != null &&
+                    carriedDungeonTreasure[i].IsPhysicalResource)
+                    total += carriedDungeonTreasure[i].ResourceQuantity;
+            return total;
+        }
+    }
+
+    public int GetCarriedPhysicalResourceQuantity(
+        PhysicalResourceCategory category)
+    {
+        int total = 0;
+        for (int i = 0; i < carriedDungeonTreasure.Count; i++)
+            if (carriedDungeonTreasure[i] != null &&
+                carriedDungeonTreasure[i].IsPhysicalResource &&
+                carriedDungeonTreasure[i].ResourceCategory == category)
+                total += carriedDungeonTreasure[i].ResourceQuantity;
+        return total;
+    }
     public float RemainingStamina => character != null ? character.CurrentStamina : 0f;
     public bool IsReturningHome => returningHome;
     public bool VisitInProgress => visitInProgress;
@@ -1861,6 +1891,7 @@ public class NPCTraversalAgent : MonoBehaviour, ICarriedLootPresentationSource
         if (character == null)
             return false;
         character.ResetVisitResources();
+        AddStartingPhysicalResources();
         returningHome = false;
         ClearActiveActivityState();
         visitInProgress = true;
@@ -2160,10 +2191,13 @@ public class NPCTraversalAgent : MonoBehaviour, ICarriedLootPresentationSource
 
             carriedDungeonTreasure.Add(new CarriedDungeonTreasure(
                 item.ItemId,
-                item.Value,
+                item.IsPhysicalResource ? item.UnitValue : item.Value,
                 item.Origin,
                 item.SourceCell,
-                item.HasSourceCell));
+                item.HasSourceCell,
+                item.ContentKind,
+                item.ResourceCategory,
+                item.ResourceQuantity));
             acquiredItemCount++;
         }
 
@@ -2179,6 +2213,27 @@ public class NPCTraversalAgent : MonoBehaviour, ICarriedLootPresentationSource
 
         carriedDungeonTreasure.Clear();
         CarriedLootPresentationChanged?.Invoke();
+    }
+
+    void AddStartingPhysicalResources()
+    {
+        if (character == null)
+            return;
+
+        IReadOnlyList<AdventurerResourcePayload> resources =
+            character.StartingResources;
+        int added = 0;
+        for (int i = 0; i < resources.Count; i++)
+        {
+            AdventurerResourcePayload resource = resources[i];
+            if (resource == null || !resource.IsValid)
+                continue;
+            carriedDungeonTreasure.Add(new CarriedDungeonTreasure(resource));
+            added++;
+        }
+
+        if (added > 0)
+            CarriedLootPresentationChanged?.Invoke();
     }
 
     void RecordArrival(Vector2Int cell)
