@@ -20,7 +20,6 @@ None.
 
 ## Planned — Physical Consequences & Dungeon Economy
 
-- [t016 — Aura Spend & Dungeon Growth Foundation](t016-Aura-Spend-Dungeon-Growth.md)
 - [t017 — Adventurer Physical Resource Drops](t017-Adventurer-Physical-Resource-Drops.md)
 - [t018 — Build Cost Foundation](t018-Build-Cost-Foundation.md)
 
@@ -31,10 +30,6 @@ None.
 - [t021 — Modular Tile Construction Surfaces](t021-Modular-Tile-Construction-Surfaces.md)
 - [t022 — Trap Space & Compatibility Validation](t022-Trap-Space-Compatibility-Validation.md)
 - [t023 — Strategic Building Vertical Slice](t023-Strategic-Building-Vertical-Slice.md)
-
-## Awaiting Unity Validation
-
-None.
 
 ## Completed / Existing Work
 
@@ -55,12 +50,13 @@ None.
 - [t006 — Treasure Pickup & Ownership](t006-NPC-Carried-Treasure.md)
 - [t007 — Adventurer Loot Drop & Dungeon Recovery](t007-Expedition-Vertical-Slice-Validation.md)
 - [t008 — Successful Escape & Lost Treasure](t008-Successful-Escape-Lost-Treasure.md)
-- [t009 — Soul / Aura Harvesting Foundation](t009-Soul-Aura-Harvesting.md)
+- [t009 — Soul / Dread Harvesting Foundation](t009-Soul-Dread-Harvesting.md)
 - [t010 — Expedition Outcomes](t010-Expedition-Outcomes.md)
 - [t012 — Visible Adventurer Carried Loot](t012-Visible-Adventurer-Carried-Loot.md)
 - [t013 — Physical Death Loot Drops](t013-Physical-Death-Loot-Drops.md)
 - [t014 — Adventurer Loot Rediscovery](t014-Adventurer-Loot-Rediscovery.md)
 - [t015 — Player Recovery Phase](t015-Player-Recovery-Phase.md)
+- [t016 — Dread Spend & Dungeon Growth Foundation](t016-Dread-Spend-Dungeon-Growth.md)
 
 ## Roadmaps
 

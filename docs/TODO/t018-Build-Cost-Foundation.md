@@ -14,7 +14,7 @@ Introduce meaningful construction logistics so dungeon building is no longer eff
 - Validate affordability before placement and spend resources only after successful placement.
 - Removal/refund behavior must be explicit and deterministic.
 - Surface costs and insufficient-resource feedback in the build UI.
-- Keep Aura separate from ordinary physical construction costs.
+- Keep Dread separate from ordinary physical construction costs.
 - Design the cost API so tiles, traps, upgrades, and future infrastructure can share it.
 
 ## Acceptance Criteria

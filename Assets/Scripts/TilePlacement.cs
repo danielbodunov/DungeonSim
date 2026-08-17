@@ -1,4 +1,5 @@
 using UnityEngine;
+using System;
 using System.Collections.Generic;
 
 public class TilePlacement : MonoBehaviour
@@ -19,6 +20,7 @@ public class TilePlacement : MonoBehaviour
     [SerializeField]
     private ObjectsDatabaseSO database;
     private int selectedObjectIndex = -1;
+    private Func<Vector2Int, bool> customPlacementHandler;
 
     [SerializeField]
     private GameObject gridVisualization;
@@ -76,16 +78,35 @@ public class TilePlacement : MonoBehaviour
 
     public void StartPlacement(int ID)
     {
+        if (!TryStartPlacement(ID, null, out string failure))
+            Debug.LogWarning(failure, this);
+    }
+
+    public bool TryStartPlacement(
+        int ID,
+        Func<Vector2Int, bool> placementHandler,
+        out string failure)
+    {
+        failure = string.Empty;
         if (!buildingEnabled)
-            return;
+        {
+            failure = "Placement is disabled outside the dungeon expansion phase.";
+            return false;
+        }
+        if (database == null || database.objectsData == null)
+        {
+            failure = "Placement cannot start because the object database is unavailable.";
+            return false;
+        }
 
         StopPlacement(); // Ensure any existing placement is stopped before starting a new one
         selectedObjectIndex = database.objectsData.FindIndex(data => data.ID == ID);
         if (selectedObjectIndex <  0)
         {
-            Debug.LogError($"Invalid object ID: {ID}");
-            return;
+            failure = $"Object {ID} is not present in the placement database.";
+            return false;
         }
+        customPlacementHandler = placementHandler;
         gridVisualization.SetActive(true);
         cellIndicator.SetActive(true);
         CreateFloorPropPreview(database.objectsData[selectedObjectIndex]);
@@ -93,6 +114,7 @@ public class TilePlacement : MonoBehaviour
         inputManager.OnRightClicked += PlaceGround;
         inputManager.OnExit += StopPlacement;
 
+        return true;
     }
 
     public void StartTrapRemoval()
@@ -210,8 +232,14 @@ public class TilePlacement : MonoBehaviour
         }
         else if (selectedObject.PlacementType == ObjectPlacementType.FloorProp)
         {
-            if (tileGridGenerator.PlaceFloorPropWorldPosition(
-                    cellCenter, selectedObject.Prefab, selectedObject.ID))
+            tileGridGenerator.TryWorldToCell(
+                cellCenter,
+                out Vector2Int logicalCell);
+            bool placed = customPlacementHandler != null
+                ? customPlacementHandler.Invoke(logicalCell)
+                : tileGridGenerator.PlaceFloorPropWorldPosition(
+                    cellCenter, selectedObject.Prefab, selectedObject.ID);
+            if (placed)
             {
                 lastDragCell = gridPosition;
             }
@@ -236,6 +264,7 @@ public class TilePlacement : MonoBehaviour
         DestroyFloorPropPreview();
         ClearPreviewTint(cellIndicatorRenderers);
         selectedObjectIndex = -1;
+        customPlacementHandler = null;
         removingTraps = false;
         removingEntrance = false;
         editingEdges = false;

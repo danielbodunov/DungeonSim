@@ -1,19 +1,19 @@
 using System;
 using UnityEngine;
 
-public enum AuraHarvestSource
+public enum DreadHarvestSource
 {
     AdventurerDeath
 }
 
 /// <summary>
-/// One request to credit Aura from a qualifying dungeon experience. HarvestId
+/// One request to credit Dread from a qualifying dungeon experience. HarvestId
 /// is the idempotency key used by the authoritative currency owner.
 /// </summary>
-public readonly struct AuraHarvestRequest
+public readonly struct DreadHarvestRequest
 {
     public string HarvestId { get; }
-    public AuraHarvestSource Source { get; }
+    public DreadHarvestSource Source { get; }
     public int Amount { get; }
     public string SourceId { get; }
     public string SourceName { get; }
@@ -23,9 +23,9 @@ public readonly struct AuraHarvestRequest
     public Vector2Int Cell { get; }
     public Vector3 WorldPosition { get; }
 
-    public AuraHarvestRequest(
+    public DreadHarvestRequest(
         string harvestId,
-        AuraHarvestSource source,
+        DreadHarvestSource source,
         int amount,
         string sourceId,
         string sourceName,
@@ -48,12 +48,12 @@ public readonly struct AuraHarvestRequest
     }
 }
 
-/// <summary>Auditable result of one accepted Aura harvest.</summary>
+/// <summary>Auditable result of one accepted Dread harvest.</summary>
 [Serializable]
-public sealed class AuraHarvestRecord
+public sealed class DreadHarvestRecord
 {
     [SerializeField] string harvestId;
-    [SerializeField] AuraHarvestSource source;
+    [SerializeField] DreadHarvestSource source;
     [SerializeField, Min(0)] int amount;
     [SerializeField] string sourceId;
     [SerializeField] string sourceName;
@@ -65,7 +65,7 @@ public sealed class AuraHarvestRecord
     [SerializeField, Min(0)] int duplicateAttempts;
 
     public string HarvestId => harvestId;
-    public AuraHarvestSource Source => source;
+    public DreadHarvestSource Source => source;
     public int Amount => amount;
     public string SourceId => sourceId;
     public string SourceName => sourceName;
@@ -76,7 +76,7 @@ public sealed class AuraHarvestRecord
     public Vector3 WorldPosition => worldPosition;
     public int DuplicateAttempts => duplicateAttempts;
 
-    public AuraHarvestRecord(AuraHarvestRequest request)
+    public DreadHarvestRecord(DreadHarvestRequest request)
     {
         harvestId = request.HarvestId;
         source = request.Source;
@@ -95,10 +95,10 @@ public sealed class AuraHarvestRecord
         duplicateAttempts++;
     }
 
-    internal AuraHarvestRecord Copy()
+    internal DreadHarvestRecord Copy()
     {
-        var copy = new AuraHarvestRecord(
-            new AuraHarvestRequest(
+        var copy = new DreadHarvestRecord(
+            new DreadHarvestRequest(
                 harvestId,
                 source,
                 amount,

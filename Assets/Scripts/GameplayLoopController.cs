@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 public enum DungeonPhase
 {
@@ -16,25 +17,31 @@ public enum DungeonPhase
 public sealed class GameplayLoopScenarioState
 {
     [SerializeField, Min(0)] int dungeonOpenCount;
-    [SerializeField, Min(0)] int adventurerAura;
+    [FormerlySerializedAs("adventurerAura")]
+    [SerializeField, Min(0)] int dread;
     [SerializeField, Min(1)] int dungeonLevel = 1;
     [SerializeField, Range(0.1f, 10f)] float selectedSpeed = 1f;
     [SerializeField] List<NPCCharacterRecord> adventurerRoster = new();
-    [SerializeField] List<AuraHarvestRecord> auraHarvests = new();
+    [FormerlySerializedAs("auraHarvests")]
+    [SerializeField] List<DreadHarvestRecord> dreadHarvests = new();
+    [SerializeField] List<DreadSpendRecord> dreadSpends = new();
     [SerializeField] List<ExpeditionOutcomeRecord> expeditionOutcomes = new();
     [SerializeField] List<DungeonStoredLootItem> recoveredLootInventory = new();
     [SerializeField] List<PlayerLootRecoveryRecord> playerLootRecoveries = new();
 
     public int DungeonOpenCount => Mathf.Max(0, dungeonOpenCount);
-    public int AdventurerAura => Mathf.Max(0, adventurerAura);
+    public int Dread => Mathf.Max(0, dread);
     public int DungeonLevel => Mathf.Max(1, dungeonLevel);
     public float SelectedSpeed => Mathf.Clamp(selectedSpeed, 0.1f, 10f);
     public IReadOnlyList<NPCCharacterRecord> AdventurerRoster =>
         adventurerRoster ??
         (IReadOnlyList<NPCCharacterRecord>)Array.Empty<NPCCharacterRecord>();
-    public IReadOnlyList<AuraHarvestRecord> AuraHarvests =>
-        auraHarvests ??
-        (IReadOnlyList<AuraHarvestRecord>)Array.Empty<AuraHarvestRecord>();
+    public IReadOnlyList<DreadHarvestRecord> DreadHarvests =>
+        dreadHarvests ??
+        (IReadOnlyList<DreadHarvestRecord>)Array.Empty<DreadHarvestRecord>();
+    public IReadOnlyList<DreadSpendRecord> DreadSpends =>
+        dreadSpends ??
+        (IReadOnlyList<DreadSpendRecord>)Array.Empty<DreadSpendRecord>();
     public IReadOnlyList<ExpeditionOutcomeRecord> ExpeditionOutcomes =>
         expeditionOutcomes ??
         (IReadOnlyList<ExpeditionOutcomeRecord>)Array.Empty<ExpeditionOutcomeRecord>();
@@ -47,21 +54,23 @@ public sealed class GameplayLoopScenarioState
 
     public GameplayLoopScenarioState(
         int openCount,
-        int aura,
+        int savedDread,
         int level,
         float gameplaySpeed,
         IReadOnlyList<NPCCharacterRecord> roster,
-        IReadOnlyList<AuraHarvestRecord> harvests,
+        IReadOnlyList<DreadHarvestRecord> harvests,
         IReadOnlyList<ExpeditionOutcomeRecord> outcomes,
         IReadOnlyList<DungeonStoredLootItem> storedLoot = null,
-        IReadOnlyList<PlayerLootRecoveryRecord> recoveries = null)
+        IReadOnlyList<PlayerLootRecoveryRecord> recoveries = null,
+        IReadOnlyList<DreadSpendRecord> spends = null)
     {
         dungeonOpenCount = Mathf.Max(0, openCount);
-        adventurerAura = Mathf.Max(0, aura);
+        dread = Mathf.Max(0, savedDread);
         dungeonLevel = Mathf.Max(1, level);
         selectedSpeed = Mathf.Clamp(gameplaySpeed, 0.1f, 10f);
         adventurerRoster = CopyRoster(roster);
-        auraHarvests = CopyHarvests(harvests);
+        dreadHarvests = CopyHarvests(harvests);
+        dreadSpends = CopySpends(spends);
         expeditionOutcomes = CopyOutcomes(outcomes);
         recoveredLootInventory = CopyStoredLoot(storedLoot);
         playerLootRecoveries = CopyRecoveries(recoveries);
@@ -71,14 +80,15 @@ public sealed class GameplayLoopScenarioState
     {
         return new GameplayLoopScenarioState(
             DungeonOpenCount,
-            AdventurerAura,
+            Dread,
             DungeonLevel,
             SelectedSpeed,
             AdventurerRoster,
-            AuraHarvests,
+            DreadHarvests,
             ExpeditionOutcomes,
             RecoveredLootInventory,
-            PlayerLootRecoveries);
+            PlayerLootRecoveries,
+            DreadSpends);
     }
 
     static List<NPCCharacterRecord> CopyRoster(
@@ -110,10 +120,22 @@ public sealed class GameplayLoopScenarioState
         return result;
     }
 
-    static List<AuraHarvestRecord> CopyHarvests(
-        IReadOnlyList<AuraHarvestRecord> source)
+    static List<DreadHarvestRecord> CopyHarvests(
+        IReadOnlyList<DreadHarvestRecord> source)
     {
-        var result = new List<AuraHarvestRecord>(source?.Count ?? 0);
+        var result = new List<DreadHarvestRecord>(source?.Count ?? 0);
+        if (source == null)
+            return result;
+        for (int i = 0; i < source.Count; i++)
+            if (source[i] != null)
+                result.Add(source[i].Copy());
+        return result;
+    }
+
+    static List<DreadSpendRecord> CopySpends(
+        IReadOnlyList<DreadSpendRecord> source)
+    {
+        var result = new List<DreadSpendRecord>(source?.Count ?? 0);
         if (source == null)
             return result;
         for (int i = 0; i < source.Count; i++)
@@ -177,13 +199,18 @@ public class GameplayLoopController : MonoBehaviour
     [Header("Adventurers")]
     [SerializeField, Min(0.1f)] float adventurerSpawnInterval = 5f;
 
-    [Header("Adventurer Aura")]
-    [SerializeField, Min(0)] int adventurerAura;
+    [Header("Dread")]
+    [FormerlySerializedAs("adventurerAura")]
+    [SerializeField, Min(0)] int dread;
     [SerializeField, Min(1)] int dungeonLevel = 1;
-    [SerializeField, Min(0)] int auraPerNewCell = 1;
-    [SerializeField, Min(0)] int auraPerDamage = 1;
-    [SerializeField, Min(0)] int baseDefeatAura = 10;
+    [FormerlySerializedAs("auraPerNewCell")]
+    [SerializeField, Min(0)] int dreadPerNewCell = 1;
+    [FormerlySerializedAs("auraPerDamage")]
+    [SerializeField, Min(0)] int dreadPerDamage = 1;
+    [FormerlySerializedAs("baseDefeatAura")]
+    [SerializeField, Min(0)] int baseDefeatDread = 10;
     [SerializeField, Min(1f)] float defeatLevelExponent = 2f;
+    [SerializeField, Min(1)] int treasureManifestationDreadCost = 10;
 
     TilePlacement tilePlacement;
     TileGridGenerator tileGrid;
@@ -196,9 +223,11 @@ public class GameplayLoopController : MonoBehaviour
     readonly List<NPCCharacterRecord> roundVisitors = new();
     readonly Dictionary<NPCCharacter, NPCCharacterRecord> activeRecords = new();
     readonly Dictionary<NPCCharacter, NPCTraversalAgent> activeVisitors = new();
-    readonly Dictionary<NPCCharacter, int> pendingVisitAura = new();
-    readonly List<AuraHarvestRecord> auraHarvests = new();
-    readonly Dictionary<string, AuraHarvestRecord> auraHarvestsById = new();
+    readonly Dictionary<NPCCharacter, int> pendingVisitDread = new();
+    readonly List<DreadHarvestRecord> dreadHarvests = new();
+    readonly Dictionary<string, DreadHarvestRecord> dreadHarvestsById = new();
+    readonly List<DreadSpendRecord> dreadSpends = new();
+    readonly Dictionary<string, DreadSpendRecord> dreadSpendsById = new();
     readonly List<ExpeditionOutcomeRecord> expeditionOutcomes = new();
     readonly Dictionary<string, ExpeditionOutcomeRecord> expeditionOutcomesById = new();
     [SerializeField] List<DungeonStoredLootItem> recoveredLootInventory = new();
@@ -227,30 +256,46 @@ public class GameplayLoopController : MonoBehaviour
     public TileGridGenerator DungeonGrid => tileGrid;
     public int DungeonOpenCount => dungeonOpenCount;
     public int DaysOpened => dungeonOpenCount;
-    public int AdventurerAura => adventurerAura;
-    public IReadOnlyList<AuraHarvestRecord> AuraHarvests => auraHarvests;
-    public int AuraHarvestCount => auraHarvests.Count;
+    public int Dread => dread;
+    public IReadOnlyList<DreadHarvestRecord> DreadHarvests => dreadHarvests;
+    public int DreadHarvestCount => dreadHarvests.Count;
+    public IReadOnlyList<DreadSpendRecord> DreadSpends => dreadSpends;
+    public int DreadSpendCount => dreadSpends.Count;
+    public int TreasureManifestationDreadCost =>
+        Mathf.Max(1, treasureManifestationDreadCost);
+    public string LastDreadActionMessage { get; private set; } = string.Empty;
     public IReadOnlyList<ExpeditionOutcomeRecord> ExpeditionOutcomes =>
         expeditionOutcomes;
     public int ExpeditionOutcomeCount => expeditionOutcomes.Count;
-    public int TotalHarvestedAura
+    public int TotalHarvestedDread
     {
         get
         {
             int total = 0;
-            for (int i = 0; i < auraHarvests.Count; i++)
-                if (auraHarvests[i] != null)
-                    total += auraHarvests[i].Amount;
+            for (int i = 0; i < dreadHarvests.Count; i++)
+                if (dreadHarvests[i] != null)
+                    total += dreadHarvests[i].Amount;
+            return total;
+        }
+    }
+    public int TotalSpentDread
+    {
+        get
+        {
+            int total = 0;
+            for (int i = 0; i < dreadSpends.Count; i++)
+                if (dreadSpends[i] != null)
+                    total += dreadSpends[i].Amount;
             return total;
         }
     }
     public int DungeonLevel => dungeonLevel;
-    public int PendingAdventurerAura
+    public int PendingVisitDread
     {
         get
         {
             int total = 0;
-            foreach (int amount in pendingVisitAura.Values)
+            foreach (int amount in pendingVisitDread.Values)
                 total += amount;
             return total;
         }
@@ -268,7 +313,8 @@ public class GameplayLoopController : MonoBehaviour
         SumRecoveredLootValue(RecoverableLootOrigin.AdventurerPossession);
 
     public event Action StateChanged;
-    public event Action<AuraHarvestRecord> AuraHarvested;
+    public event Action<DreadHarvestRecord> DreadHarvested;
+    public event Action<DreadSpendRecord> DreadSpent;
     public event Action<ExpeditionOutcomeRecord> ExpeditionCompleted;
     public event Action<PlayerLootRecoveryRecord> LootRecovered;
 
@@ -594,14 +640,15 @@ public class GameplayLoopController : MonoBehaviour
     {
         return new GameplayLoopScenarioState(
             dungeonOpenCount,
-            adventurerAura,
+            dread,
             dungeonLevel,
             selectedSpeed,
             CaptureLivingAdventurers(),
-            auraHarvests,
+            dreadHarvests,
             expeditionOutcomes,
             recoveredLootInventory,
-            playerLootRecoveries);
+            playerLootRecoveries,
+            dreadSpends);
     }
 
     /// <summary>
@@ -620,7 +667,8 @@ public class GameplayLoopController : MonoBehaviour
         if (snapshot == null)
         {
             PrepareForScenarioApply();
-            ClearAuraHarvestHistory();
+            ClearDreadHarvestHistory();
+            ClearDreadSpendHistory();
             ClearExpeditionOutcomeHistory();
             ClearRecoveredLootState();
             StateChanged?.Invoke();
@@ -630,21 +678,22 @@ public class GameplayLoopController : MonoBehaviour
         RestoreProgress(
             snapshot.DungeonOpenCount,
             snapshot.SelectedSpeed,
-            snapshot.AdventurerAura,
+            snapshot.Dread,
             snapshot.DungeonLevel,
             new List<NPCCharacterRecord>(snapshot.AdventurerRoster),
             snapshot.RecoveredLootInventory,
-            snapshot.PlayerLootRecoveries);
+            snapshot.PlayerLootRecoveries,
+            snapshot.DreadSpends);
 
-        IReadOnlyList<AuraHarvestRecord> restoredHarvests =
-            snapshot.AuraHarvests;
+        IReadOnlyList<DreadHarvestRecord> restoredHarvests =
+            snapshot.DreadHarvests;
         for (int i = 0; i < restoredHarvests.Count; i++)
         {
-            AuraHarvestRecord harvest = restoredHarvests[i]?.Copy();
+            DreadHarvestRecord harvest = restoredHarvests[i]?.Copy();
             if (harvest == null)
                 continue;
-            auraHarvests.Add(harvest);
-            auraHarvestsById.Add(harvest.HarvestId, harvest);
+            dreadHarvests.Add(harvest);
+            dreadHarvestsById.Add(harvest.HarvestId, harvest);
         }
 
         IReadOnlyList<ExpeditionOutcomeRecord> restoredOutcomes =
@@ -682,19 +731,37 @@ public class GameplayLoopController : MonoBehaviour
         }
 
         var harvestIds = new HashSet<string>();
-        IReadOnlyList<AuraHarvestRecord> harvests = snapshot.AuraHarvests;
+        IReadOnlyList<DreadHarvestRecord> harvests = snapshot.DreadHarvests;
         for (int i = 0; i < harvests.Count; i++)
         {
-            AuraHarvestRecord harvest = harvests[i];
+            DreadHarvestRecord harvest = harvests[i];
             if (harvest == null || string.IsNullOrWhiteSpace(harvest.HarvestId) ||
                 !harvestIds.Add(harvest.HarvestId))
             {
-                failure = $"Aura harvest record {i + 1} has a missing or duplicate harvest ID.";
+                failure = $"Dread harvest record {i + 1} has a missing or duplicate harvest ID.";
                 return false;
             }
             if (harvest.DungeonOpenCount > snapshot.DungeonOpenCount)
             {
-                failure = $"Aura harvest '{harvest.HarvestId}' belongs to a later dungeon opening than the captured baseline.";
+                failure = $"Dread harvest '{harvest.HarvestId}' belongs to a later dungeon opening than the captured baseline.";
+                return false;
+            }
+        }
+
+        var spendIds = new HashSet<string>();
+        IReadOnlyList<DreadSpendRecord> spends = snapshot.DreadSpends;
+        for (int i = 0; i < spends.Count; i++)
+        {
+            DreadSpendRecord spend = spends[i];
+            if (spend == null || string.IsNullOrWhiteSpace(spend.SpendId) ||
+                spend.Amount <= 0 || !spendIds.Add(spend.SpendId))
+            {
+                failure = $"Dread spend record {i + 1} has invalid contents or a missing/duplicate spend ID.";
+                return false;
+            }
+            if (spend.DungeonOpenCount > snapshot.DungeonOpenCount)
+            {
+                failure = $"Dread spend '{spend.SpendId}' belongs to a later dungeon opening than the captured baseline.";
                 return false;
             }
         }
@@ -785,18 +852,20 @@ public class GameplayLoopController : MonoBehaviour
     public void RestoreProgress(
         int savedDungeonOpenCount,
         float savedGameplaySpeed,
-        int savedAdventurerAura,
+        int savedDread,
         int savedDungeonLevel,
         List<NPCCharacterRecord> livingAdventurers,
         IReadOnlyList<DungeonStoredLootItem> storedLoot = null,
-        IReadOnlyList<PlayerLootRecoveryRecord> recoveries = null)
+        IReadOnlyList<PlayerLootRecoveryRecord> recoveries = null,
+        IReadOnlyList<DreadSpendRecord> spends = null)
     {
         SetPaused(false);
         SetExpansion();
         dungeonOpenCount = Mathf.Max(0, savedDungeonOpenCount);
-        adventurerAura = Mathf.Max(0, savedAdventurerAura);
+        dread = Mathf.Max(0, savedDread);
         dungeonLevel = Mathf.Max(1, savedDungeonLevel);
-        ClearAuraHarvestHistory();
+        ClearDreadHarvestHistory();
+        RestoreDreadSpendHistory(spends);
         ClearExpeditionOutcomeHistory();
         RestoreRecoveredLootState(storedLoot, recoveries);
         adventurerRoster.Clear();
@@ -855,7 +924,7 @@ public class GameplayLoopController : MonoBehaviour
         {
             activeRecords[spawned.Character] = record;
             activeVisitors[spawned.Character] = spawned;
-            pendingVisitAura[spawned.Character] = 0;
+            pendingVisitDread[spawned.Character] = 0;
             spawned.Character.Damaged += OnAdventurerDamaged;
             spawned.DungeonVisitCompleted += OnDungeonVisitCompleted;
             visitorsScheduled++;
@@ -865,7 +934,7 @@ public class GameplayLoopController : MonoBehaviour
                 spawned.DungeonVisitCompleted -= OnDungeonVisitCompleted;
                 activeRecords.Remove(spawned.Character);
                 activeVisitors.Remove(spawned.Character);
-                pendingVisitAura.Remove(spawned.Character);
+                pendingVisitDread.Remove(spawned.Character);
                 npcTraversal.DespawnAdventurer(spawned);
             }
         }
@@ -905,16 +974,16 @@ public class GameplayLoopController : MonoBehaviour
         bool hasActiveRecord = character != null &&
             activeRecords.TryGetValue(character, out record);
 
-        AuraHarvestRecord deathHarvest = null;
+        DreadHarvestRecord deathHarvest = null;
         if (visitor != null && character != null && visitor.DiedDuringDungeonVisit)
         {
             string harvestId =
-                $"aura:death:opening-{dungeonOpenCount}:agent-{visitor.RuntimeAgentId}";
-            TryHarvestAura(
-                new AuraHarvestRequest(
+                $"dread:death:opening-{dungeonOpenCount}:agent-{visitor.RuntimeAgentId}";
+            TryHarvestDread(
+                new DreadHarvestRequest(
                     harvestId,
-                    AuraHarvestSource.AdventurerDeath,
-                    GetDeathAuraHarvestAmount(character.Level),
+                    DreadHarvestSource.AdventurerDeath,
+                    GetDeathDreadHarvestAmount(character.Level),
                     hasActiveRecord ? record.id : string.Empty,
                     character.CharacterName,
                     visitor.RuntimeAgentId,
@@ -940,13 +1009,13 @@ public class GameplayLoopController : MonoBehaviour
     }
 
     /// <summary>
-    /// Finalizes one visit after its outcome-specific loot and Aura consequences
+    /// Finalizes one visit after its outcome-specific loot and Dread consequences
     /// have run. The stable expedition ID makes every completion path idempotent.
     /// </summary>
     bool TryCompleteExpedition(
         NPCTraversalAgent visitor,
         ExpeditionOutcomeType outcome,
-        AuraHarvestRecord auraHarvest)
+        DreadHarvestRecord dreadHarvest)
     {
         NPCCharacter character = visitor != null ? visitor.Character : null;
         if (visitor == null || character == null)
@@ -1010,7 +1079,7 @@ public class GameplayLoopController : MonoBehaviour
         if (outcome != ExpeditionOutcomeType.SuccessfulEscape)
             character.RecordDungeonVisitCompleted();
 
-        int visitAuraSettled = SettleVisitAura(character);
+        int visitDreadSettled = SettleVisitDread(character);
         if (characterRecord != null)
             character.WriteToRecord(characterRecord);
 
@@ -1034,9 +1103,9 @@ public class GameplayLoopController : MonoBehaviour
                 recoveredItemCount,
                 recoveredValue,
                 recoveryDropId,
-                auraHarvest != null ? auraHarvest.Amount : 0,
-                visitAuraSettled,
-                auraHarvest != null ? auraHarvest.HarvestId : string.Empty));
+                dreadHarvest != null ? dreadHarvest.Amount : 0,
+                visitDreadSettled,
+                dreadHarvest != null ? dreadHarvest.HarvestId : string.Empty));
 
         expeditionOutcomes.Add(completed);
         expeditionOutcomesById.Add(completed.ExpeditionId, completed);
@@ -1082,7 +1151,7 @@ public class GameplayLoopController : MonoBehaviour
         NPCTraversalAgent visitor,
         NPCCharacter character,
         NPCCharacterRecord characterRecord,
-        bool settleAura)
+        bool settleDread)
     {
         if (character == null)
             return;
@@ -1092,44 +1161,121 @@ public class GameplayLoopController : MonoBehaviour
         character.Damaged -= OnAdventurerDamaged;
         if (visitor != null)
             visitor.DungeonVisitCompleted -= OnDungeonVisitCompleted;
-        if (settleAura)
-            SettleVisitAura(character);
+        if (settleDread)
+            SettleVisitDread(character);
         activeRecords.Remove(character);
         activeVisitors.Remove(character);
     }
 
     /// <summary>
-    /// Credits an Aura harvest exactly once. Callers provide a stable harvest
+    /// Credits a Dread harvest exactly once. Callers provide a stable harvest
     /// ID plus source context; the currency mutation remains owned here.
     /// </summary>
-    public bool TryHarvestAura(
-        AuraHarvestRequest request,
-        out AuraHarvestRecord harvest)
+    public bool TryHarvestDread(
+        DreadHarvestRequest request,
+        out DreadHarvestRecord harvest)
     {
         harvest = null;
         if (string.IsNullOrWhiteSpace(request.HarvestId) || request.Amount <= 0)
             return false;
 
-        if (auraHarvestsById.TryGetValue(request.HarvestId, out harvest))
+        if (dreadHarvestsById.TryGetValue(request.HarvestId, out harvest))
         {
             harvest.RecordDuplicateAttempt();
             StateChanged?.Invoke();
             return false;
         }
 
-        harvest = new AuraHarvestRecord(request);
-        auraHarvests.Add(harvest);
-        auraHarvestsById.Add(harvest.HarvestId, harvest);
-        adventurerAura += harvest.Amount;
-        AuraHarvested?.Invoke(harvest);
+        harvest = new DreadHarvestRecord(request);
+        dreadHarvests.Add(harvest);
+        dreadHarvestsById.Add(harvest.HarvestId, harvest);
+        dread += harvest.Amount;
+        DreadHarvested?.Invoke(harvest);
         StateChanged?.Invoke();
         return true;
     }
 
-    void ClearAuraHarvestHistory()
+    /// <summary>
+    /// Applies one validated growth effect and debits Dread only if that
+    /// production operation succeeds. Duplicate IDs never reapply the effect.
+    /// </summary>
+    public bool TrySpendDread(
+        DreadSpendRequest request,
+        Func<bool> applyGrowth,
+        out DreadSpendRecord spend,
+        out string failure)
     {
-        auraHarvests.Clear();
-        auraHarvestsById.Clear();
+        spend = null;
+        failure = string.Empty;
+        if (string.IsNullOrWhiteSpace(request.SpendId) || request.Amount <= 0)
+        {
+            failure = "A Dread purchase needs a stable ID and positive cost.";
+            return false;
+        }
+        if (dreadSpendsById.TryGetValue(request.SpendId, out spend))
+        {
+            spend.RecordDuplicateAttempt();
+            failure = $"Dread spend '{request.SpendId}' was already completed.";
+            StateChanged?.Invoke();
+            return false;
+        }
+        if (dread < request.Amount)
+        {
+            failure = $"The purchase needs {request.Amount} Dread; only {dread} is available.";
+            return false;
+        }
+        if (applyGrowth == null || !applyGrowth.Invoke())
+        {
+            failure = "The dungeon growth effect could not be applied; no Dread was spent.";
+            return false;
+        }
+
+        dread -= request.Amount;
+        spend = new DreadSpendRecord(request);
+        dreadSpends.Add(spend);
+        dreadSpendsById.Add(spend.SpendId, spend);
+        DreadSpent?.Invoke(spend);
+        StateChanged?.Invoke();
+        return true;
+    }
+
+    public List<DreadSpendRecord> CaptureDreadSpends()
+    {
+        var result = new List<DreadSpendRecord>(dreadSpends.Count);
+        for (int i = 0; i < dreadSpends.Count; i++)
+            if (dreadSpends[i] != null)
+                result.Add(dreadSpends[i].Copy());
+        return result;
+    }
+
+    void ClearDreadHarvestHistory()
+    {
+        dreadHarvests.Clear();
+        dreadHarvestsById.Clear();
+    }
+
+    void RestoreDreadSpendHistory(IReadOnlyList<DreadSpendRecord> spends)
+    {
+        ClearDreadSpendHistory();
+        if (spends == null)
+            return;
+        for (int i = 0; i < spends.Count; i++)
+        {
+            DreadSpendRecord spend = spends[i]?.Copy();
+            if (spend == null || string.IsNullOrWhiteSpace(spend.SpendId) ||
+                dreadSpendsById.ContainsKey(spend.SpendId))
+            {
+                continue;
+            }
+            dreadSpends.Add(spend);
+            dreadSpendsById.Add(spend.SpendId, spend);
+        }
+    }
+
+    void ClearDreadSpendHistory()
+    {
+        dreadSpends.Clear();
+        dreadSpendsById.Clear();
     }
 
     void ClearExpeditionOutcomeHistory()
@@ -1210,54 +1356,140 @@ public class GameplayLoopController : MonoBehaviour
     {
         if (visitor == null || !firstVisit)
             return;
-        AddPendingAura(visitor.Character, auraPerNewCell);
+        AddPendingDread(visitor.Character, dreadPerNewCell);
     }
 
     void OnAdventurerDamaged(NPCCharacter character, int appliedDamage)
     {
-        AddPendingAura(character, appliedDamage * auraPerDamage);
+        AddPendingDread(character, appliedDamage * dreadPerDamage);
     }
 
-    void AddPendingAura(NPCCharacter character, int amount)
+    void AddPendingDread(NPCCharacter character, int amount)
     {
-        if (character == null || amount <= 0 || !pendingVisitAura.ContainsKey(character))
+        if (character == null || amount <= 0 || !pendingVisitDread.ContainsKey(character))
             return;
-        pendingVisitAura[character] += amount;
+        pendingVisitDread[character] += amount;
     }
 
-    int SettleVisitAura(NPCCharacter character)
+    int SettleVisitDread(NPCCharacter character)
     {
-        if (character == null || !pendingVisitAura.TryGetValue(character, out int amount))
+        if (character == null || !pendingVisitDread.TryGetValue(character, out int amount))
             return 0;
         int settledAmount = Mathf.Max(0, amount);
-        adventurerAura += settledAmount;
-        pendingVisitAura.Remove(character);
+        dread += settledAmount;
+        pendingVisitDread.Remove(character);
         return settledAmount;
     }
 
-    public int GetDeathAuraHarvestAmount(int adventurerLevel)
+    public int GetDeathDreadHarvestAmount(int adventurerLevel)
     {
         return Mathf.Max(0, Mathf.RoundToInt(
-            baseDefeatAura * Mathf.Pow(Mathf.Max(1, adventurerLevel), defeatLevelExponent)));
+            baseDefeatDread * Mathf.Pow(Mathf.Max(1, adventurerLevel), defeatLevelExponent)));
     }
 
-    public bool TrySpendAura(int amount)
+    public bool BeginTreasureManifestation(int objectId)
     {
-        if (amount < 0 || adventurerAura < amount)
-            return false;
-        adventurerAura -= amount;
+        if (Phase != DungeonPhase.Expansion)
+            return ReportDreadFailure("Treasure can only be manifested between expeditions.");
+        int cost = TreasureManifestationDreadCost;
+        if (dread < cost)
+            return ReportDreadFailure(
+                $"Treasure manifestation needs {cost} Dread; " +
+                $"only {dread} is available.");
+        if (!TryResolveTreasureDefinition(
+                objectId, out ObjectData treasure, out string failure))
+            return ReportDreadFailure(failure);
+
+        if (!tilePlacement.TryStartPlacement(
+                treasure.ID,
+                cell => TryManifestTreasureAtCell(cell, treasure),
+                out failure))
+        {
+            return ReportDreadFailure(failure);
+        }
+        LastDreadActionMessage =
+            $"Choose a valid cell to manifest treasure for " +
+            $"{cost} Dread.";
         StateChanged?.Invoke();
         return true;
     }
 
-    public bool TryPurchaseDungeonLevel(int auraCost)
+    bool TryManifestTreasureAtCell(Vector2Int cell, ObjectData treasure)
     {
-        if (auraCost <= 0 || adventurerAura < auraCost)
-            return false;
-        adventurerAura -= auraCost;
-        dungeonLevel++;
+        string failure;
+        if (!tileGrid.TryValidateFloorPropPlacement(
+                cell, treasure.Prefab, out failure))
+        {
+            return ReportDreadFailure(failure);
+        }
+
+        var request = new DreadSpendRequest(
+            $"dread:treasure:{Guid.NewGuid():N}",
+            DreadSpendPurpose.TreasureManifestation,
+            TreasureManifestationDreadCost,
+            dungeonOpenCount,
+            cell,
+            treasure.ID,
+            treasure.Prefab.name);
+        bool accepted = TrySpendDread(
+            request,
+            () => tileGrid.PlaceFloorPropCell(
+                cell.x,
+                cell.y,
+                treasure.Prefab,
+                treasure.ID),
+            out _,
+            out failure);
+        if (!accepted)
+            return ReportDreadFailure(failure);
+
+        LastDreadActionMessage =
+            $"Manifested treasure at {cell} for " +
+            $"{TreasureManifestationDreadCost} Dread.";
+        tilePlacement.StopPlacement();
         StateChanged?.Invoke();
         return true;
+    }
+
+    bool TryResolveTreasureDefinition(
+        int objectId,
+        out ObjectData treasure,
+        out string failure)
+    {
+        treasure = null;
+        failure = string.Empty;
+        if (tilePlacement == null || tileGrid == null)
+        {
+            failure = "Treasure manifestation is unavailable in this dungeon.";
+            return false;
+        }
+
+        IReadOnlyList<ObjectData> objects = tilePlacement.AvailableObjects;
+        for (int i = 0; i < objects.Count; i++)
+        {
+            ObjectData candidate = objects[i];
+            if (candidate != null &&
+                candidate.ID == objectId &&
+                candidate.PlacementType == ObjectPlacementType.FloorProp &&
+                candidate.Prefab != null &&
+                candidate.Prefab.GetComponent<TreasureProp>() != null)
+            {
+                treasure = candidate;
+                return true;
+            }
+        }
+
+        failure = $"Object {objectId} is not an available TreasureProp floor prop.";
+        return false;
+    }
+
+    bool ReportDreadFailure(string failure)
+    {
+        LastDreadActionMessage = string.IsNullOrWhiteSpace(failure)
+            ? "The Dread purchase could not be completed."
+            : failure;
+        StateChanged?.Invoke();
+        return false;
     }
 
     void StoreActiveAdventurers()
@@ -1282,7 +1514,7 @@ public class GameplayLoopController : MonoBehaviour
 
         if (activeRecords.Count == 0)
         {
-            pendingVisitAura.Clear();
+            pendingVisitDread.Clear();
             activeVisitors.Clear();
             return;
         }
@@ -1304,7 +1536,7 @@ public class GameplayLoopController : MonoBehaviour
         }
         activeRecords.Clear();
         activeVisitors.Clear();
-        pendingVisitAura.Clear();
+        pendingVisitDread.Clear();
     }
 
     void OnDestroy()

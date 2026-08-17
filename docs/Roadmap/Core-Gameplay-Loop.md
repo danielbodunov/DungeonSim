@@ -6,7 +6,7 @@ DungeonSim is a dungeon-management simulation in which the player acts as a sini
 
 Core loop:
 
-**Build & bait → Adventurers enter → Explore / suffer / steal → Escape or die → Harvest Aura / recover spoils / lose bait → Improve dungeon → Attract more valuable prey**
+**Build & bait → Adventurers enter → Explore / suffer / steal → Escape or die → Harvest Dread / recover spoils / lose bait → Improve dungeon → Attract more valuable prey**
 
 See `docs/Design/Core_Game_Direction.md` for the standing game-direction principles.
 
@@ -23,7 +23,7 @@ Ticket IDs are stable and are not renumbered when the roadmap changes.
 ### t001–t010
 **Status:** Complete
 
-Traversal memory, entrance/spawn contract, POIs, treasure discovery/custody, death recovery, successful escape loss, Aura harvesting, and authoritative expedition outcomes are implemented.
+Traversal memory, entrance/spawn contract, POIs, treasure discovery/custody, death recovery, successful escape loss, Dread harvesting, and authoritative expedition outcomes are implemented.
 
 ### t011 — Sinister Dungeon Vertical Slice Validation
 **Status:** Planned
@@ -50,8 +50,8 @@ Allow later adventurers to discover and steal loot left by previous expeditions.
 ### t015 — Player Recovery Phase
 Allow the player to deliberately recover remaining physical loot between expeditions.
 
-### t016 — Aura Spend & Dungeon Growth Foundation
-Use Aura (working name) for supernatural progression such as dungeon growth, unlocks, build depth, bait generation, traps/spawners, or similar powers. Keep Aura distinct from mundane construction materials.
+### t016 — Dread Spend & Dungeon Growth Foundation
+Use Dread for supernatural progression such as dungeon growth, unlocks, build depth, bait generation, traps/spawners, or similar powers. Keep Dread distinct from mundane construction materials. Treasure manifestation is the first proving purchase.
 
 ### t017 — Adventurer Physical Resource Drops
 Prototype broad physical resources brought by adventurers, such as construction materials, trap components, and arcane components.
@@ -88,7 +88,7 @@ Validate whether spatial and resource constraints produce meaningful dungeon-pla
 
 Keep three concepts distinct unless later validation proves a better model:
 
-- **Aura:** supernatural growth, manifestation, progression, and unlocks.
+- **Dread:** supernatural growth, manifestation, progression, and unlocks.
 - **Physical resources:** construction, trap fabrication, upgrades, and other material logistics.
 - **Treasure:** dungeon-owned bait and risked wealth used to attract adventurers.
 
@@ -96,7 +96,7 @@ Avoid prematurely expanding physical resources into a detailed crafting inventor
 
 ## Later Gameplay Areas
 
-After these slices, likely areas include meaningful exploration, weighted junction selection, known-treasure/greed pressure, return-stamina estimation, fear/non-death Aura sources, personality, survivor reputation/notoriety, and story-facing expedition histories.
+After these slices, likely areas include meaningful exploration, weighted junction selection, known-treasure/greed pressure, return-stamina estimation, fear/non-death Dread sources, personality, survivor reputation/notoriety, and story-facing expedition histories.
 
 ## Deferred / Future Modes
 

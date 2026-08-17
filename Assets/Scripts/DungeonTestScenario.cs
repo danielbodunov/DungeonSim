@@ -167,8 +167,9 @@ public sealed class DungeonTestScenario : ScriptableObject
             GetEntranceReportDescription() +
             $" Runtime baseline: {traversalState.RecoverableLootDrops.Count} " +
             $"recoverable drops, {gameplayState?.RecoveredLootInventory.Count ?? 0} " +
-            $"stored loot items, and {gameplayState?.ExpeditionOutcomes.Count ?? 0} " +
-            "expedition outcomes.";
+            $"stored loot items, {gameplayState?.Dread ?? 0} Dread, " +
+            $"{gameplayState?.DreadSpends.Count ?? 0} Dread spends, and " +
+            $"{gameplayState?.ExpeditionOutcomes.Count ?? 0} expedition outcomes.";
         return true;
     }
 
@@ -325,8 +326,9 @@ public sealed class DungeonTestScenario : ScriptableObject
             GetEntranceReportDescription() +
             $" Restored {traversalState?.RecoverableLootDrops.Count ?? 0} " +
             $"recoverable drops, {gameplayState?.RecoveredLootInventory.Count ?? 0} " +
-            $"stored loot items, and {gameplayState?.ExpeditionOutcomes.Count ?? 0} " +
-            "expedition outcomes.";
+            $"stored loot items, {gameplayState?.Dread ?? 0} Dread, " +
+            $"{gameplayState?.DreadSpends.Count ?? 0} Dread spends, and " +
+            $"{gameplayState?.ExpeditionOutcomes.Count ?? 0} expedition outcomes.";
         return true;
     }
 

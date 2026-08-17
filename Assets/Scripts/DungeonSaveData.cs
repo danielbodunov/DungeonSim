@@ -1,10 +1,11 @@
 using System;
 using System.Collections.Generic;
+using UnityEngine.Serialization;
 
 [Serializable]
 public class DungeonSaveData
 {
-    public const int CurrentVersion = 8;
+    public const int CurrentVersion = 9;
 
     public int version = CurrentVersion;
     public string saveName;
@@ -12,7 +13,8 @@ public class DungeonSaveData
     public int gridWidth;
     public int gridHeight;
     public int dungeonOpenCount;
-    public int adventurerAura;
+    [FormerlySerializedAs("adventurerAura")]
+    public int dread;
     public int dungeonLevel = 1;
     public float selectedGameplaySpeed = 1f;
     public int propGenerationSeed;
@@ -25,6 +27,7 @@ public class DungeonSaveData
     public int nextRecoverableLootDropNumber = 1;
     public List<DungeonStoredLootItem> recoveredLootInventory = new();
     public List<PlayerLootRecoveryRecord> playerLootRecoveries = new();
+    public List<DreadSpendRecord> dreadSpends = new();
     public SavedEntrance entrance;
 }
 

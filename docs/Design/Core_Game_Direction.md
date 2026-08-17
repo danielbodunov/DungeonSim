@@ -27,9 +27,9 @@ This creates a risk/reward decision for the player: valuable bait may draw bette
 
 Treasure should therefore not automatically convert into player currency merely because an NPC finds it.
 
-## Soul Energy / Aura
+## Dread
 
-Soul energy/Aura is the dungeon's supernatural progression resource.
+Dread is the dungeon's supernatural progression resource.
 
 The long-term direction is for adventurer activity inside the dungeon—not only death—to potentially generate harvestable energy. Examples may eventually include exploration, fear, pain, traps, combat, magic use, or death.
 
@@ -44,7 +44,7 @@ An expedition should eventually have explicit outcomes such as:
 - defeated/killed;
 - potentially other story-relevant outcomes later.
 
-These outcomes can affect treasure ownership, loot, Aura, reputation, and future adventurer behavior differently.
+These outcomes can affect treasure ownership, loot, Dread, reputation, and future adventurer behavior differently.
 
 ## Adventurers as Story Generators
 

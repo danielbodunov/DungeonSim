@@ -48,6 +48,7 @@ public class GameplayLoopUI : MonoBehaviour
     TMP_Text recoveryInventoryText;
     TMP_Text selectedRecoveryText;
     TMP_Text recoveryActionText;
+    TMP_Text dreadActionText;
     Button previousRecoveryButton;
     Button nextRecoveryButton;
     Button focusRecoveryButton;
@@ -232,6 +233,18 @@ public class GameplayLoopUI : MonoBehaviour
         CreateLabel(
             panel, "Click a shared boundary", 12,
             new Vector2(850f, -13f), new Vector2(200f, 26f));
+        dreadActionText = CreateText(
+            "Dread Action",
+            panel,
+            string.Empty,
+            12,
+            FontStyles.Normal,
+            TextAlignmentOptions.TopRight,
+            Ink);
+        SetTopLeftRect(
+            dreadActionText.rectTransform,
+            new Vector2(1050f, -8f),
+            new Vector2(450f, 52f));
 
         RectTransform row = CreateRect("Items", panel);
         SetRect(row, Vector2.zero, Vector2.one, new Vector2(14f, 12f), new Vector2(-14f, -78f));
@@ -247,8 +260,21 @@ public class GameplayLoopUI : MonoBehaviour
         for (int i = 0; i < objects.Count; i++)
         {
             ObjectData item = objects[i];
-            Button button = CreateButton(row, item.Name, Vector2.zero, new Vector2(150f, 62f),
-                () => placement.StartPlacement(item.ID));
+            bool manifestsTreasure =
+                item.PlacementType == ObjectPlacementType.FloorProp &&
+                item.Prefab != null &&
+                item.Prefab.GetComponent<TreasureProp>() != null;
+            string label = manifestsTreasure
+                ? $"Manifest Treasure\n{loop.TreasureManifestationDreadCost} Dread"
+                : item.Name;
+            Button button = CreateButton(
+                row,
+                label,
+                Vector2.zero,
+                new Vector2(150f, 62f),
+                manifestsTreasure
+                    ? () => loop.BeginTreasureManifestation(item.ID)
+                    : () => placement.StartPlacement(item.ID));
             paletteButtonImages[item.ID] = button.GetComponent<Image>();
             LayoutElement element = button.gameObject.AddComponent<LayoutElement>();
             element.preferredWidth = 150f;
@@ -632,7 +658,7 @@ public class GameplayLoopUI : MonoBehaviour
         TMP_Text details = CreateText(
             "Details", row,
             $"{savedTime}   •   Opened {slot.DungeonOpenCount} days   •   " +
-            $"Level {slot.DungeonLevel}   •   {slot.AdventurerAura} Aura   •   " +
+            $"Level {slot.DungeonLevel}   •   {slot.Dread} Dread   •   " +
             $"Loot {slot.RecoveredLootValue}   •   " +
             $"{slot.AdventurerCount} NPCs   •   {slot.TileCellCount} cells",
             13, FontStyles.Normal, TextAlignmentOptions.Left, Ink);
@@ -953,13 +979,15 @@ public class GameplayLoopUI : MonoBehaviour
 
         RefreshPaletteSelection();
         RefreshRecoveryPanel();
+        if (dreadActionText != null)
+            dreadActionText.text = loop.LastDreadActionMessage;
 
         string pause = loop.IsPaused ? "  •  PAUSED" : string.Empty;
         if (loop.Phase == DungeonPhase.Expansion)
         {
             phaseDetails.text =
                 $"Rating {BuildRating(loop.DungeonRating)}  •  " +
-                $"Level {loop.DungeonLevel}  •  {loop.AdventurerAura} Aura  •  " +
+                $"Level {loop.DungeonLevel}  •  {loop.Dread} Dread  •  " +
                 $"Opened {loop.DungeonOpenCount} days  •  Build enabled{pause}";
             return;
         }
@@ -969,7 +997,7 @@ public class GameplayLoopUI : MonoBehaviour
         explorationDetails.text =
             $"Rating {BuildRating(loop.DungeonRating)}     Adventurers " +
             $"{loop.ActiveAdventurers}/{loop.MaximumAdventurers}     " +
-            $"Aura {loop.AdventurerAura} (+{loop.PendingAdventurerAura})     " +
+            $"Dread {loop.Dread} (+{loop.PendingVisitDread})     " +
             $"Closes in {seconds / 60:00}:{seconds % 60:00}";
     }
 

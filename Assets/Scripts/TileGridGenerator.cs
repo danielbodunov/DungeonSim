@@ -1430,7 +1430,7 @@ public class TileGridGenerator : MonoBehaviour
         return true;
     }
 
-    bool TryValidateFloorPropPlacement(
+    public bool TryValidateFloorPropPlacement(
         Vector2Int cell,
         GameObject floorPropPrefab,
         out string failure)

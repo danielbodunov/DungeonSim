@@ -25,7 +25,7 @@ CORE PRINCIPLES
    it, and bring it into camera focus.
 
 4. Progression should always be understandable.
-   Dungeon level progress and spendable Adventurer Aura should be visible without
+   Dungeon level progress and spendable Dread should be visible without
    opening a menu. Detailed unlock paths may live in dedicated progression menus.
 
 5. Linear dungeon growth and optional build choices are different systems.
@@ -56,7 +56,7 @@ CURRENT TECHNICAL BASELINE
   action feedback popups.
 - `GameplayLoopUI` currently contains hard-coded colors and dimensions, so a theme
   asset will need to replace those values gradually.
-- Adventurer Aura, pending visit Aura, and dungeon level are already available to
+- Dread, pending visit Dread, and dungeon level are already available to
   the HUD and save system.
 
 
@@ -95,7 +95,7 @@ New Game:
 Load Game:
 
 - Open the existing named save-slot browser.
-- Show save name, last-played time, dungeon level/tier, Aura, adventurer count,
+- Show save name, last-played time, dungeon level/tier, Dread, adventurer count,
   and built-cell count.
 - Handle incompatible or unreadable saves with a clear disabled/error state rather
   than silently removing them.
@@ -136,7 +136,7 @@ Theme tokens should include:
 - Controls: normal, hovered, pressed, selected, focused, and disabled colors or
   sprites for buttons, toggles, tabs, sliders, and input fields.
 - Surfaces: panel, tooltip, modal, inspector, and menu background sprites/materials.
-- Progress displays: health, stamina, Aura, pending Aura, cooldown, and locked
+- Progress displays: health, stamina, Dread, pending Dread, cooldown, and locked
   progress colors/sprites.
 - Layout metrics: common padding, spacing, corner radius, border width, row height,
   button height, and inspector width.
@@ -315,7 +315,7 @@ NPC details:
 - Strength, Dexterity, Luck, and Intelligence
 - Current behavior state and destination
 - Party membership and leader, when parties exist
-- Cells explored, pending visit Aura contribution, and recent important action
+- Cells explored, pending visit Dread contribution, and recent important action
 
 Trap details:
 
@@ -384,33 +384,33 @@ PROGRESSION HUD
 Persistent top bar:
 
 - Place a dungeon-level progress bar across the upper center of the screen.
-- Label it with the current dungeon level and the Aura cost of the next level.
-- Fill represents current spendable Adventurer Aura divided by the next level's
-  cost. Because Aura is the single resource for building and leveling, purchasing
-  a buildable may lower this bar. Purchased dungeon levels never regress.
-- During Exploring, optionally show pending visit Aura as a differently colored
+- Label it with the current dungeon level and the Dread cost of the next level.
+- Fill represents current spendable Dread divided by the next level's cost.
+  Supernatural purchases may lower this bar. Ordinary construction does not.
+  Purchased dungeon levels never regress.
+- During Exploring, optionally show pending visit Dread as a differently colored
   preview segment beyond the banked fill.
 
 Top-right build budget:
 
 - Extend or replace the current top-right phase card with a compact build-budget
   panel.
-- Always show current spendable Adventurer Aura.
-- During placement preview, show object cost and projected remaining Aura.
+- Always show current spendable Dread and the relevant physical build resources.
+- During placement preview, show the applicable resource cost and projected balance.
 - Show insufficient funds clearly before placement is attempted.
 - Include current dungeon level and unlocked vertical tier.
-- During Exploring, replace placement cost with pending Aura and session status.
+- During Exploring, replace placement cost with pending Dread and session status.
 
 Recommended hierarchy:
 
     Dungeon Level 2                         Build Budget
-    [Aura progress toward Level 3       ]   Aura: 145
+    [Dread progress toward Level 3       ]   Dread: 145
                                              Selected: Spike Trap (-20)
                                              Remaining: 125
 
-The bar and numeric Aura display serve different purposes: the bar communicates
-progress toward a level purchase, while the exact number supports building
-decisions.
+The bar and numeric Dread display serve different purposes: the bar communicates
+progress toward a supernatural purchase, while the exact number supports those
+growth decisions.
 
 
 PROGRESSION MENUS
@@ -422,7 +422,7 @@ Dungeon Tier Milestones:
 
 - A linear progression view representing major dungeon expansion milestones.
 - Start with three implemented tiers.
-- Show the current tier, completed requirements, remaining requirements, Aura
+- Show the current tier, completed requirements, remaining requirements, Dread
   cost, unlocked vertical space, and major feature unlocks.
 - Let the player preview later tiers even when they are locked.
 - Initial section-height direction is Tier 1 = 3 floors, Tier 2 = 4 floors, and
@@ -433,7 +433,7 @@ Buildable Technology Tree:
 - A branching unlock tree for optional construction choices.
 - Initial branches: Traps, Spawners, and Decor.
 - Each node shows icon, name, description, prerequisites, dungeon-level/tier gate,
-  Aura cost, and unlock state.
+  Dread cost, and unlock state.
 - Locked downstream nodes remain visible so the player can plan.
 - Purchasing a node is permanent and cannot reduce dungeon level.
 - Use stable node IDs and data assets so unlock state survives renaming and save/load.
@@ -447,7 +447,7 @@ Menu interaction:
   restructuring remain disabled.
 - Opening a progression menu should pause camera input beneath it. Whether it also
   pauses the simulation remains an open decision.
-- Confirm purchases that consume a large percentage of current Aura and always
+- Confirm purchases that consume a large percentage of current Dread and always
   show the remaining balance.
 
 
@@ -492,9 +492,9 @@ Phase 5 - Camera inspection mode
 
 Phase 6 - Progression HUD
 
-- Add the top dungeon-level/Aura bar.
+- Add the top dungeon-level/Dread bar.
 - Add the top-right build-budget panel.
-- Show pending Aura during Exploring and placement-cost projections during
+- Show pending Dread during Exploring and placement-cost projections during
   Expansion.
 
 Phase 7 - Three-tier milestone menu
@@ -538,9 +538,9 @@ INITIAL ACCEPTANCE CRITERIA
   selected object disappears.
 - Selecting an NPC smoothly focuses and follows it until selection is cleared.
 - Selecting a trap or spawner focuses it without forcing permanent camera follow.
-- The top HUD shows dungeon level, progress toward the next level, banked Aura,
-  and pending Aura during a visit.
-- Placement preview shows cost and projected remaining Aura before committing.
+- The top HUD shows dungeon level, progress toward the next level, banked Dread,
+  and pending Dread during a visit.
+- Placement preview shows its applicable physical-resource or Dread cost before committing.
 - Dungeon tiles, traps, and spawners show a valid or invalid highlighted footprint
   before placement.
 - Toggle Wall hover highlights the affected shared edge and shows an Add Wall or
@@ -563,7 +563,7 @@ INCORPORATED DECISIONS
 - Selecting an NPC, trap, or spawner opens an inspector and focuses the camera.
 - NPC camera focus follows the selected NPC until deselection.
 - A dungeon-level progress bar occupies the top of the screen.
-- Spendable Adventurer Aura and build-budget information appear at the top right.
+- Spendable Dread and the separate physical build budget appear at the top right.
 - Dungeon tiers and buildable technologies use separate menus.
 - The first progression implementation contains three dungeon tiers.
 
@@ -585,12 +585,11 @@ OPEN DESIGN QUESTIONS
 4. Should theme selection itself be exposed in Options, or should only
    accessibility variants be player-selectable?
 
-5. Does "build budget" mean only spendable Adventurer Aura, or should dungeon
-   level eventually impose a separate maximum construction-capacity budget?
+5. How should the physical build budget and supernatural Dread balance share the
+   top-right presentation without implying they are interchangeable?
 
-6. Should the top progress bar use current spendable Aura, meaning construction
-   lowers level progress, or should the earlier one-resource decision be revised
-   to track non-spendable lifetime progression separately?
+6. Should the top progress bar use current spendable Dread or track non-spendable
+   lifetime supernatural progression separately?
 
 7. Should progression menus pause an active adventurer run or remain read-only
    over a running simulation?

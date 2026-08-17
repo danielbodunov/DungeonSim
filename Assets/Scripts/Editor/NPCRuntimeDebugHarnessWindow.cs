@@ -18,7 +18,8 @@ public sealed class NPCRuntimeDebugHarnessWindow : EditorWindow
     bool showRecoverableLoot = true;
     bool showDeathLootOutcomes = true;
     bool showSuccessfulEscapeLootOutcomes = true;
-    bool showAuraHarvests = true;
+    bool showDreadHarvests = true;
+    bool showDreadSpends = true;
     bool showExpeditionOutcomes = true;
     int damageAmount = 1;
     int healAmount = 1;
@@ -164,7 +165,7 @@ public sealed class NPCRuntimeDebugHarnessWindow : EditorWindow
         DrawSimulationControls();
         scroll = EditorGUILayout.BeginScrollView(scroll);
         DrawExpeditionOutcomeState();
-        DrawAuraHarvestState();
+        DrawDreadEconomyState();
         DrawRecoverableLootState();
         if (selectedAgent == null)
         {
@@ -238,21 +239,21 @@ public sealed class NPCRuntimeDebugHarnessWindow : EditorWindow
                 ? "none"
                 : outcome.RecoveryDropId;
             EditorGUILayout.LabelField(
-                $"      Aura harvest {outcome.AuraHarvested} + visit {outcome.VisitAuraSettled} " +
-                $"= {outcome.TotalAuraAwarded} | recovery drop {drop}");
+                $"      Dread harvest {outcome.DreadHarvested} + visit {outcome.VisitDreadSettled} " +
+                $"= {outcome.TotalDreadAwarded} | recovery drop {drop}");
             EditorGUILayout.LabelField(
                 $"      {outcome.ExpeditionId} | duplicate completions rejected " +
                 $"{outcome.DuplicateCompletionAttempts}");
         }
     }
 
-    void DrawAuraHarvestState()
+    void DrawDreadEconomyState()
     {
         GameplayLoopController loop = GameplayLoopController.Instance ??
             FindAnyObjectByType<GameplayLoopController>();
 
         EditorGUILayout.Space();
-        EditorGUILayout.LabelField("Aura Harvesting", EditorStyles.boldLabel);
+        EditorGUILayout.LabelField("Dread Economy", EditorStyles.boldLabel);
         if (loop == null)
         {
             EditorGUILayout.HelpBox(
@@ -261,33 +262,37 @@ public sealed class NPCRuntimeDebugHarnessWindow : EditorWindow
             return;
         }
 
-        DrawReadOnlyText("Current Aura", loop.AdventurerAura.ToString());
-        DrawReadOnlyText("Pending Visit Aura", loop.PendingAdventurerAura.ToString());
-        DrawReadOnlyText("Recorded Harvests", loop.AuraHarvestCount.ToString());
-        DrawReadOnlyText("Recorded Harvest Value", loop.TotalHarvestedAura.ToString());
+        DrawReadOnlyText("Current Dread", loop.Dread.ToString());
+        DrawReadOnlyText("Pending Visit Dread", loop.PendingVisitDread.ToString());
+        DrawReadOnlyText("Recorded Harvests", loop.DreadHarvestCount.ToString());
+        DrawReadOnlyText("Recorded Harvest Value", loop.TotalHarvestedDread.ToString());
+        DrawReadOnlyText("Recorded Spends", loop.DreadSpendCount.ToString());
+        DrawReadOnlyText("Recorded Spend Value", loop.TotalSpentDread.ToString());
         if (selectedAgent != null && selectedAgent.Character != null)
         {
             DrawReadOnlyText(
                 "Selected NPC Death Harvest",
-                loop.GetDeathAuraHarvestAmount(
+                loop.GetDeathDreadHarvestAmount(
                     selectedAgent.Character.Level).ToString());
         }
 
-        showAuraHarvests = EditorGUILayout.Foldout(
-            showAuraHarvests,
+        DrawDreadSpendState(loop);
+
+        showDreadHarvests = EditorGUILayout.Foldout(
+            showDreadHarvests,
             "Harvest Details",
             true);
-        if (!showAuraHarvests)
+        if (!showDreadHarvests)
             return;
 
-        IReadOnlyList<AuraHarvestRecord> harvests = loop.AuraHarvests;
+        IReadOnlyList<DreadHarvestRecord> harvests = loop.DreadHarvests;
         if (harvests.Count == 0)
         {
             EditorGUILayout.LabelField("  None");
             return;
         }
 
-        AuraHarvestRecord latest = harvests[harvests.Count - 1];
+        DreadHarvestRecord latest = harvests[harvests.Count - 1];
         using (new EditorGUI.DisabledScope(latest == null))
         {
             if (GUILayout.Button("Retry Latest Harvest (Duplicate Test)"))
@@ -296,7 +301,7 @@ public sealed class NPCRuntimeDebugHarnessWindow : EditorWindow
 
         for (int i = 0; i < harvests.Count; i++)
         {
-            AuraHarvestRecord harvest = harvests[i];
+            DreadHarvestRecord harvest = harvests[i];
             if (harvest == null)
             {
                 EditorGUILayout.LabelField($"  {i + 1}. Missing harvest record");
@@ -313,13 +318,84 @@ public sealed class NPCRuntimeDebugHarnessWindow : EditorWindow
         }
     }
 
+    void DrawDreadSpendState(GameplayLoopController loop)
+    {
+        showDreadSpends = EditorGUILayout.Foldout(
+            showDreadSpends,
+            "Spend Details",
+            true);
+        if (!showDreadSpends)
+            return;
+
+        IReadOnlyList<DreadSpendRecord> spends = loop.DreadSpends;
+        if (spends.Count == 0)
+        {
+            EditorGUILayout.LabelField("  None");
+            return;
+        }
+
+        DreadSpendRecord latest = spends[spends.Count - 1];
+        using (new EditorGUI.DisabledScope(latest == null))
+        {
+            if (GUILayout.Button("Retry Latest Spend (Duplicate Test)"))
+                RetrySpendForDuplicateTest(loop, latest);
+        }
+
+        for (int i = 0; i < spends.Count; i++)
+        {
+            DreadSpendRecord spend = spends[i];
+            if (spend == null)
+            {
+                EditorGUILayout.LabelField($"  {i + 1}. Missing spend record");
+                continue;
+            }
+
+            EditorGUILayout.LabelField(
+                $"  -{spend.Amount} | {spend.Purpose} | cell {spend.Cell} | " +
+                $"opening {spend.DungeonOpenCount}");
+            EditorGUILayout.LabelField(
+                $"      object {spend.ObjectId} ({spend.PrefabName}) | " +
+                $"duplicates rejected {spend.DuplicateAttempts}");
+            EditorGUILayout.LabelField($"      {spend.SpendId}");
+        }
+    }
+
+    void RetrySpendForDuplicateTest(
+        GameplayLoopController loop,
+        DreadSpendRecord spend)
+    {
+        int dreadBefore = loop.Dread;
+        bool effectApplied = false;
+        bool accepted = loop.TrySpendDread(
+            new DreadSpendRequest(
+                spend.SpendId,
+                spend.Purpose,
+                spend.Amount,
+                spend.DungeonOpenCount,
+                spend.Cell,
+                spend.ObjectId,
+                spend.PrefabName),
+            () =>
+            {
+                effectApplied = true;
+                return true;
+            },
+            out DreadSpendRecord result,
+            out _);
+
+        lastActionMessage = !accepted && !effectApplied && loop.Dread == dreadBefore
+            ? $"Duplicate spend rejected; Dread remains {dreadBefore}. " +
+              $"Rejected attempts: {result?.DuplicateAttempts ?? 0}."
+            : "Unexpected duplicate-spend result; inspect Dread and the spend record.";
+    }
+
     void RetryHarvestForDuplicateTest(
         GameplayLoopController loop,
-        AuraHarvestRecord harvest)
+        DreadHarvestRecord harvest)
     {
-        int auraBefore = loop.AdventurerAura;
-        bool accepted = loop.TryHarvestAura(
-            new AuraHarvestRequest(
+        int dreadBefore = loop.Dread;
+        bool accepted = loop.TryHarvestDread(
+            new DreadHarvestRequest(
                 harvest.HarvestId,
                 harvest.Source,
                 harvest.Amount,
@@ -330,12 +406,12 @@ public sealed class NPCRuntimeDebugHarnessWindow : EditorWindow
                 harvest.DungeonOpenCount,
                 harvest.Cell,
                 harvest.WorldPosition),
-            out AuraHarvestRecord result);
+            out DreadHarvestRecord result);
 
-        lastActionMessage = !accepted && loop.AdventurerAura == auraBefore
-            ? $"Duplicate rejected; Aura remains {auraBefore}. " +
+        lastActionMessage = !accepted && loop.Dread == dreadBefore
+            ? $"Duplicate rejected; Dread remains {dreadBefore}. " +
               $"Rejected attempts: {result?.DuplicateAttempts ?? 0}."
-            : "Unexpected duplicate-test result; inspect the harvest record and Aura total.";
+            : "Unexpected duplicate-test result; inspect the harvest record and Dread total.";
     }
 
     void DrawSimulationControls()

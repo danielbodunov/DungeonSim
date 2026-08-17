@@ -14,7 +14,7 @@ Integration / Gameplay Validation
 
 ## Summary
 
-Validate the first complete expression of the game's core fantasy: the dungeon uses treasure as bait, an adventurer enters and explores using personal knowledge, treasure can be stolen, death can recover loot and harvest Aura, and escape can carry dungeon value away.
+Validate the first complete expression of the game's core fantasy: the dungeon uses treasure as bait, an adventurer enters and explores using personal knowledge, treasure can be stolen, death can recover loot and harvest Dread, and escape can carry dungeon value away.
 
 This ticket is primarily integration and gameplay-loop validation, not a container for broad new features.
 
@@ -28,7 +28,7 @@ This ticket is primarily integration and gameplay-loop validation, not a contain
 4. Adventurer investigates and takes the treasure.
 5. Adventurer later dies in the dungeon.
 6. Carried dungeon treasure becomes recoverable exactly once.
-7. Death generates the configured Aura harvest exactly once.
+7. Death generates the configured Dread harvest exactly once.
 8. Expedition completes as defeated/killed.
 
 ### Escape / Loss Flow
@@ -53,7 +53,7 @@ After correctness is established, assess:
 
 - Does treasure feel like something the dungeon risks rather than a free reward?
 - Is the difference between an adventurer stealing treasure and dying with it understandable?
-- Does killing an adventurer feel materially valuable through both Aura and recoverable loot?
+- Does killing an adventurer feel materially valuable through both Dread and recoverable loot?
 - Does an escape feel consequential without simply reading as a generic failure state?
 - Can the player follow enough of the NPC's journey for a small story to emerge?
 - Does dungeon layout appear capable of manipulating the adventurer's journey?
