@@ -166,7 +166,8 @@ public sealed class DungeonTestScenario : ScriptableObject
             $"{floorProps.Count} floor props, and " +
             GetEntranceReportDescription() +
             $" Runtime baseline: {traversalState.RecoverableLootDrops.Count} " +
-            $"recoverable drops and {gameplayState?.ExpeditionOutcomes.Count ?? 0} " +
+            $"recoverable drops, {gameplayState?.RecoveredLootInventory.Count ?? 0} " +
+            $"stored loot items, and {gameplayState?.ExpeditionOutcomes.Count ?? 0} " +
             "expedition outcomes.";
         return true;
     }
@@ -323,7 +324,8 @@ public sealed class DungeonTestScenario : ScriptableObject
             $"{restoredTraps} traps, {restoredFloorProps} floor props, and " +
             GetEntranceReportDescription() +
             $" Restored {traversalState?.RecoverableLootDrops.Count ?? 0} " +
-            $"recoverable drops and {gameplayState?.ExpeditionOutcomes.Count ?? 0} " +
+            $"recoverable drops, {gameplayState?.RecoveredLootInventory.Count ?? 0} " +
+            $"stored loot items, and {gameplayState?.ExpeditionOutcomes.Count ?? 0} " +
             "expedition outcomes.";
         return true;
     }
@@ -368,6 +370,29 @@ public sealed class DungeonTestScenario : ScriptableObject
             {
                 report = $"Scenario gameplay state is invalid: {failure}";
                 return false;
+            }
+        }
+
+        if (traversalState != null && gameplayState != null)
+        {
+            var recoveredDropIds = new HashSet<string>();
+            IReadOnlyList<PlayerLootRecoveryRecord> recoveries =
+                gameplayState.PlayerLootRecoveries;
+            for (int i = 0; i < recoveries.Count; i++)
+                recoveredDropIds.Add(recoveries[i].SourceDropId);
+
+            IReadOnlyList<RecoverableLootDrop> availableDrops =
+                traversalState.RecoverableLootDrops;
+            for (int i = 0; i < availableDrops.Count; i++)
+            {
+                RecoverableLootDrop drop = availableDrops[i];
+                if (recoveredDropIds.Contains(drop.DropId))
+                {
+                    report = $"Scenario runtime state is invalid: loot drop " +
+                        $"'{drop.DropId}' is both physically available and " +
+                        "already credited to dungeon storage.";
+                    return false;
+                }
             }
         }
         return true;

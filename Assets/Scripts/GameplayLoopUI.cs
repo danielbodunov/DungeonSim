@@ -21,6 +21,7 @@ public class GameplayLoopUI : MonoBehaviour
     GameSaveManager saveManager;
     TilePlacement placement;
     InputManager inputManager;
+    NPCTraversal recoveryTraversal;
     GameObject expansionPalette;
     GameObject openDungeonButton;
     GameObject explorationPanel;
@@ -43,6 +44,17 @@ public class GameplayLoopUI : MonoBehaviour
     readonly Dictionary<float, Image> speedButtonImages = new();
     readonly Dictionary<int, Image> paletteButtonImages = new();
     readonly Dictionary<CellWidthIntent, Image> widthButtonImages = new();
+    GameObject recoveryPanel;
+    TMP_Text recoveryInventoryText;
+    TMP_Text selectedRecoveryText;
+    TMP_Text recoveryActionText;
+    Button previousRecoveryButton;
+    Button nextRecoveryButton;
+    Button focusRecoveryButton;
+    Button recoverSelectedButton;
+    string selectedRecoveryDropId;
+    RecoverableLootWorldDrop selectedRecoveryWorldDrop;
+    CameraFollow focusedRecoveryCamera;
 
     void Awake()
     {
@@ -52,6 +64,7 @@ public class GameplayLoopUI : MonoBehaviour
         saveManager = loop != null ? loop.GetComponent<GameSaveManager>() : null;
         placement = FindAnyObjectByType<TilePlacement>();
         inputManager = InputManager.Instance ?? FindAnyObjectByType<InputManager>();
+        recoveryTraversal = FindAnyObjectByType<NPCTraversal>();
 
         EnsureEventSystem();
         BuildInterface();
@@ -60,17 +73,34 @@ public class GameplayLoopUI : MonoBehaviour
     void OnEnable()
     {
         if (loop != null)
+        {
             loop.StateChanged += Refresh;
+            loop.LootRecovered += OnPlayerLootRecovered;
+        }
         if (saveManager != null)
             saveManager.StatusChanged += OnSaveStatusChanged;
+        if (recoveryTraversal != null)
+        {
+            recoveryTraversal.RecoverableLootCreated += OnRecoverableLootChanged;
+            recoveryTraversal.RecoverableLootClaimed += OnRecoverableLootChanged;
+        }
     }
 
     void OnDisable()
     {
         if (loop != null)
+        {
             loop.StateChanged -= Refresh;
+            loop.LootRecovered -= OnPlayerLootRecovered;
+        }
         if (saveManager != null)
             saveManager.StatusChanged -= OnSaveStatusChanged;
+        if (recoveryTraversal != null)
+        {
+            recoveryTraversal.RecoverableLootCreated -= OnRecoverableLootChanged;
+            recoveryTraversal.RecoverableLootClaimed -= OnRecoverableLootChanged;
+        }
+        ClearRecoverySelection(true);
         if (saveMenuOverlay != null && saveMenuOverlay.activeSelf &&
             loop != null && !wasPausedBeforeSaveMenu && loop.IsPaused)
         {
@@ -121,6 +151,7 @@ public class GameplayLoopUI : MonoBehaviour
         BuildDebugPanel(canvasRect);
         BuildExpansionPalette(canvasRect);
         BuildOpenDungeonButton(canvasRect);
+        BuildRecoveryPanel(canvasRect);
         BuildExplorationPanel(canvasRect);
         BuildSaveLoadMenu(canvasRect);
     }
@@ -255,6 +286,95 @@ public class GameplayLoopUI : MonoBehaviour
         button.GetComponentInChildren<TMP_Text>().color = Ink;
         button.GetComponentInChildren<TMP_Text>().fontStyle = FontStyles.Bold;
         openDungeonButton = button.gameObject;
+    }
+
+    void BuildRecoveryPanel(RectTransform parent)
+    {
+        RectTransform panel = CreatePanel(
+            "Physical Loot Recovery",
+            parent,
+            Vector2.one,
+            Vector2.one,
+            Vector2.one,
+            new Vector2(360f, 410f),
+            new Vector2(-18f, -240f),
+            Panel);
+        recoveryPanel = panel.gameObject;
+        CreateLabel(
+            panel,
+            "PHYSICAL LOOT RECOVERY",
+            18,
+            new Vector2(14f, -12f),
+            new Vector2(332f, 28f));
+
+        recoveryInventoryText = CreateText(
+            "Dungeon Storage",
+            panel,
+            string.Empty,
+            14,
+            FontStyles.Normal,
+            TextAlignmentOptions.TopLeft,
+            Ink);
+        SetTopLeftRect(
+            recoveryInventoryText.rectTransform,
+            new Vector2(14f, -48f),
+            new Vector2(332f, 52f));
+
+        previousRecoveryButton = CreateButton(
+            panel,
+            "Previous",
+            new Vector2(14f, -110f),
+            new Vector2(94f, 36f),
+            () => SelectRecoveryOffset(-1));
+        nextRecoveryButton = CreateButton(
+            panel,
+            "Next",
+            new Vector2(116f, -110f),
+            new Vector2(94f, 36f),
+            () => SelectRecoveryOffset(1));
+        focusRecoveryButton = CreateButton(
+            panel,
+            "Focus",
+            new Vector2(218f, -110f),
+            new Vector2(128f, 36f),
+            FocusSelectedRecoveryDrop);
+
+        selectedRecoveryText = CreateText(
+            "Selected Drop",
+            panel,
+            string.Empty,
+            14,
+            FontStyles.Normal,
+            TextAlignmentOptions.TopLeft,
+            Ink);
+        SetTopLeftRect(
+            selectedRecoveryText.rectTransform,
+            new Vector2(14f, -156f),
+            new Vector2(332f, 122f));
+
+        recoverSelectedButton = CreateButton(
+            panel,
+            "Recover Selected Drop",
+            new Vector2(14f, -290f),
+            new Vector2(332f, 44f),
+            RecoverSelectedDrop);
+        recoverSelectedButton.GetComponent<Image>().color = Accent;
+        recoverSelectedButton.GetComponentInChildren<TMP_Text>().color = Ink;
+        recoverSelectedButton.GetComponentInChildren<TMP_Text>().fontStyle =
+            FontStyles.Bold;
+
+        recoveryActionText = CreateText(
+            "Recovery Status",
+            panel,
+            "Click a bag in the dungeon to recover it. Unrecovered bags remain for the next expedition.",
+            12,
+            FontStyles.Normal,
+            TextAlignmentOptions.TopLeft,
+            Ink);
+        SetTopLeftRect(
+            recoveryActionText.rectTransform,
+            new Vector2(14f, -344f),
+            new Vector2(332f, 48f));
     }
 
     void BuildExplorationPanel(RectTransform parent)
@@ -513,6 +633,7 @@ public class GameplayLoopUI : MonoBehaviour
             "Details", row,
             $"{savedTime}   •   Opened {slot.DungeonOpenCount} days   •   " +
             $"Level {slot.DungeonLevel}   •   {slot.AdventurerAura} Aura   •   " +
+            $"Loot {slot.RecoveredLootValue}   •   " +
             $"{slot.AdventurerCount} NPCs   •   {slot.TileCellCount} cells",
             13, FontStyles.Normal, TextAlignmentOptions.Left, Ink);
         SetTopLeftRect(details.rectTransform, new Vector2(14f, -42f), new Vector2(650f, 25f));
@@ -557,6 +678,243 @@ public class GameplayLoopUI : MonoBehaviour
         widthButtonImages[intent] = button.GetComponent<Image>();
     }
 
+    void OnRecoverableLootChanged(RecoverableLootDrop _)
+    {
+        RefreshRecoveryPanel();
+    }
+
+    void OnPlayerLootRecovered(PlayerLootRecoveryRecord recovery)
+    {
+        if (recoveryActionText == null || recovery == null)
+            return;
+        recoveryActionText.text =
+            $"Recovered {recovery.RecoveredItemCount} item(s), value " +
+            $"{recovery.RecoveredValue}. Dungeon treasure " +
+            $"{recovery.DungeonTreasureValue}; adventurer spoils " +
+            $"{recovery.AdventurerLootValue}.";
+    }
+
+    void SelectRecoveryOffset(int offset)
+    {
+        if (loop == null || loop.Phase != DungeonPhase.Expansion ||
+            recoveryTraversal == null)
+        {
+            return;
+        }
+
+        IReadOnlyList<RecoverableLootDrop> drops =
+            recoveryTraversal.RecoverableLootDrops;
+        if (drops.Count == 0)
+            return;
+        int selectedIndex = FindSelectedRecoveryIndex(drops);
+        if (selectedIndex < 0)
+            selectedIndex = 0;
+        int nextIndex = (selectedIndex + offset) % drops.Count;
+        if (nextIndex < 0)
+            nextIndex += drops.Count;
+        SetRecoverySelection(drops[nextIndex]?.DropId, true);
+        RefreshRecoveryPanel();
+    }
+
+    void FocusSelectedRecoveryDrop()
+    {
+        if (string.IsNullOrWhiteSpace(selectedRecoveryDropId))
+            return;
+        SetRecoverySelection(selectedRecoveryDropId, true);
+    }
+
+    void RecoverSelectedDrop()
+    {
+        if (loop == null || string.IsNullOrWhiteSpace(selectedRecoveryDropId))
+            return;
+
+        string dropId = selectedRecoveryDropId;
+        ClearRecoverySelection(true);
+        if (!loop.TryRecoverLootDrop(
+                dropId,
+                out _,
+                out string failure))
+        {
+            recoveryActionText.text = failure;
+            SetRecoverySelection(dropId, false);
+        }
+        RefreshRecoveryPanel();
+    }
+
+    void RefreshRecoveryPanel()
+    {
+        if (recoveryPanel == null || loop == null)
+            return;
+
+        bool expansion = loop.Phase == DungeonPhase.Expansion;
+        recoveryPanel.SetActive(expansion);
+        if (!expansion)
+        {
+            ClearRecoverySelection(true);
+            return;
+        }
+        if (recoveryTraversal == null)
+            recoveryTraversal = FindAnyObjectByType<NPCTraversal>();
+
+        IReadOnlyList<RecoverableLootDrop> drops = recoveryTraversal != null
+            ? recoveryTraversal.RecoverableLootDrops
+            : Array.Empty<RecoverableLootDrop>();
+        int selectedIndex = FindSelectedRecoveryIndex(drops);
+        if (drops.Count == 0)
+        {
+            ClearRecoverySelection(true);
+            selectedRecoveryText.text =
+                "No physical loot bags are waiting in the dungeon.";
+        }
+        else
+        {
+            if (selectedIndex < 0)
+            {
+                selectedIndex = 0;
+                SetRecoverySelection(drops[0]?.DropId, false);
+            }
+
+            RecoverableLootDrop selected = drops[selectedIndex];
+            if (selected == null)
+            {
+                ClearRecoverySelection(true);
+                selectedRecoveryText.text =
+                    "The selected loot bag is no longer available.";
+                RefreshRecoveryControls(drops.Count, false);
+                return;
+            }
+            GetDropOriginValues(
+                selected,
+                out int dungeonValue,
+                out int adventurerValue);
+            selectedRecoveryText.text =
+                $"Bag {selectedIndex + 1}/{drops.Count}: {selected.DropId}\n" +
+                $"Cell {selected.DropCell}  |  {selected.ItemCount} item(s)  |  " +
+                $"value {selected.TotalValue}\n" +
+                $"Dungeon treasure {dungeonValue}  |  Adventurer spoils " +
+                $"{adventurerValue}\nDropped by {selected.SourceAdventurerName}\n" +
+                $"Contents: {BuildDropContentsSummary(selected)}";
+        }
+
+        recoveryInventoryText.text =
+            $"Waiting bags: {drops.Count}\n" +
+            $"Dungeon storage: {loop.RecoveredLootItemCount} item(s), value " +
+            $"{loop.RecoveredLootValue}  |  Treasure " +
+            $"{loop.RecoveredDungeonTreasureValue}  |  Spoils " +
+            $"{loop.RecoveredAdventurerLootValue}";
+        bool hasSelection = drops.Count > 0 && selectedIndex >= 0;
+        RefreshRecoveryControls(drops.Count, hasSelection);
+    }
+
+    void RefreshRecoveryControls(int dropCount, bool hasSelection)
+    {
+        previousRecoveryButton.interactable = dropCount > 1;
+        nextRecoveryButton.interactable = dropCount > 1;
+        focusRecoveryButton.interactable = hasSelection;
+        recoverSelectedButton.interactable = hasSelection;
+    }
+
+    int FindSelectedRecoveryIndex(IReadOnlyList<RecoverableLootDrop> drops)
+    {
+        if (drops == null || string.IsNullOrWhiteSpace(selectedRecoveryDropId))
+            return -1;
+        for (int i = 0; i < drops.Count; i++)
+            if (drops[i] != null && drops[i].DropId == selectedRecoveryDropId)
+                return i;
+        return -1;
+    }
+
+    void SetRecoverySelection(string dropId, bool focus)
+    {
+        if (selectedRecoveryDropId != dropId)
+            ClearRecoverySelection(true);
+        selectedRecoveryDropId = dropId;
+        if (recoveryTraversal == null || string.IsNullOrWhiteSpace(dropId) ||
+            !recoveryTraversal.TryGetRecoverableLootWorldDrop(
+                dropId, out selectedRecoveryWorldDrop))
+        {
+            selectedRecoveryWorldDrop = null;
+            return;
+        }
+
+        selectedRecoveryWorldDrop.SetPlayerSelected(true);
+        if (!focus)
+            return;
+        focusedRecoveryCamera = Camera.main != null
+            ? Camera.main.GetComponent<CameraFollow>()
+            : null;
+        if (focusedRecoveryCamera == null)
+            focusedRecoveryCamera = FindAnyObjectByType<CameraFollow>();
+        focusedRecoveryCamera?.FocusTarget(selectedRecoveryWorldDrop.transform);
+    }
+
+    void ClearRecoverySelection(bool clearCamera)
+    {
+        Transform selectedTransform = selectedRecoveryWorldDrop != null
+            ? selectedRecoveryWorldDrop.transform
+            : null;
+        if (selectedRecoveryWorldDrop != null)
+            selectedRecoveryWorldDrop.SetPlayerSelected(false);
+        if (clearCamera && focusedRecoveryCamera != null &&
+            focusedRecoveryCamera.FocusedTarget == selectedTransform)
+        {
+            focusedRecoveryCamera.ClearFocus();
+        }
+
+        selectedRecoveryDropId = null;
+        selectedRecoveryWorldDrop = null;
+        focusedRecoveryCamera = null;
+    }
+
+    static void GetDropOriginValues(
+        RecoverableLootDrop drop,
+        out int dungeonValue,
+        out int adventurerValue)
+    {
+        dungeonValue = 0;
+        adventurerValue = 0;
+        if (drop == null)
+            return;
+        for (int i = 0; i < drop.Items.Count; i++)
+        {
+            RecoverableLootItem item = drop.Items[i];
+            if (item == null)
+                continue;
+            if (item.Origin == RecoverableLootOrigin.DungeonTreasure)
+                dungeonValue += item.Value;
+            else
+                adventurerValue += item.Value;
+        }
+    }
+
+    static string BuildDropContentsSummary(RecoverableLootDrop drop)
+    {
+        if (drop == null || drop.ItemCount == 0)
+            return "none";
+
+        var summary = new System.Text.StringBuilder();
+        int displayed = Mathf.Min(3, drop.Items.Count);
+        for (int i = 0; i < displayed; i++)
+        {
+            RecoverableLootItem item = drop.Items[i];
+            if (item == null)
+                continue;
+            if (summary.Length > 0)
+                summary.Append(", ");
+            summary.Append(item.ItemId);
+            summary.Append(" (");
+            summary.Append(item.Value);
+            summary.Append(')');
+        }
+        if (drop.Items.Count > displayed)
+        {
+            summary.Append(" +");
+            summary.Append(drop.Items.Count - displayed);
+            summary.Append(" more");
+        }
+        return summary.Length > 0 ? summary.ToString() : "none";
+    }
+
     void Refresh()
     {
         if (loop == null)
@@ -594,6 +952,7 @@ public class GameplayLoopUI : MonoBehaviour
             return;
 
         RefreshPaletteSelection();
+        RefreshRecoveryPanel();
 
         string pause = loop.IsPaused ? "  •  PAUSED" : string.Empty;
         if (loop.Phase == DungeonPhase.Expansion)

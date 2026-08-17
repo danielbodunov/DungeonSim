@@ -14,6 +14,7 @@ public sealed class SaveSlotInfo
     public int TileCellCount { get; set; }
     public int AdventurerAura { get; set; }
     public int DungeonLevel { get; set; }
+    public int RecoveredLootValue { get; set; }
 }
 
 /// <summary>Writes, discovers, and restores named local dungeon checkpoints.</summary>
@@ -79,6 +80,11 @@ public class GameSaveManager : MonoBehaviour
             recoverableLootDrops = npcTraversal != null
                 ? npcTraversal.CaptureRecoverableLootDrops()
                 : new List<RecoverableLootDrop>(),
+            nextRecoverableLootDropNumber = npcTraversal != null
+                ? npcTraversal.NextRecoverableLootDropNumber
+                : 1,
+            recoveredLootInventory = gameplayLoop.CaptureRecoveredLootInventory(),
+            playerLootRecoveries = gameplayLoop.CapturePlayerLootRecoveries(),
             entrance = tileGrid.CaptureEntranceLayout()
         };
 
@@ -101,7 +107,8 @@ public class GameSaveManager : MonoBehaviour
         return ReportSuccess(
             $"Saved '{saveName}' with {save.tileCells.Count} cells, " +
             $"{save.floorProps.Count} floor props, " +
-            $"{save.recoverableLootDrops.Count} recoverable loot drops, and " +
+            $"{save.recoverableLootDrops.Count} recoverable loot drops, " +
+            $"{save.recoveredLootInventory.Count} stored loot items, and " +
             $"{save.livingAdventurers.Count} adventurers.");
     }
 
@@ -207,14 +214,18 @@ public class GameSaveManager : MonoBehaviour
             save.selectedGameplaySpeed,
             save.adventurerAura,
             save.dungeonLevel,
-            save.livingAdventurers);
+            save.livingAdventurers,
+            save.recoveredLootInventory,
+            save.playerLootRecoveries);
 
         int restoredTraps = RestoreTraps(save.traps);
         bool restoredEntrance = RestoreEntrance(save.entrance);
         int restoredFloorProps = RestoreFloorProps(save.floorProps);
         tileGrid.RegenerateProps(save.propGenerationSeed);
         int restoredRecoverableLoot = npcTraversal != null
-            ? npcTraversal.RestoreRecoverableLootDrops(save.recoverableLootDrops)
+            ? npcTraversal.RestoreRecoverableLootDrops(
+                GetUnrecoveredDrops(save.recoverableLootDrops),
+                save.nextRecoverableLootDropNumber)
             : 0;
         string displayName = string.IsNullOrWhiteSpace(save.saveName)
             ? Path.GetFileNameWithoutExtension(savePath)
@@ -224,6 +235,7 @@ public class GameSaveManager : MonoBehaviour
             $"{restoredTraps} traps, " +
             $"{restoredFloorProps} floor props, " +
             $"{restoredRecoverableLoot} recoverable loot drops, " +
+            $"{gameplayLoop.RecoveredLootItemCount} stored loot items, " +
             $"{(restoredEntrance ? "an entrance" : "no entrance")}, and " +
             $"{gameplayLoop.AdventurerRoster.Count} adventurers.");
     }
@@ -261,7 +273,9 @@ public class GameSaveManager : MonoBehaviour
                 AdventurerCount = save.livingAdventurers?.Count ?? 0,
                 TileCellCount = save.tileCells?.Count ?? 0,
                 AdventurerAura = Mathf.Max(0, save.adventurerAura),
-                DungeonLevel = Mathf.Max(1, save.dungeonLevel)
+                DungeonLevel = Mathf.Max(1, save.dungeonLevel),
+                RecoveredLootValue = SumRecoveredLootValue(
+                    save.recoveredLootInventory)
             };
         }
         catch (Exception exception)
@@ -323,6 +337,33 @@ public class GameSaveManager : MonoBehaviour
         {
             // Preserve the original save error; a stale .tmp file is ignored.
         }
+    }
+
+    List<RecoverableLootDrop> GetUnrecoveredDrops(
+        List<RecoverableLootDrop> savedDrops)
+    {
+        var result = new List<RecoverableLootDrop>();
+        if (savedDrops == null)
+            return result;
+        for (int i = 0; i < savedDrops.Count; i++)
+        {
+            RecoverableLootDrop drop = savedDrops[i];
+            if (drop != null && !gameplayLoop.HasRecoveredLootDrop(drop.DropId))
+                result.Add(drop);
+        }
+        return result;
+    }
+
+    static int SumRecoveredLootValue(
+        IReadOnlyList<DungeonStoredLootItem> storedLoot)
+    {
+        int total = 0;
+        if (storedLoot == null)
+            return total;
+        for (int i = 0; i < storedLoot.Count; i++)
+            if (storedLoot[i] != null)
+                total += storedLoot[i].Value;
+        return total;
     }
 
     int RestoreTraps(List<SavedTrapCell> traps)

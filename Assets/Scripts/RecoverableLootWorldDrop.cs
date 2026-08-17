@@ -1,6 +1,17 @@
 using UnityEngine;
 
 /// <summary>
+/// Implemented by world objects that can be deliberately recovered through
+/// the between-expedition player interaction path.
+/// </summary>
+public interface IPlayerRecoverableWorldObject
+{
+    bool TryRecoverByPlayer(
+        GameplayLoopController recoveryAuthority,
+        out string failure);
+}
+
+/// <summary>
 /// World-space presentation and POI adapter for one authoritative recovery
 /// record owned by <see cref="NPCTraversal"/>.
 /// </summary>
@@ -8,14 +19,19 @@ using UnityEngine;
 [RequireComponent(typeof(DungeonPointOfInterest))]
 public sealed class RecoverableLootWorldDrop :
     MonoBehaviour,
-    IDungeonPointOfInterestInteraction
+    IDungeonPointOfInterestInteraction,
+    IPlayerRecoverableWorldObject
 {
     const string VisualRootName = "Loot Drop Bundle";
+    const string SelectionHighlightName = "Player Recovery Selection";
     const float InvestigationDuration = 1f;
+    const int SelectionRingSegments = 40;
 
     NPCTraversal recoveryOwner;
     string dropId;
     DungeonPointOfInterest pointOfInterest;
+    GameObject selectionHighlight;
+    static Material selectionMaterial;
 
     public string DropId => dropId;
     public DungeonPointOfInterest PointOfInterest => pointOfInterest;
@@ -26,6 +42,8 @@ public sealed class RecoverableLootWorldDrop :
     public int TotalValue => TryGetContents(out RecoverableLootDrop drop)
         ? drop.TotalValue
         : 0;
+    public bool PlayerSelected =>
+        selectionHighlight != null && selectionHighlight.activeSelf;
 
     internal void Initialize(
         NPCTraversal owner,
@@ -46,6 +64,9 @@ public sealed class RecoverableLootWorldDrop :
             pointOfInterest.Bind(grid, drop.DropCell);
 
         BuildVisual(drop != null ? drop.ItemCount : 0);
+        EnsurePlayerInteractionCollider();
+        EnsureSelectionHighlight();
+        selectionHighlight.SetActive(false);
     }
 
     void OnEnable()
@@ -93,6 +114,28 @@ public sealed class RecoverableLootWorldDrop :
             investigator.TryTakeRecoverableLoot(this);
     }
 
+    public void SetPlayerSelected(bool selected)
+    {
+        EnsureSelectionHighlight();
+        selectionHighlight.SetActive(selected);
+    }
+
+    public bool TryRecoverByPlayer(
+        GameplayLoopController recoveryAuthority,
+        out string failure)
+    {
+        if (recoveryAuthority == null)
+        {
+            failure = "No dungeon recovery authority is available.";
+            return false;
+        }
+
+        return recoveryAuthority.TryRecoverLootDrop(
+            dropId,
+            out _,
+            out failure);
+    }
+
     void BuildVisual(int itemCount)
     {
         LootBundleVisualFactory.CreateBundle(
@@ -101,5 +144,86 @@ public sealed class RecoverableLootWorldDrop :
             gameObject.layer,
             new Vector3(0f, LootBundleVisualFactory.BundleSize * 0.5f, 0f),
             itemCount);
+    }
+
+    void EnsurePlayerInteractionCollider()
+    {
+        SphereCollider interactionCollider = GetComponent<SphereCollider>();
+        if (interactionCollider == null)
+            interactionCollider = gameObject.AddComponent<SphereCollider>();
+        interactionCollider.isTrigger = true;
+        interactionCollider.center = new Vector3(
+            0f,
+            LootBundleVisualFactory.BundleSize * 0.5f,
+            0f);
+        interactionCollider.radius = LootBundleVisualFactory.BundleSize * 2.5f;
+    }
+
+    void EnsureSelectionHighlight()
+    {
+        if (selectionHighlight != null)
+            return;
+
+        Transform existing = transform.Find(SelectionHighlightName);
+        if (existing != null)
+        {
+            selectionHighlight = existing.gameObject;
+            return;
+        }
+
+        selectionHighlight = new GameObject(SelectionHighlightName);
+        selectionHighlight.layer = gameObject.layer;
+        selectionHighlight.transform.SetParent(transform, false);
+        selectionHighlight.transform.localPosition = new Vector3(
+            0f,
+            LootBundleVisualFactory.BundleSize * 0.5f,
+            -0.04f);
+
+        LineRenderer ring = selectionHighlight.AddComponent<LineRenderer>();
+        ring.useWorldSpace = false;
+        ring.loop = true;
+        ring.positionCount = SelectionRingSegments;
+        ring.startWidth = 0.012f;
+        ring.endWidth = 0.012f;
+        ring.numCornerVertices = 2;
+        ring.numCapVertices = 2;
+        ring.sortingOrder = 25;
+        ring.sharedMaterial = GetSelectionMaterial();
+        float radius = LootBundleVisualFactory.BundleSize * 1.65f;
+        for (int i = 0; i < SelectionRingSegments; i++)
+        {
+            float angle = i * Mathf.PI * 2f / SelectionRingSegments;
+            ring.SetPosition(
+                i,
+                new Vector3(
+                    Mathf.Cos(angle) * radius,
+                    Mathf.Sin(angle) * radius,
+                    0f));
+        }
+    }
+
+    static Material GetSelectionMaterial()
+    {
+        if (selectionMaterial != null)
+            return selectionMaterial;
+
+        Shader shader = Shader.Find("Sprites/Default")
+            ?? Shader.Find("Universal Render Pipeline/Unlit")
+            ?? Shader.Find("Standard");
+        if (shader == null)
+            return null;
+
+        selectionMaterial = new Material(shader)
+        {
+            name = "Runtime Player Recovery Selection",
+            color = new Color(1f, 0.72f, 0.12f, 1f),
+            hideFlags = HideFlags.HideAndDontSave
+        };
+        if (selectionMaterial.HasProperty("_BaseColor"))
+        {
+            selectionMaterial.SetColor(
+                "_BaseColor", new Color(1f, 0.72f, 0.12f, 1f));
+        }
+        return selectionMaterial;
     }
 }

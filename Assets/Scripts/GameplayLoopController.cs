@@ -22,6 +22,8 @@ public sealed class GameplayLoopScenarioState
     [SerializeField] List<NPCCharacterRecord> adventurerRoster = new();
     [SerializeField] List<AuraHarvestRecord> auraHarvests = new();
     [SerializeField] List<ExpeditionOutcomeRecord> expeditionOutcomes = new();
+    [SerializeField] List<DungeonStoredLootItem> recoveredLootInventory = new();
+    [SerializeField] List<PlayerLootRecoveryRecord> playerLootRecoveries = new();
 
     public int DungeonOpenCount => Mathf.Max(0, dungeonOpenCount);
     public int AdventurerAura => Mathf.Max(0, adventurerAura);
@@ -36,6 +38,12 @@ public sealed class GameplayLoopScenarioState
     public IReadOnlyList<ExpeditionOutcomeRecord> ExpeditionOutcomes =>
         expeditionOutcomes ??
         (IReadOnlyList<ExpeditionOutcomeRecord>)Array.Empty<ExpeditionOutcomeRecord>();
+    public IReadOnlyList<DungeonStoredLootItem> RecoveredLootInventory =>
+        recoveredLootInventory ??
+        (IReadOnlyList<DungeonStoredLootItem>)Array.Empty<DungeonStoredLootItem>();
+    public IReadOnlyList<PlayerLootRecoveryRecord> PlayerLootRecoveries =>
+        playerLootRecoveries ??
+        (IReadOnlyList<PlayerLootRecoveryRecord>)Array.Empty<PlayerLootRecoveryRecord>();
 
     public GameplayLoopScenarioState(
         int openCount,
@@ -44,7 +52,9 @@ public sealed class GameplayLoopScenarioState
         float gameplaySpeed,
         IReadOnlyList<NPCCharacterRecord> roster,
         IReadOnlyList<AuraHarvestRecord> harvests,
-        IReadOnlyList<ExpeditionOutcomeRecord> outcomes)
+        IReadOnlyList<ExpeditionOutcomeRecord> outcomes,
+        IReadOnlyList<DungeonStoredLootItem> storedLoot = null,
+        IReadOnlyList<PlayerLootRecoveryRecord> recoveries = null)
     {
         dungeonOpenCount = Mathf.Max(0, openCount);
         adventurerAura = Mathf.Max(0, aura);
@@ -53,6 +63,8 @@ public sealed class GameplayLoopScenarioState
         adventurerRoster = CopyRoster(roster);
         auraHarvests = CopyHarvests(harvests);
         expeditionOutcomes = CopyOutcomes(outcomes);
+        recoveredLootInventory = CopyStoredLoot(storedLoot);
+        playerLootRecoveries = CopyRecoveries(recoveries);
     }
 
     internal GameplayLoopScenarioState Copy()
@@ -64,7 +76,9 @@ public sealed class GameplayLoopScenarioState
             SelectedSpeed,
             AdventurerRoster,
             AuraHarvests,
-            ExpeditionOutcomes);
+            ExpeditionOutcomes,
+            RecoveredLootInventory,
+            PlayerLootRecoveries);
     }
 
     static List<NPCCharacterRecord> CopyRoster(
@@ -119,6 +133,30 @@ public sealed class GameplayLoopScenarioState
                 result.Add(source[i].Copy());
         return result;
     }
+
+    static List<DungeonStoredLootItem> CopyStoredLoot(
+        IReadOnlyList<DungeonStoredLootItem> source)
+    {
+        var result = new List<DungeonStoredLootItem>(source?.Count ?? 0);
+        if (source == null)
+            return result;
+        for (int i = 0; i < source.Count; i++)
+            if (source[i] != null)
+                result.Add(source[i].Copy());
+        return result;
+    }
+
+    static List<PlayerLootRecoveryRecord> CopyRecoveries(
+        IReadOnlyList<PlayerLootRecoveryRecord> source)
+    {
+        var result = new List<PlayerLootRecoveryRecord>(source?.Count ?? 0);
+        if (source == null)
+            return result;
+        for (int i = 0; i < source.Count; i++)
+            if (source[i] != null)
+                result.Add(source[i].Copy());
+        return result;
+    }
 }
 
 /// <summary>
@@ -163,6 +201,12 @@ public class GameplayLoopController : MonoBehaviour
     readonly Dictionary<string, AuraHarvestRecord> auraHarvestsById = new();
     readonly List<ExpeditionOutcomeRecord> expeditionOutcomes = new();
     readonly Dictionary<string, ExpeditionOutcomeRecord> expeditionOutcomesById = new();
+    [SerializeField] List<DungeonStoredLootItem> recoveredLootInventory = new();
+    [SerializeField] List<PlayerLootRecoveryRecord> playerLootRecoveries = new();
+    readonly Dictionary<string, PlayerLootRecoveryRecord> playerLootRecoveriesByDropId =
+        new();
+    readonly RaycastHit[] recoveryClickHits = new RaycastHit[32];
+    InputManager inputManager;
 
     public static GameplayLoopController Instance { get; private set; }
 
@@ -212,10 +256,21 @@ public class GameplayLoopController : MonoBehaviour
         }
     }
     public IReadOnlyList<NPCCharacterRecord> AdventurerRoster => adventurerRoster;
+    public IReadOnlyList<DungeonStoredLootItem> RecoveredLootInventory =>
+        recoveredLootInventory;
+    public IReadOnlyList<PlayerLootRecoveryRecord> PlayerLootRecoveries =>
+        playerLootRecoveries;
+    public int RecoveredLootItemCount => recoveredLootInventory.Count;
+    public int RecoveredLootValue => SumRecoveredLootValue(null);
+    public int RecoveredDungeonTreasureValue =>
+        SumRecoveredLootValue(RecoverableLootOrigin.DungeonTreasure);
+    public int RecoveredAdventurerLootValue =>
+        SumRecoveredLootValue(RecoverableLootOrigin.AdventurerPossession);
 
     public event Action StateChanged;
     public event Action<AuraHarvestRecord> AuraHarvested;
     public event Action<ExpeditionOutcomeRecord> ExpeditionCompleted;
+    public event Action<PlayerLootRecoveryRecord> LootRecovered;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     static void BootstrapGameplayLoop()
@@ -239,6 +294,9 @@ public class GameplayLoopController : MonoBehaviour
         }
 
         Instance = this;
+        recoveredLootInventory ??= new List<DungeonStoredLootItem>();
+        playerLootRecoveries ??= new List<PlayerLootRecoveryRecord>();
+        RebuildPlayerLootRecoveryLookup();
         DungeonSimulationState.PauseChanged += OnSimulationPauseChanged;
         tilePlacement = FindAnyObjectByType<TilePlacement>();
         tileGrid = FindAnyObjectByType<TileGridGenerator>();
@@ -256,9 +314,62 @@ public class GameplayLoopController : MonoBehaviour
 
     void Start()
     {
+        inputManager = InputManager.Instance ?? FindAnyObjectByType<InputManager>();
+        if (inputManager != null)
+            inputManager.OnClicked += TryRecoverClickedWorldObject;
         SetExpansion();
         if (FindAnyObjectByType<GameplayLoopUI>() == null)
             gameObject.AddComponent<GameplayLoopUI>();
+    }
+
+    void TryRecoverClickedWorldObject()
+    {
+        if (Phase != DungeonPhase.Expansion || inputManager == null ||
+            inputManager.IsPointerOverUI() ||
+            (tilePlacement != null && tilePlacement.IsPlacementActive) ||
+            !inputManager.TryGetPointerRay(out Ray pointerRay))
+        {
+            return;
+        }
+
+        int hitCount = Physics.RaycastNonAlloc(
+            pointerRay,
+            recoveryClickHits,
+            500f,
+            Physics.DefaultRaycastLayers,
+            QueryTriggerInteraction.Collide);
+        IPlayerRecoverableWorldObject nearestTarget = null;
+        float nearestDistance = float.PositiveInfinity;
+        for (int hitIndex = 0; hitIndex < hitCount; hitIndex++)
+        {
+            RaycastHit hit = recoveryClickHits[hitIndex];
+            if (hit.collider == null || hit.distance >= nearestDistance)
+                continue;
+
+            MonoBehaviour[] candidates =
+                hit.collider.GetComponentsInParent<MonoBehaviour>(true);
+            for (int candidateIndex = 0;
+                 candidateIndex < candidates.Length;
+                 candidateIndex++)
+            {
+                if (candidates[candidateIndex] is not
+                    IPlayerRecoverableWorldObject candidate)
+                {
+                    continue;
+                }
+
+                nearestTarget = candidate;
+                nearestDistance = hit.distance;
+                break;
+            }
+        }
+
+        if (nearestTarget != null &&
+            !nearestTarget.TryRecoverByPlayer(this, out string failure) &&
+            !string.IsNullOrWhiteSpace(failure))
+        {
+            Debug.LogWarning($"Player recovery failed: {failure}", this);
+        }
     }
 
     void Update()
@@ -337,6 +448,109 @@ public class GameplayLoopController : MonoBehaviour
         StateChanged?.Invoke();
     }
 
+    /// <summary>
+    /// Transfers one physical recovery drop into dungeon storage during the
+    /// between-expedition phase. The traversal claim and inventory credit are
+    /// one main-thread transaction, keyed by the source drop ID.
+    /// </summary>
+    public bool TryRecoverLootDrop(
+        string dropId,
+        out PlayerLootRecoveryRecord recovery,
+        out string failure)
+    {
+        recovery = null;
+        failure = string.Empty;
+        if (Phase != DungeonPhase.Expansion)
+        {
+            failure = "Physical loot can only be recovered between expeditions.";
+            return false;
+        }
+        if (npcTraversal == null)
+        {
+            failure = "No dungeon recovery service is available.";
+            return false;
+        }
+        if (string.IsNullOrWhiteSpace(dropId))
+        {
+            failure = "Select a recoverable loot drop first.";
+            return false;
+        }
+        if (playerLootRecoveriesByDropId.TryGetValue(dropId, out recovery))
+        {
+            failure = $"Loot drop '{dropId}' was already recovered.";
+            return false;
+        }
+        if (!npcTraversal.TryGetRecoverableLootDrop(
+                dropId, out RecoverableLootDrop availableDrop))
+        {
+            failure = $"Loot drop '{dropId}' is no longer available.";
+            return false;
+        }
+
+        var storedItems = new List<DungeonStoredLootItem>(availableDrop.ItemCount);
+        int dungeonOriginValue = 0;
+        int adventurerOriginValue = 0;
+        for (int i = 0; i < availableDrop.Items.Count; i++)
+        {
+            RecoverableLootItem item = availableDrop.Items[i];
+            if (item == null || string.IsNullOrWhiteSpace(item.ItemId))
+                continue;
+            storedItems.Add(new DungeonStoredLootItem(item, dropId));
+            if (item.Origin == RecoverableLootOrigin.DungeonTreasure)
+                dungeonOriginValue += item.Value;
+            else
+                adventurerOriginValue += item.Value;
+        }
+        if (storedItems.Count == 0)
+        {
+            failure = $"Loot drop '{dropId}' contains no recoverable items.";
+            return false;
+        }
+        if (!npcTraversal.TryClaimRecoverableLoot(
+                dropId, out RecoverableLootDrop claimedDrop))
+        {
+            failure = $"Loot drop '{dropId}' was claimed before recovery completed.";
+            return false;
+        }
+
+        recoveredLootInventory.AddRange(storedItems);
+        recovery = new PlayerLootRecoveryRecord(
+            claimedDrop,
+            storedItems.Count,
+            dungeonOriginValue + adventurerOriginValue,
+            dungeonOriginValue,
+            adventurerOriginValue);
+        playerLootRecoveries.Add(recovery);
+        playerLootRecoveriesByDropId.Add(dropId, recovery);
+        LootRecovered?.Invoke(recovery);
+        StateChanged?.Invoke();
+        return true;
+    }
+
+    public bool HasRecoveredLootDrop(string dropId)
+    {
+        return !string.IsNullOrWhiteSpace(dropId) &&
+            playerLootRecoveriesByDropId.ContainsKey(dropId);
+    }
+
+    public List<DungeonStoredLootItem> CaptureRecoveredLootInventory()
+    {
+        var result = new List<DungeonStoredLootItem>(recoveredLootInventory.Count);
+        for (int i = 0; i < recoveredLootInventory.Count; i++)
+            if (recoveredLootInventory[i] != null)
+                result.Add(recoveredLootInventory[i].Copy());
+        return result;
+    }
+
+    public List<PlayerLootRecoveryRecord> CapturePlayerLootRecoveries()
+    {
+        var result = new List<PlayerLootRecoveryRecord>(playerLootRecoveries.Count);
+        for (int i = 0; i < playerLootRecoveries.Count; i++)
+            if (playerLootRecoveries[i] != null)
+                result.Add(playerLootRecoveries[i].Copy());
+        return result;
+    }
+
     public void SetGameplaySpeed(float speed)
     {
         selectedSpeed = Mathf.Clamp(speed, 0.1f, 10f);
@@ -385,7 +599,9 @@ public class GameplayLoopController : MonoBehaviour
             selectedSpeed,
             CaptureLivingAdventurers(),
             auraHarvests,
-            expeditionOutcomes);
+            expeditionOutcomes,
+            recoveredLootInventory,
+            playerLootRecoveries);
     }
 
     /// <summary>
@@ -406,6 +622,7 @@ public class GameplayLoopController : MonoBehaviour
             PrepareForScenarioApply();
             ClearAuraHarvestHistory();
             ClearExpeditionOutcomeHistory();
+            ClearRecoveredLootState();
             StateChanged?.Invoke();
             return;
         }
@@ -415,7 +632,9 @@ public class GameplayLoopController : MonoBehaviour
             snapshot.SelectedSpeed,
             snapshot.AdventurerAura,
             snapshot.DungeonLevel,
-            new List<NPCCharacterRecord>(snapshot.AdventurerRoster));
+            new List<NPCCharacterRecord>(snapshot.AdventurerRoster),
+            snapshot.RecoveredLootInventory,
+            snapshot.PlayerLootRecoveries);
 
         IReadOnlyList<AuraHarvestRecord> restoredHarvests =
             snapshot.AuraHarvests;
@@ -499,6 +718,67 @@ public class GameplayLoopController : MonoBehaviour
                 return false;
             }
         }
+
+        var recoveryDropIds = new HashSet<string>();
+        IReadOnlyList<PlayerLootRecoveryRecord> recoveries =
+            snapshot.PlayerLootRecoveries;
+        for (int i = 0; i < recoveries.Count; i++)
+        {
+            PlayerLootRecoveryRecord recovery = recoveries[i];
+            if (recovery == null ||
+                string.IsNullOrWhiteSpace(recovery.SourceDropId) ||
+                recovery.RecoveredItemCount <= 0 ||
+                !recoveryDropIds.Add(recovery.SourceDropId))
+            {
+                failure = $"Player recovery record {i + 1} has invalid contents or a missing/duplicate drop ID.";
+                return false;
+            }
+        }
+
+        IReadOnlyList<DungeonStoredLootItem> storedLoot =
+            snapshot.RecoveredLootInventory;
+        for (int i = 0; i < storedLoot.Count; i++)
+        {
+            DungeonStoredLootItem item = storedLoot[i];
+            if (item == null || string.IsNullOrWhiteSpace(item.ItemId) ||
+                string.IsNullOrWhiteSpace(item.RecoveryDropId) ||
+                !recoveryDropIds.Contains(item.RecoveryDropId))
+            {
+                failure = $"Recovered inventory item {i + 1} has invalid identity or recovery provenance.";
+                return false;
+            }
+        }
+
+        for (int recoveryIndex = 0;
+             recoveryIndex < recoveries.Count;
+             recoveryIndex++)
+        {
+            PlayerLootRecoveryRecord recovery = recoveries[recoveryIndex];
+            int itemCount = 0;
+            int totalValue = 0;
+            int dungeonValue = 0;
+            int adventurerValue = 0;
+            for (int itemIndex = 0; itemIndex < storedLoot.Count; itemIndex++)
+            {
+                DungeonStoredLootItem item = storedLoot[itemIndex];
+                if (item.RecoveryDropId != recovery.SourceDropId)
+                    continue;
+                itemCount++;
+                totalValue += item.Value;
+                if (item.Origin == RecoverableLootOrigin.DungeonTreasure)
+                    dungeonValue += item.Value;
+                else
+                    adventurerValue += item.Value;
+            }
+            if (itemCount != recovery.RecoveredItemCount ||
+                totalValue != recovery.RecoveredValue ||
+                dungeonValue != recovery.DungeonTreasureValue ||
+                adventurerValue != recovery.AdventurerLootValue)
+            {
+                failure = $"Player recovery '{recovery.SourceDropId}' does not match the captured inventory contents.";
+                return false;
+            }
+        }
         return true;
     }
 
@@ -507,7 +787,9 @@ public class GameplayLoopController : MonoBehaviour
         float savedGameplaySpeed,
         int savedAdventurerAura,
         int savedDungeonLevel,
-        List<NPCCharacterRecord> livingAdventurers)
+        List<NPCCharacterRecord> livingAdventurers,
+        IReadOnlyList<DungeonStoredLootItem> storedLoot = null,
+        IReadOnlyList<PlayerLootRecoveryRecord> recoveries = null)
     {
         SetPaused(false);
         SetExpansion();
@@ -516,6 +798,7 @@ public class GameplayLoopController : MonoBehaviour
         dungeonLevel = Mathf.Max(1, savedDungeonLevel);
         ClearAuraHarvestHistory();
         ClearExpeditionOutcomeHistory();
+        RestoreRecoveredLootState(storedLoot, recoveries);
         adventurerRoster.Clear();
 
         var ids = new HashSet<string>();
@@ -855,6 +1138,71 @@ public class GameplayLoopController : MonoBehaviour
         expeditionOutcomesById.Clear();
     }
 
+    void RestoreRecoveredLootState(
+        IReadOnlyList<DungeonStoredLootItem> storedLoot,
+        IReadOnlyList<PlayerLootRecoveryRecord> recoveries)
+    {
+        ClearRecoveredLootState();
+        if (recoveries != null)
+        {
+            for (int i = 0; i < recoveries.Count; i++)
+                if (recoveries[i] != null &&
+                    !string.IsNullOrWhiteSpace(recoveries[i].SourceDropId) &&
+                    !playerLootRecoveriesByDropId.ContainsKey(
+                        recoveries[i].SourceDropId))
+                {
+                    PlayerLootRecoveryRecord copy = recoveries[i].Copy();
+                    playerLootRecoveries.Add(copy);
+                    playerLootRecoveriesByDropId.Add(copy.SourceDropId, copy);
+                }
+        }
+
+        if (storedLoot == null)
+            return;
+        for (int i = 0; i < storedLoot.Count; i++)
+            if (storedLoot[i] != null &&
+                playerLootRecoveriesByDropId.ContainsKey(
+                    storedLoot[i].RecoveryDropId))
+            {
+                recoveredLootInventory.Add(storedLoot[i].Copy());
+            }
+    }
+
+    void ClearRecoveredLootState()
+    {
+        recoveredLootInventory.Clear();
+        playerLootRecoveries.Clear();
+        playerLootRecoveriesByDropId.Clear();
+    }
+
+    void RebuildPlayerLootRecoveryLookup()
+    {
+        playerLootRecoveriesByDropId.Clear();
+        for (int i = 0; i < playerLootRecoveries.Count; i++)
+        {
+            PlayerLootRecoveryRecord recovery = playerLootRecoveries[i];
+            if (recovery != null &&
+                !string.IsNullOrWhiteSpace(recovery.SourceDropId) &&
+                !playerLootRecoveriesByDropId.ContainsKey(recovery.SourceDropId))
+            {
+                playerLootRecoveriesByDropId.Add(
+                    recovery.SourceDropId, recovery);
+            }
+        }
+    }
+
+    int SumRecoveredLootValue(RecoverableLootOrigin? origin)
+    {
+        int total = 0;
+        for (int i = 0; i < recoveredLootInventory.Count; i++)
+        {
+            DungeonStoredLootItem item = recoveredLootInventory[i];
+            if (item != null && (!origin.HasValue || item.Origin == origin.Value))
+                total += item.Value;
+        }
+        return total;
+    }
+
     void OnAdventurerCellEntered(
         NPCTraversalAgent visitor,
         Vector2Int cell,
@@ -965,6 +1313,8 @@ public class GameplayLoopController : MonoBehaviour
             return;
 
         DungeonSimulationState.PauseChanged -= OnSimulationPauseChanged;
+        if (inputManager != null)
+            inputManager.OnClicked -= TryRecoverClickedWorldObject;
         DungeonSimulationState.SetPaused(false);
         Time.timeScale = 1f;
         if (npcTraversal != null)
