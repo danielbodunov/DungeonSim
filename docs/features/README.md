@@ -9,7 +9,7 @@ This is a compact view of planned DungeonSim features. Detailed behavior and rat
 | Authored NPC Z-depth movement | Planning | [Depth-Aware Movement](../Design/NPC_Behavior.md#depth-aware-movement-within-cells) |
 | Trap detection, avoidance, and dodging | In Progress | [Trap Reactions](../Design/NPC_Behavior.md#trap-detection-avoidance-and-dodging) |
 | NPC action feedback popups | In Progress | [Action Feedback](../Design/NPC_Behavior.md#short-lived-action-feedback-ui) |
-| Non-permanent NPC defeat and visit settlement | In Progress | [Visit Completion](../Design/NPC_Behavior.md#visit-completion-defeat-and-aura-settlement) |
+| Non-permanent NPC defeat and visit settlement | In Progress | [Visit Completion](../Design/NPC_Behavior.md#visit-completion-defeat-and-dread-settlement) |
 | NPC mingling and parties | Planning | [Social Encounters](../Design/NPC_Behavior.md#social-encounters-and-parties) |
 | Socket-based dungeon entrance placement | In Progress | [Dungeon Entrance Placement](../Design/World_Generation_and_Building.md#dungeon-entrance-placement) |
 | Cell-indexed point-of-interest foundation | Implemented | [t003 — Point-of-Interest Foundation](../TODO/t003-Point-of-Interest-Foundation.md) |

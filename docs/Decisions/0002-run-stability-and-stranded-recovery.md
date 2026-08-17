@@ -15,6 +15,6 @@ Traversal objects cannot be added, moved, or removed during an active adventurer
 
 - Build controls need an active-run lock and an explanation when unavailable.
 - NPCs need a stranded timer, route retries, and a forced-return outcome.
-- The timeout and any recovery or Aura penalty remain tuning decisions.
+- The timeout and any recovery or Dread penalty remain tuning decisions.
 
 See [NPC Behavior](../Design/NPC_Behavior.md#familiar-return-routing).

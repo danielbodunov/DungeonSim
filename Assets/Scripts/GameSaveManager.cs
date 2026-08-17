@@ -12,7 +12,7 @@ public sealed class SaveSlotInfo
     public int DungeonOpenCount { get; set; }
     public int AdventurerCount { get; set; }
     public int TileCellCount { get; set; }
-    public int AdventurerAura { get; set; }
+    public int Dread { get; set; }
     public int DungeonLevel { get; set; }
     public int RecoveredLootValue { get; set; }
 }
@@ -24,6 +24,8 @@ public class GameSaveManager : MonoBehaviour
     const string LegacySaveFileName = "dungeon-save.json";
     const string SavesFolderName = "Saves";
     const string DefaultSaveName = "Quick Save";
+    const string LegacyDreadJsonField = "\"adventurerAura\"";
+    const string CurrentDreadJsonField = "\"dread\"";
 
     GameplayLoopController gameplayLoop;
     TileGridGenerator tileGrid;
@@ -68,7 +70,7 @@ public class GameSaveManager : MonoBehaviour
             gridWidth = tileGrid.GridWidth,
             gridHeight = tileGrid.GridHeight,
             dungeonOpenCount = gameplayLoop.DungeonOpenCount,
-            adventurerAura = gameplayLoop.AdventurerAura,
+            dread = gameplayLoop.Dread,
             dungeonLevel = gameplayLoop.DungeonLevel,
             selectedGameplaySpeed = gameplayLoop.SelectedSpeed,
             propGenerationSeed = tileGrid.PropGenerationSeed,
@@ -85,6 +87,7 @@ public class GameSaveManager : MonoBehaviour
                 : 1,
             recoveredLootInventory = gameplayLoop.CaptureRecoveredLootInventory(),
             playerLootRecoveries = gameplayLoop.CapturePlayerLootRecoveries(),
+            dreadSpends = gameplayLoop.CaptureDreadSpends(),
             entrance = tileGrid.CaptureEntranceLayout()
         };
 
@@ -109,7 +112,8 @@ public class GameSaveManager : MonoBehaviour
             $"{save.floorProps.Count} floor props, " +
             $"{save.recoverableLootDrops.Count} recoverable loot drops, " +
             $"{save.recoveredLootInventory.Count} stored loot items, and " +
-            $"{save.livingAdventurers.Count} adventurers.");
+            $"{save.livingAdventurers.Count} adventurers; {save.dread} Dread with " +
+            $"{save.dreadSpends.Count} recorded spends.");
     }
 
     public bool LoadGame()
@@ -167,7 +171,7 @@ public class GameSaveManager : MonoBehaviour
         DungeonSaveData save;
         try
         {
-            save = JsonUtility.FromJson<DungeonSaveData>(File.ReadAllText(savePath));
+            save = DeserializeSave(File.ReadAllText(savePath));
         }
         catch (Exception exception)
         {
@@ -212,11 +216,12 @@ public class GameSaveManager : MonoBehaviour
         gameplayLoop.RestoreProgress(
             save.dungeonOpenCount,
             save.selectedGameplaySpeed,
-            save.adventurerAura,
+            save.dread,
             save.dungeonLevel,
             save.livingAdventurers,
             save.recoveredLootInventory,
-            save.playerLootRecoveries);
+            save.playerLootRecoveries,
+            save.dreadSpends);
 
         int restoredTraps = RestoreTraps(save.traps);
         bool restoredEntrance = RestoreEntrance(save.entrance);
@@ -237,15 +242,16 @@ public class GameSaveManager : MonoBehaviour
             $"{restoredRecoverableLoot} recoverable loot drops, " +
             $"{gameplayLoop.RecoveredLootItemCount} stored loot items, " +
             $"{(restoredEntrance ? "an entrance" : "no entrance")}, and " +
-            $"{gameplayLoop.AdventurerRoster.Count} adventurers.");
+            $"{gameplayLoop.AdventurerRoster.Count} adventurers; " +
+            $"{gameplayLoop.Dread} Dread with {gameplayLoop.DreadSpendCount} " +
+            "recorded spends.");
     }
 
     SaveSlotInfo ReadSaveSlot(string path, string fallbackName = null)
     {
         try
         {
-            DungeonSaveData save = JsonUtility.FromJson<DungeonSaveData>(
-                File.ReadAllText(path));
+            DungeonSaveData save = DeserializeSave(File.ReadAllText(path));
             if (save == null || save.version <= 0 ||
                 save.version > DungeonSaveData.CurrentVersion)
             {
@@ -272,7 +278,7 @@ public class GameSaveManager : MonoBehaviour
                 DungeonOpenCount = save.dungeonOpenCount,
                 AdventurerCount = save.livingAdventurers?.Count ?? 0,
                 TileCellCount = save.tileCells?.Count ?? 0,
-                AdventurerAura = Mathf.Max(0, save.adventurerAura),
+                Dread = Mathf.Max(0, save.dread),
                 DungeonLevel = Mathf.Max(1, save.dungeonLevel),
                 RecoveredLootValue = SumRecoveredLootValue(
                     save.recoveredLootInventory)
@@ -298,6 +304,14 @@ public class GameSaveManager : MonoBehaviour
             hash *= 16777619;
         }
         return Path.Combine(SavesDirectory, $"{slug}-{hash:x8}.json");
+    }
+
+    static DungeonSaveData DeserializeSave(string json)
+    {
+        if (string.IsNullOrWhiteSpace(json))
+            return null;
+        return JsonUtility.FromJson<DungeonSaveData>(
+            json.Replace(LegacyDreadJsonField, CurrentDreadJsonField));
     }
 
     static string NormalizeSaveName(string saveName)

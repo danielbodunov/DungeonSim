@@ -26,7 +26,7 @@ Define the escape-side consequence of treasure ownership. When an adventurer suc
 - The treasure does not respawn automatically at its original socket.
 - Escape processing cannot duplicate or restore the treasure.
 - Escaping with no treasure produces no phantom loss.
-- No Aura reward is granted merely because treasure escaped.
+- No Dread reward is granted merely because treasure escaped.
 
 ## Constraints
 
@@ -45,7 +45,7 @@ Define the escape-side consequence of treasure ownership. When an adventurer suc
 6. Let an empty-handed adventurer return successfully. Verify it records a zero-item escape outcome without increasing **Escaped Items** or **Escaped Value**.
 7. Save in Expansion, reload, and verify the escaped treasure is still resolved/unavailable and cannot be collected again.
 8. In a fresh run, kill a treasure-carrying adventurer. Verify only death recovery is recorded and no successful-escape outcome is added.
-9. Confirm no Aura change is attributable to escaped treasure value. Existing Aura from exploration or damage may still settle normally.
+9. Confirm no Dread change is attributable to escaped treasure value. Existing Dread from exploration or damage may still settle normally.
 
 ## Implementation Status
 
@@ -55,7 +55,7 @@ Define the escape-side consequence of treasure ownership. When an adventurer suc
 - Empty-handed successful exits retain a neutral audit outcome while contributing zero escaped items/value.
 - Escaped totals, item details, custody before/after, processing status, and duplicate attempts are exposed through `NPCTraversal` and the NPC Runtime Debug Harness.
 - The resolved floor-prop/POI state remains the production ownership and save/load source of truth, so escaped treasure is restored as unavailable rather than respawned as collectible bait.
-- No escaped treasure value is converted to Aura, recoverable loot, reputation, or another economy.
+- No escaped treasure value is converted to Dread, recoverable loot, reputation, or another economy.
 
 ## Known Limitations
 
@@ -66,7 +66,7 @@ Define the escape-side consequence of treasure ownership. When an adventurer suc
 
 - Runtime and Editor assemblies compile successfully.
 - Manual Unity validation completed successfully on 2026-08-14.
-- Successful treasure escape, custody clearing, escaped item/value reporting, empty-handed escape, save/reload persistence, death/escape separation, and lack of treasure-based Aura reward were validated in Unity.
+- Successful treasure escape, custody clearing, escaped item/value reporting, empty-handed escape, save/reload persistence, death/escape separation, and lack of treasure-based Dread reward were validated in Unity.
 
 ## Git
 

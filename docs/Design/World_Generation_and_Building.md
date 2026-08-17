@@ -8,7 +8,7 @@ tile generation, traversal, navigation, lighting, progression, and encounters
 compatible with one another.
 
 This is a design plan rather than a final specification. Reward values, balance
-curves, tier dimensions, and the final presentation of Adventurer Aura still need
+curves, tier dimensions, and the final presentation of Dread still need
 playtesting.
 
 
@@ -30,9 +30,9 @@ CORE PRINCIPLES
 4. Larger structures must participate in the same placement and save systems as
    single-cell objects.
 
-5. Expansion should be earned through adventurer activity.
-   Exploration, danger, injury, and major victories generate Adventurer Aura,
-   the single resource used for construction and dungeon level upgrades.
+5. Supernatural growth should be earned through adventurer activity.
+   Exploration, danger, injury, and major victories generate Dread. Mundane
+   construction uses separate physical resources.
 
 6. New depth and complexity should be introduced in controlled steps.
    Prefer discrete depth planes and authored transitions before considering fully
@@ -328,7 +328,9 @@ BUILDING LIMITS AND PROGRESSION
 
 Building should be limited by several understandable gates:
 
-- Adventurer Aura: paid when expanding into a new cell or placing an object.
+- Physical construction resources: paid when expanding into a new cell or placing
+  an ordinary object.
+- Dread: paid for supernatural manifestations, progression, and unlocks.
 - Unlock tree: grants new tile families, traversal objects, traps, rooms,
   structures, upgrades, and boss content.
 - Dungeon level: controls unlock-tree tiers and maximum build reach.
@@ -344,19 +346,19 @@ Recommended build transaction order:
 2. Check build bounds/layer limits.
 3. Check sockets, footprint, occupancy, and reachability constraints.
 4. Calculate and show the final cost.
-5. Spend Adventurer Aura and commit all changes atomically.
+5. Spend the applicable physical resource or Dread and commit all changes atomically.
 6. Update generation, navigation, lighting, and saving.
 
-If any step fails, no Adventurer Aura or partial placement should remain.
+If any step fails, no currency or partial placement should remain.
 
 
-DUNGEON PROGRESSION AND ADVENTURER AURA
----------------------------------------
+DUNGEON PROGRESSION AND DREAD
+-----------------------------
 
-Adventurer experiences inside the dungeon generate Adventurer Aura. Aura is the
-single spendable resource used for both building and purchasing permanent dungeon
-level upgrades. Buying a level is irreversible; later spending cannot reduce the
-dungeon's current level.
+Adventurer experiences inside the dungeon generate Dread. Dread powers supernatural
+dungeon growth such as treasure manifestation, progression, unlocks, stronger traps,
+spawners, and special structures. Ordinary construction remains a separate physical
+resource economy.
 
 Potential reward events:
 
@@ -370,20 +372,20 @@ Reward-shape direction:
 
 - Exploration provides frequent, dependable, low-value income.
 - Damage provides a smaller capped reward so repeated healing/damage loops cannot
-  generate unlimited Aura.
+  generate unlimited Dread.
 - Defeating an NPC provides a large reward that scales sharply with NPC level.
 - High-level defeats should be worth disproportionately more than low-level ones,
   but the exact curve should be data-driven and capped where needed.
 - Rewards should be attributed once through a central event ledger to prevent
   double-awards from traps, enemies, and defeat handling.
-- Building additional rooms and adding decor increase future Aura yield from
+- Building additional rooms and adding decor increase future Dread yield from
   explorers. The bonus should measure meaningful dungeon development, with caps
   or diminishing returns for duplicate low-cost decor to prevent farming.
 
 Reward settlement:
 
 - During a visit, qualifying events accumulate in a pending reward ledger.
-- Pending Aura is deposited when the NPC leaves, is defeated, or is forcibly
+- Pending Dread is deposited when the NPC leaves, is defeated, or is forcibly
   returned outside after becoming stranded.
 - Defeat is not permanent death. It ends the current visit, returns the NPC to the
   outside population, and may apply recovery time or other consequences later.
@@ -467,8 +469,8 @@ Phase 3A - Underground boundary framing
 
 Phase 4 - Progression and economy
 
-- Add build costs and atomic spending.
-- Add Adventurer Aura spending, permanent level upgrades, unlock tiers, and
+- Add physical build costs and atomic spending.
+- Add Dread spending, permanent level upgrades, unlock tiers, and
   vertical-floor build limits.
 - Award activity through a single ledger and add anti-farming rules.
 
@@ -509,9 +511,9 @@ INITIAL ACCEPTANCE CRITERIA
   footprint cells.
 - A spider nest spawns only into valid adjacent cells.
 - Locked or unaffordable placements cannot be committed or partially charged.
-- Dungeon activity accumulates Aura once per qualifying event and deposits it
+- Dungeon activity accumulates Dread once per qualifying event and deposits it
   when the NPC exits, is defeated, or is forcibly returned from a stranded state.
-- Adventurer Aura can purchase construction or an irreversible dungeon level.
+- Dread can purchase supernatural growth without paying ordinary construction costs.
 - Higher-level NPC defeats produce substantially higher rewards according to a
   visible, data-driven curve.
 - Overlapping depth planes do not share navigation or light unless an explicit
@@ -534,8 +536,8 @@ INCORPORATED DECISIONS
 - Enemy pursuit constraints are configurable rather than universal.
 - Foreground and background depth planes are visible simultaneously.
 - Build-layer progression refers to vertical dungeon floors, not Z-depth planes.
-- Adventurer Aura is the single resource spent on building and dungeon leveling.
-- NPC defeat is non-permanent and settles the visit's pending Aura.
+- Dread funds supernatural progression; mundane construction uses physical resources.
+- NPC defeat is non-permanent and settles the visit's pending Dread.
 - A looted boss room seals for the current session and resets in a later session
   without a diminished base reward.
 
@@ -562,10 +564,10 @@ OPEN DESIGN QUESTIONS
    and when should an otherwise valid result be frozen to avoid visible churn?
 
 3. What stranded timeout feels fair, and should a forced return apply any recovery
-   delay or Aura penalty?
+   delay or Dread penalty?
 
 4. What caps, uniqueness rules, or diminishing returns should apply to the room
-   and decor Aura bonus?
+   and decor Dread bonus?
 
 5. Are the proposed Tier 1 through Tier 5 section heights of 3, 4, 5, 6, and 7
    floors correct, and how wide is each unlocked section?

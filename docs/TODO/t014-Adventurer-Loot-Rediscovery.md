@@ -45,7 +45,7 @@ Suggested branch: `feature/t014-loot-rediscovery`
 8. Place another physical drop at or near the entrance and start a new adventurer. Verify the starting-cell arrival also discovers and investigates it locally.
 9. Kill a treasure-carrying adventurer while it is climbing a ladder and again just below an elevated platform. Verify each bag resolves to supported ground below, its debug `DropCell` matches the physical cell, and a later adventurer can route to and investigate it without stalling at the ladder exit.
 10. Capture a scenario with no recoverable drops and note the completed-expedition and duplicate-attempt histories. Create drops and additional outcomes, then load/reset the scenario. Verify all later recovery records, bags, POIs, lookup entries, and outcome/attempt entries disappear while the captured counts return exactly.
-11. Capture a second scenario with a recoverable drop and non-zero outcome history. Resolve or add state, reload twice, and verify both reloads recreate the same bag contents/location, histories, Aura/progression baseline, roster, gameplay speed, and next generated runtime/drop identities.
+11. Capture a second scenario with a recoverable drop and non-zero outcome history. Resolve or add state, reload twice, and verify both reloads recreate the same bag contents/location, histories, Dread/progression baseline, roster, gameplay speed, and next generated runtime/drop identities.
 
 ## Implementation Status
 
@@ -57,9 +57,9 @@ Suggested branch: `feature/t014-loot-rediscovery`
 - The debug harness labels the aggregate as **Carried Loot** and displays origin plus optional source-cell data.
 - Death drops now start with the NPC's actual death position and reuse `NPCTraversal.TryGetFallRecoveryLanding`, including its deep downward support raycast. The resolved cell is accepted only when the landing position maps back to that cell and the cell is reachable from the authoritative entrance. A deterministic nearest supported/reachable graph cell, then the production entrance spawn pose, provide bounded fallbacks when the exact vertical line cannot produce a valid POI location.
 - `RecoverableLootDrop.DropCell` and `WorldPosition` now store the supported resting result while `AdventurerDeathLootOutcome` continues recording the actual death cell/position. Save/load therefore preserves both semantics without Rigidbody simulation.
-- New scenario captures include authoritative recovery records, death/escape custody histories (including duplicate-processing attempts), next drop/runtime-agent IDs, Aura-harvest history, expedition outcomes (including duplicate-completion attempts), Aura total, dungeon opening count/level, gameplay speed, and the persistent adventurer roster.
+- New scenario captures include authoritative recovery records, death/escape custody histories (including duplicate-processing attempts), next drop/runtime-agent IDs, Dread-harvest history, expedition outcomes (including duplicate-completion attempts), Dread total, dungeon opening count/level, gameplay speed, and the persistent adventurer roster.
 - Scenario runtime state is prevalidated before layout mutation. Applying a new snapshot clears active visits and reconstructs records, world bags, POIs, and runtime lookup dictionaries from the captured baseline. Legacy scenarios without runtime snapshots explicitly clear recovery and diagnostic histories instead of retaining stale test state.
-- Active visits, routes, current health/stamina, pending visit Aura, investigation progress, and the current exploration timer are intentionally not resumed. Applying a scenario returns the loop to Expansion and clears these transient states; the captured persistent roster/progression becomes the next-run baseline.
+- Active visits, routes, current health/stamina, pending visit Dread, investigation progress, and the current exploration timer are intentionally not resumed. Applying a scenario returns the loop to Expansion and clears these transient states; the captured persistent roster/progression becomes the next-run baseline.
 
 ## Validation Notes
 

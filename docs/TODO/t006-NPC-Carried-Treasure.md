@@ -40,14 +40,14 @@ Treasure is a resource the dungeon risks in order to entice adventurers deeper. 
 - Re-entering the cell cannot pick up the same treasure again.
 - Carried loot retains enough identity/value information for later recovery or loss.
 - Merely discovering or beginning investigation does not transfer ownership.
-- No player currency or Aura is awarded by treasure pickup.
+- No player currency or Dread is awarded by treasure pickup.
 
 ## Constraints
 
 - Do not implement death-drop/recovery; t007 owns that outcome.
 - Do not implement successful-escape loss; t008 owns that outcome.
 - Do not implement inventory slots, encumbrance, rarity, equipment, or itemization.
-- Do not convert treasure into Aura or player currency.
+- Do not convert treasure into Dread or player currency.
 - Treasure remains bait/value, not a reward automatically generated for the dungeon.
 
 ## Manual Test Scenario
@@ -57,14 +57,14 @@ Treasure is a resource the dungeon risks in order to entice adventurers deeper. 
 3. Verify the treasure leaves active dungeon availability and appears in that adventurer's carried loot once.
 4. Revisit the cell and verify no duplicate pickup occurs.
 5. Start investigation but interrupt/cancel before completion if supported; verify ownership does not transfer.
-6. Verify no Aura/player currency changes merely because treasure was taken.
+6. Verify no Dread/player currency changes merely because treasure was taken.
 
 ## Out of Scope
 
 - Loot recovery after death
 - Loot loss after escape
 - Adventurer-owned starting equipment
-- Soul/Aura harvesting
+- Soul/Dread harvesting
 - Treasure-driven retreat decisions
 - Inventory UI
 
@@ -81,7 +81,7 @@ Treasure is a resource the dungeon risks in order to entice adventurers deeper. 
 - Treasure resolution and custody transfer occur together exactly once after a
   successful investigation. Interrupted investigation performs neither action.
 - A fresh visit clears visit-local custody without resetting resolved world
-  treasure, and pickup does not modify Aura or player currency.
+  treasure, and pickup does not modify Dread or player currency.
 - Runtime compilation, focused source validation, and the manual Unity scenario
   were completed successfully on 2026-08-12.
 

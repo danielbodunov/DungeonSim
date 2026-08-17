@@ -338,7 +338,7 @@ public sealed class RecoverableLootDrop
 
 /// <summary>
 /// One physical item deliberately recovered into dungeon storage by the
-/// player. This is inventory state, not an Aura balance.
+/// player. This is inventory state, not a Dread balance.
 /// </summary>
 [Serializable]
 public sealed class DungeonStoredLootItem

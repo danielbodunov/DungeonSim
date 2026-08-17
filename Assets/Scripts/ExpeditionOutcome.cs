@@ -1,5 +1,6 @@
 using System;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 /// <summary>The authoritative reason an adventurer's dungeon visit ended.</summary>
 public enum ExpeditionOutcomeType
@@ -11,7 +12,7 @@ public enum ExpeditionOutcomeType
 
 /// <summary>
 /// Immutable input used by the gameplay loop to publish one completed visit.
-/// Consequence systems remain responsible for loot and Aura; this request only
+/// Consequence systems remain responsible for loot and Dread; this request only
 /// summarizes their accepted results.
 /// </summary>
 public readonly struct ExpeditionOutcomeRequest
@@ -34,9 +35,9 @@ public readonly struct ExpeditionOutcomeRequest
     public int RecoveredTreasureItemCount { get; }
     public int RecoveredTreasureValue { get; }
     public string RecoveryDropId { get; }
-    public int AuraHarvested { get; }
-    public int VisitAuraSettled { get; }
-    public string AuraHarvestId { get; }
+    public int DreadHarvested { get; }
+    public int VisitDreadSettled { get; }
+    public string DreadHarvestId { get; }
 
     public ExpeditionOutcomeRequest(
         string expeditionId,
@@ -57,9 +58,9 @@ public readonly struct ExpeditionOutcomeRequest
         int recoveredTreasureItemCount,
         int recoveredTreasureValue,
         string recoveryDropId,
-        int auraHarvested,
-        int visitAuraSettled,
-        string auraHarvestId)
+        int dreadHarvested,
+        int visitDreadSettled,
+        string dreadHarvestId)
     {
         ExpeditionId = expeditionId;
         Outcome = outcome;
@@ -79,9 +80,9 @@ public readonly struct ExpeditionOutcomeRequest
         RecoveredTreasureItemCount = Mathf.Max(0, recoveredTreasureItemCount);
         RecoveredTreasureValue = Mathf.Max(0, recoveredTreasureValue);
         RecoveryDropId = recoveryDropId;
-        AuraHarvested = Mathf.Max(0, auraHarvested);
-        VisitAuraSettled = Mathf.Max(0, visitAuraSettled);
-        AuraHarvestId = auraHarvestId;
+        DreadHarvested = Mathf.Max(0, dreadHarvested);
+        VisitDreadSettled = Mathf.Max(0, visitDreadSettled);
+        DreadHarvestId = dreadHarvestId;
     }
 }
 
@@ -110,9 +111,12 @@ public sealed class ExpeditionOutcomeRecord
     [SerializeField, Min(0)] int recoveredTreasureItemCount;
     [SerializeField, Min(0)] int recoveredTreasureValue;
     [SerializeField] string recoveryDropId;
-    [SerializeField, Min(0)] int auraHarvested;
-    [SerializeField, Min(0)] int visitAuraSettled;
-    [SerializeField] string auraHarvestId;
+    [FormerlySerializedAs("auraHarvested")]
+    [SerializeField, Min(0)] int dreadHarvested;
+    [FormerlySerializedAs("visitAuraSettled")]
+    [SerializeField, Min(0)] int visitDreadSettled;
+    [FormerlySerializedAs("auraHarvestId")]
+    [SerializeField] string dreadHarvestId;
     [SerializeField, Min(0)] int duplicateCompletionAttempts;
 
     public string ExpeditionId => expeditionId;
@@ -133,10 +137,10 @@ public sealed class ExpeditionOutcomeRecord
     public int RecoveredTreasureItemCount => recoveredTreasureItemCount;
     public int RecoveredTreasureValue => recoveredTreasureValue;
     public string RecoveryDropId => recoveryDropId;
-    public int AuraHarvested => auraHarvested;
-    public int VisitAuraSettled => visitAuraSettled;
-    public int TotalAuraAwarded => auraHarvested + visitAuraSettled;
-    public string AuraHarvestId => auraHarvestId;
+    public int DreadHarvested => dreadHarvested;
+    public int VisitDreadSettled => visitDreadSettled;
+    public int TotalDreadAwarded => dreadHarvested + visitDreadSettled;
+    public string DreadHarvestId => dreadHarvestId;
     public int DuplicateCompletionAttempts => duplicateCompletionAttempts;
 
     public ExpeditionOutcomeRecord(ExpeditionOutcomeRequest request)
@@ -159,9 +163,9 @@ public sealed class ExpeditionOutcomeRecord
         recoveredTreasureItemCount = request.RecoveredTreasureItemCount;
         recoveredTreasureValue = request.RecoveredTreasureValue;
         recoveryDropId = request.RecoveryDropId;
-        auraHarvested = request.AuraHarvested;
-        visitAuraSettled = request.VisitAuraSettled;
-        auraHarvestId = request.AuraHarvestId;
+        dreadHarvested = request.DreadHarvested;
+        visitDreadSettled = request.VisitDreadSettled;
+        dreadHarvestId = request.DreadHarvestId;
     }
 
     internal void RecordDuplicateCompletionAttempt()
@@ -191,9 +195,9 @@ public sealed class ExpeditionOutcomeRecord
                 recoveredTreasureItemCount,
                 recoveredTreasureValue,
                 recoveryDropId,
-                auraHarvested,
-                visitAuraSettled,
-                auraHarvestId));
+                dreadHarvested,
+                visitDreadSettled,
+                dreadHarvestId));
         copy.duplicateCompletionAttempts = duplicateCompletionAttempts;
         return copy;
     }
