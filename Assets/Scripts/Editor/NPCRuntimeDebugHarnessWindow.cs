@@ -534,8 +534,15 @@ public sealed class NPCRuntimeDebugHarnessWindow : EditorWindow
                 string source = item.HasSourceCell
                     ? $" | source {item.SourceCell}"
                     : string.Empty;
+                string contents = FormatPhysicalLoot(
+                    item.ItemId,
+                    item.Value,
+                    item.IsPhysicalResource,
+                    item.ResourceCategory,
+                    item.ResourceQuantity,
+                    item.UnitValue);
                 EditorGUILayout.LabelField(
-                    $"      {item.ItemId} | {item.Origin} | value {item.Value}{source}");
+                    $"      {contents} | {item.Origin}{source}");
             }
         }
     }
@@ -622,8 +629,15 @@ public sealed class NPCRuntimeDebugHarnessWindow : EditorWindow
                 string source = item.HasSourceCell
                     ? $" | source {item.SourceCell}"
                     : string.Empty;
+                string contents = FormatPhysicalLoot(
+                    item.ItemId,
+                    item.Value,
+                    item.IsPhysicalResource,
+                    item.ResourceCategory,
+                    item.ResourceQuantity,
+                    item.UnitValue);
                 EditorGUILayout.LabelField(
-                    $"      {item.ItemId} | {item.Origin} | value {item.Value}{source}");
+                    $"      {contents} | {item.Origin}{source}");
             }
         }
     }
@@ -868,10 +882,30 @@ public sealed class NPCRuntimeDebugHarnessWindow : EditorWindow
             string source = item.HasSourceCell
                 ? item.SourceCell.ToString()
                 : "none";
+            string contents = FormatPhysicalLoot(
+                item.TreasureId,
+                item.Value,
+                item.IsPhysicalResource,
+                item.ResourceCategory,
+                item.ResourceQuantity,
+                item.UnitValue);
             EditorGUILayout.LabelField(
-                $"  {i + 1}. {item.TreasureId} | value {item.Value} | " +
+                $"  {i + 1}. {contents} | " +
                 $"origin {item.Origin} | source {source}");
         }
+    }
+
+    static string FormatPhysicalLoot(
+        string itemId,
+        int totalValue,
+        bool isPhysicalResource,
+        PhysicalResourceCategory category,
+        int quantity,
+        int unitValue)
+    {
+        return isPhysicalResource
+            ? $"{itemId} | {category} x{quantity} | unit {unitValue}, value {totalValue}"
+            : $"{itemId} | treasure value {totalValue}";
     }
 
     static int CompareConnections(

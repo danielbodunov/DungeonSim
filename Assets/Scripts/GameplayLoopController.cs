@@ -114,7 +114,9 @@ public sealed class GameplayLoopScenarioState
                 dexterity = record.dexterity,
                 luck = record.luck,
                 intelligence = record.intelligence,
-                dungeonVisits = record.dungeonVisits
+                dungeonVisits = record.dungeonVisits,
+                startingResources = AdventurerResourcePayload.CopyAll(
+                    record.startingResources)
             });
         }
         return result;
@@ -311,6 +313,11 @@ public class GameplayLoopController : MonoBehaviour
         SumRecoveredLootValue(RecoverableLootOrigin.DungeonTreasure);
     public int RecoveredAdventurerLootValue =>
         SumRecoveredLootValue(RecoverableLootOrigin.AdventurerPossession);
+    public int RecoveredPhysicalResourceQuantity =>
+        SumRecoveredPhysicalResourceQuantity(null);
+    public int GetRecoveredPhysicalResourceQuantity(
+        PhysicalResourceCategory category) =>
+        SumRecoveredPhysicalResourceQuantity(category);
 
     public event Action StateChanged;
     public event Action<DreadHarvestRecord> DreadHarvested;
@@ -728,6 +735,22 @@ public class GameplayLoopController : MonoBehaviour
                 failure = $"Adventurer roster record {i + 1} has a missing or duplicate ID.";
                 return false;
             }
+
+            IReadOnlyList<AdventurerResourcePayload> resources =
+                record.startingResources;
+            if (resources == null)
+                continue;
+            for (int resourceIndex = 0;
+                 resourceIndex < resources.Count;
+                 resourceIndex++)
+            {
+                if (resources[resourceIndex] == null ||
+                    !resources[resourceIndex].IsValid)
+                {
+                    failure = $"Adventurer roster record {i + 1} has an invalid starting resource payload.";
+                    return false;
+                }
+            }
         }
 
         var harvestIds = new HashSet<string>();
@@ -906,7 +929,9 @@ public class GameplayLoopController : MonoBehaviour
             dexterity = source.dexterity,
             luck = source.luck,
             intelligence = source.intelligence,
-            dungeonVisits = source.dungeonVisits
+            dungeonVisits = source.dungeonVisits,
+            startingResources = AdventurerResourcePayload.CopyAll(
+                source.startingResources)
         };
     }
 
@@ -949,7 +974,9 @@ public class GameplayLoopController : MonoBehaviour
 
         while (adventurerRoster.Count < MaximumAdventurers)
         {
-            NPCCharacterRecord generated = AdventurerNameGenerator.Create(names);
+            NPCCharacterRecord generated = AdventurerNameGenerator.Create(
+                names,
+                adventurerRoster.Count);
             adventurerRoster.Add(generated);
             names.Add(generated.characterName);
         }
@@ -1345,6 +1372,22 @@ public class GameplayLoopController : MonoBehaviour
             DungeonStoredLootItem item = recoveredLootInventory[i];
             if (item != null && (!origin.HasValue || item.Origin == origin.Value))
                 total += item.Value;
+        }
+        return total;
+    }
+
+    int SumRecoveredPhysicalResourceQuantity(
+        PhysicalResourceCategory? category)
+    {
+        int total = 0;
+        for (int i = 0; i < recoveredLootInventory.Count; i++)
+        {
+            DungeonStoredLootItem item = recoveredLootInventory[i];
+            if (item != null && item.IsPhysicalResource &&
+                (!category.HasValue || item.ResourceCategory == category.Value))
+            {
+                total += item.ResourceQuantity;
+            }
         }
         return total;
     }

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Serialization;
 
@@ -16,6 +17,7 @@ public class NPCCharacterRecord
     public int luck = 5;
     public int intelligence = 5;
     public int dungeonVisits;
+    public List<AdventurerResourcePayload> startingResources = new();
 }
 
 /// <summary>
@@ -50,6 +52,9 @@ public class NPCCharacter : MonoBehaviour
     [SerializeField, Min(0)] int dungeonVisits;
     [SerializeField, Min(0)] int experiencePerNewCell = 1;
 
+    [Header("Starting Physical Possessions")]
+    [SerializeField] List<AdventurerResourcePayload> startingResources = new();
+
     public string CharacterName => characterName;
     public int Level => level;
     public int Experience => experience;
@@ -65,6 +70,9 @@ public class NPCCharacter : MonoBehaviour
     public int Luck => luck;
     public int Intelligence => intelligence;
     public int DungeonVisits => dungeonVisits;
+    public IReadOnlyList<AdventurerResourcePayload> StartingResources =>
+        startingResources ??
+        (IReadOnlyList<AdventurerResourcePayload>)Array.Empty<AdventurerResourcePayload>();
     public bool IsDead => currentHealth <= 0;
 
     public event Action<NPCCharacter> ProgressChanged;
@@ -85,6 +93,7 @@ public class NPCCharacter : MonoBehaviour
         luck = Mathf.Max(0, record.luck);
         intelligence = Mathf.Max(0, record.intelligence);
         dungeonVisits = Mathf.Max(0, record.dungeonVisits);
+        startingResources = AdventurerResourcePayload.CopyAll(record.startingResources);
         ProgressChanged?.Invoke(this);
     }
 
@@ -102,6 +111,7 @@ public class NPCCharacter : MonoBehaviour
         record.luck = luck;
         record.intelligence = intelligence;
         record.dungeonVisits = dungeonVisits;
+        record.startingResources = AdventurerResourcePayload.CopyAll(startingResources);
     }
 
     public void ResetVisitResources()

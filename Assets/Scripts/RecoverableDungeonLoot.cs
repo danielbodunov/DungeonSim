@@ -17,12 +17,23 @@ public sealed class EscapedLootItem
     [SerializeField] RecoverableLootOrigin origin;
     [SerializeField] Vector2Int sourceCell;
     [SerializeField] bool hasSourceCell;
+    [SerializeField] RecoverableLootContentKind contentKind;
+    [SerializeField] PhysicalResourceCategory resourceCategory;
+    [SerializeField, Min(0)] int resourceQuantity;
 
     public string ItemId => itemId;
-    public int Value => value;
+    public int Value => IsPhysicalResource ? UnitValue * ResourceQuantity : value;
+    public int UnitValue => IsPhysicalResource ? Mathf.Max(0, value) : 0;
     public RecoverableLootOrigin Origin => origin;
     public Vector2Int SourceCell => sourceCell;
     public bool HasSourceCell => hasSourceCell;
+    public RecoverableLootContentKind ContentKind => contentKind;
+    public bool IsPhysicalResource =>
+        contentKind == RecoverableLootContentKind.PhysicalResource;
+    public PhysicalResourceCategory ResourceCategory => resourceCategory;
+    public int ResourceQuantity => IsPhysicalResource
+        ? Mathf.Max(1, resourceQuantity)
+        : 0;
 
     public EscapedLootItem(
         string itemId,
@@ -30,12 +41,38 @@ public sealed class EscapedLootItem
         RecoverableLootOrigin origin,
         Vector2Int sourceCell,
         bool hasSourceCell)
+        : this(
+            itemId,
+            value,
+            origin,
+            sourceCell,
+            hasSourceCell,
+            RecoverableLootContentKind.Treasure,
+            default,
+            0)
+    {
+    }
+
+    public EscapedLootItem(
+        string itemId,
+        int value,
+        RecoverableLootOrigin origin,
+        Vector2Int sourceCell,
+        bool hasSourceCell,
+        RecoverableLootContentKind contentKind,
+        PhysicalResourceCategory resourceCategory,
+        int resourceQuantity)
     {
         this.itemId = itemId;
         this.value = Mathf.Max(0, value);
         this.origin = origin;
         this.sourceCell = sourceCell;
         this.hasSourceCell = hasSourceCell;
+        this.contentKind = contentKind;
+        this.resourceCategory = resourceCategory;
+        this.resourceQuantity = contentKind == RecoverableLootContentKind.PhysicalResource
+            ? Mathf.Max(1, resourceQuantity)
+            : 0;
     }
 }
 
@@ -122,10 +159,13 @@ public sealed class AdventurerEscapeLootOutcome
                 continue;
             copiedItems.Add(new EscapedLootItem(
                 item.ItemId,
-                item.Value,
+                item.IsPhysicalResource ? item.UnitValue : item.Value,
                 item.Origin,
                 item.SourceCell,
-                item.HasSourceCell));
+                item.HasSourceCell,
+                item.ContentKind,
+                item.ResourceCategory,
+                item.ResourceQuantity));
         }
 
         var copy = new AdventurerEscapeLootOutcome(
@@ -238,12 +278,23 @@ public sealed class RecoverableLootItem
     [SerializeField] RecoverableLootOrigin origin;
     [SerializeField] Vector2Int sourceCell;
     [SerializeField] bool hasSourceCell;
+    [SerializeField] RecoverableLootContentKind contentKind;
+    [SerializeField] PhysicalResourceCategory resourceCategory;
+    [SerializeField, Min(0)] int resourceQuantity;
 
     public string ItemId => itemId;
-    public int Value => value;
+    public int Value => IsPhysicalResource ? UnitValue * ResourceQuantity : value;
+    public int UnitValue => IsPhysicalResource ? Mathf.Max(0, value) : 0;
     public RecoverableLootOrigin Origin => origin;
     public Vector2Int SourceCell => sourceCell;
     public bool HasSourceCell => hasSourceCell;
+    public RecoverableLootContentKind ContentKind => contentKind;
+    public bool IsPhysicalResource =>
+        contentKind == RecoverableLootContentKind.PhysicalResource;
+    public PhysicalResourceCategory ResourceCategory => resourceCategory;
+    public int ResourceQuantity => IsPhysicalResource
+        ? Mathf.Max(1, resourceQuantity)
+        : 0;
 
     public RecoverableLootItem(
         string itemId,
@@ -251,22 +302,51 @@ public sealed class RecoverableLootItem
         RecoverableLootOrigin origin,
         Vector2Int sourceCell,
         bool hasSourceCell)
+        : this(
+            itemId,
+            value,
+            origin,
+            sourceCell,
+            hasSourceCell,
+            RecoverableLootContentKind.Treasure,
+            default,
+            0)
+    {
+    }
+
+    public RecoverableLootItem(
+        string itemId,
+        int value,
+        RecoverableLootOrigin origin,
+        Vector2Int sourceCell,
+        bool hasSourceCell,
+        RecoverableLootContentKind contentKind,
+        PhysicalResourceCategory resourceCategory,
+        int resourceQuantity)
     {
         this.itemId = itemId;
         this.value = Mathf.Max(0, value);
         this.origin = origin;
         this.sourceCell = sourceCell;
         this.hasSourceCell = hasSourceCell;
+        this.contentKind = contentKind;
+        this.resourceCategory = resourceCategory;
+        this.resourceQuantity = contentKind == RecoverableLootContentKind.PhysicalResource
+            ? Mathf.Max(1, resourceQuantity)
+            : 0;
     }
 
     internal RecoverableLootItem Copy()
     {
         return new RecoverableLootItem(
             itemId,
-            value,
+            IsPhysicalResource ? UnitValue : Value,
             origin,
             sourceCell,
-            hasSourceCell);
+            hasSourceCell,
+            contentKind,
+            resourceCategory,
+            ResourceQuantity);
     }
 }
 
@@ -299,6 +379,31 @@ public sealed class RecoverableLootDrop
                     total += items[i].Value;
             return total;
         }
+    }
+    public int PhysicalResourceQuantity
+    {
+        get
+        {
+            int total = 0;
+            if (items == null)
+                return 0;
+            for (int i = 0; i < items.Count; i++)
+                if (items[i] != null && items[i].IsPhysicalResource)
+                    total += items[i].ResourceQuantity;
+            return total;
+        }
+    }
+
+    public int GetPhysicalResourceQuantity(PhysicalResourceCategory category)
+    {
+        int total = 0;
+        if (items == null)
+            return 0;
+        for (int i = 0; i < items.Count; i++)
+            if (items[i] != null && items[i].IsPhysicalResource &&
+                items[i].ResourceCategory == category)
+                total += items[i].ResourceQuantity;
+        return total;
     }
 
     public RecoverableLootDrop(
@@ -349,26 +454,46 @@ public sealed class DungeonStoredLootItem
     [SerializeField] Vector2Int sourceCell;
     [SerializeField] bool hasSourceCell;
     [SerializeField] string recoveryDropId;
+    [SerializeField] RecoverableLootContentKind contentKind;
+    [SerializeField] PhysicalResourceCategory resourceCategory;
+    [SerializeField, Min(0)] int resourceQuantity;
 
     public string ItemId => itemId;
-    public int Value => value;
+    public int Value => IsPhysicalResource ? UnitValue * ResourceQuantity : value;
+    public int UnitValue => IsPhysicalResource ? Mathf.Max(0, value) : 0;
     public RecoverableLootOrigin Origin => origin;
     public Vector2Int SourceCell => sourceCell;
     public bool HasSourceCell => hasSourceCell;
     public string RecoveryDropId => recoveryDropId;
+    public RecoverableLootContentKind ContentKind => contentKind;
+    public bool IsPhysicalResource =>
+        contentKind == RecoverableLootContentKind.PhysicalResource;
+    public PhysicalResourceCategory ResourceCategory => resourceCategory;
+    public int ResourceQuantity => IsPhysicalResource
+        ? Mathf.Max(1, resourceQuantity)
+        : 0;
 
     public DungeonStoredLootItem(
         RecoverableLootItem source,
         string sourceRecoveryDropId)
     {
         itemId = source?.ItemId ?? string.Empty;
-        value = source != null ? source.Value : 0;
+        value = source != null && source.IsPhysicalResource
+            ? source.UnitValue
+            : source != null ? source.Value : 0;
         origin = source != null
             ? source.Origin
             : RecoverableLootOrigin.AdventurerPossession;
         sourceCell = source != null ? source.SourceCell : default;
         hasSourceCell = source != null && source.HasSourceCell;
         recoveryDropId = sourceRecoveryDropId;
+        contentKind = source != null
+            ? source.ContentKind
+            : RecoverableLootContentKind.Treasure;
+        resourceCategory = source != null ? source.ResourceCategory : default;
+        resourceQuantity = source != null && source.IsPhysicalResource
+            ? source.ResourceQuantity
+            : 0;
     }
 
     internal DungeonStoredLootItem Copy()
@@ -376,10 +501,13 @@ public sealed class DungeonStoredLootItem
         return new DungeonStoredLootItem(
             new RecoverableLootItem(
                 itemId,
-                value,
+                IsPhysicalResource ? UnitValue : Value,
                 origin,
                 sourceCell,
-                hasSourceCell),
+                hasSourceCell,
+                contentKind,
+                resourceCategory,
+                ResourceQuantity),
             recoveryDropId);
     }
 }

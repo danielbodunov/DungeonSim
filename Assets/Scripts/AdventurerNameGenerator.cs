@@ -20,7 +20,9 @@ public static class AdventurerNameGenerator
         "Thornfield", "Vale", "Wintermere", "Wyrmwood"
     };
 
-    public static NPCCharacterRecord Create(IReadOnlyCollection<string> existingNames)
+    public static NPCCharacterRecord Create(
+        IReadOnlyCollection<string> existingNames,
+        int resourceConfigurationIndex = 0)
     {
         string generated = null;
         for (int attempt = 0; attempt < 50; attempt++)
@@ -38,10 +40,14 @@ public static class AdventurerNameGenerator
             Surnames[UnityEngine.Random.Range(0, Surnames.Length)] +
             " " + UnityEngine.Random.Range(2, 100);
 
-        return new NPCCharacterRecord
+        var record = new NPCCharacterRecord
         {
             id = Guid.NewGuid().ToString("N"),
             characterName = generated
         };
+        record.startingResources = AdventurerResourceLoadouts.CreatePrototypeLoadout(
+            resourceConfigurationIndex,
+            record.level);
+        return record;
     }
 }

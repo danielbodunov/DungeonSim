@@ -6,6 +6,10 @@ This directory is the working queue for prioritized, actionable tickets. Broader
 
 None.
 
+## Awaiting Unity Validation
+
+- [t017 — Adventurer Physical Resource Drops](t017-Adventurer-Physical-Resource-Drops.md)
+
 ## Ready
 
 None.
@@ -20,7 +24,6 @@ None.
 
 ## Planned — Physical Consequences & Dungeon Economy
 
-- [t017 — Adventurer Physical Resource Drops](t017-Adventurer-Physical-Resource-Drops.md)
 - [t018 — Build Cost Foundation](t018-Build-Cost-Foundation.md)
 
 ## Planned — Strategic Construction
