@@ -168,4 +168,33 @@ public sealed class ExpeditionOutcomeRecord
     {
         duplicateCompletionAttempts++;
     }
+
+    internal ExpeditionOutcomeRecord Copy()
+    {
+        var copy = new ExpeditionOutcomeRecord(
+            new ExpeditionOutcomeRequest(
+                expeditionId,
+                outcome,
+                adventurerId,
+                adventurerName,
+                runtimeAgentId,
+                adventurerLevel,
+                dungeonOpenCount,
+                startCell,
+                completionCell,
+                worldPosition,
+                visitedCellCount,
+                carriedTreasureItemCount,
+                carriedTreasureValue,
+                lostTreasureItemCount,
+                lostTreasureValue,
+                recoveredTreasureItemCount,
+                recoveredTreasureValue,
+                recoveryDropId,
+                auraHarvested,
+                visitAuraSettled,
+                auraHarvestId));
+        copy.duplicateCompletionAttempts = duplicateCompletionAttempts;
+        return copy;
+    }
 }

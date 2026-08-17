@@ -9,6 +9,119 @@ public enum DungeonPhase
 }
 
 /// <summary>
+/// Scenario baseline for persistent gameplay progress and auditable visit
+/// results. Active visits are intentionally not resumed by scenario loading.
+/// </summary>
+[Serializable]
+public sealed class GameplayLoopScenarioState
+{
+    [SerializeField, Min(0)] int dungeonOpenCount;
+    [SerializeField, Min(0)] int adventurerAura;
+    [SerializeField, Min(1)] int dungeonLevel = 1;
+    [SerializeField, Range(0.1f, 10f)] float selectedSpeed = 1f;
+    [SerializeField] List<NPCCharacterRecord> adventurerRoster = new();
+    [SerializeField] List<AuraHarvestRecord> auraHarvests = new();
+    [SerializeField] List<ExpeditionOutcomeRecord> expeditionOutcomes = new();
+
+    public int DungeonOpenCount => Mathf.Max(0, dungeonOpenCount);
+    public int AdventurerAura => Mathf.Max(0, adventurerAura);
+    public int DungeonLevel => Mathf.Max(1, dungeonLevel);
+    public float SelectedSpeed => Mathf.Clamp(selectedSpeed, 0.1f, 10f);
+    public IReadOnlyList<NPCCharacterRecord> AdventurerRoster =>
+        adventurerRoster ??
+        (IReadOnlyList<NPCCharacterRecord>)Array.Empty<NPCCharacterRecord>();
+    public IReadOnlyList<AuraHarvestRecord> AuraHarvests =>
+        auraHarvests ??
+        (IReadOnlyList<AuraHarvestRecord>)Array.Empty<AuraHarvestRecord>();
+    public IReadOnlyList<ExpeditionOutcomeRecord> ExpeditionOutcomes =>
+        expeditionOutcomes ??
+        (IReadOnlyList<ExpeditionOutcomeRecord>)Array.Empty<ExpeditionOutcomeRecord>();
+
+    public GameplayLoopScenarioState(
+        int openCount,
+        int aura,
+        int level,
+        float gameplaySpeed,
+        IReadOnlyList<NPCCharacterRecord> roster,
+        IReadOnlyList<AuraHarvestRecord> harvests,
+        IReadOnlyList<ExpeditionOutcomeRecord> outcomes)
+    {
+        dungeonOpenCount = Mathf.Max(0, openCount);
+        adventurerAura = Mathf.Max(0, aura);
+        dungeonLevel = Mathf.Max(1, level);
+        selectedSpeed = Mathf.Clamp(gameplaySpeed, 0.1f, 10f);
+        adventurerRoster = CopyRoster(roster);
+        auraHarvests = CopyHarvests(harvests);
+        expeditionOutcomes = CopyOutcomes(outcomes);
+    }
+
+    internal GameplayLoopScenarioState Copy()
+    {
+        return new GameplayLoopScenarioState(
+            DungeonOpenCount,
+            AdventurerAura,
+            DungeonLevel,
+            SelectedSpeed,
+            AdventurerRoster,
+            AuraHarvests,
+            ExpeditionOutcomes);
+    }
+
+    static List<NPCCharacterRecord> CopyRoster(
+        IReadOnlyList<NPCCharacterRecord> source)
+    {
+        var result = new List<NPCCharacterRecord>(source?.Count ?? 0);
+        if (source == null)
+            return result;
+        for (int i = 0; i < source.Count; i++)
+        {
+            NPCCharacterRecord record = source[i];
+            if (record == null)
+                continue;
+            result.Add(new NPCCharacterRecord
+            {
+                id = record.id,
+                characterName = record.characterName,
+                level = record.level,
+                experience = record.experience,
+                maxHealth = record.maxHealth,
+                maxStamina = record.maxStamina,
+                strength = record.strength,
+                dexterity = record.dexterity,
+                luck = record.luck,
+                intelligence = record.intelligence,
+                dungeonVisits = record.dungeonVisits
+            });
+        }
+        return result;
+    }
+
+    static List<AuraHarvestRecord> CopyHarvests(
+        IReadOnlyList<AuraHarvestRecord> source)
+    {
+        var result = new List<AuraHarvestRecord>(source?.Count ?? 0);
+        if (source == null)
+            return result;
+        for (int i = 0; i < source.Count; i++)
+            if (source[i] != null)
+                result.Add(source[i].Copy());
+        return result;
+    }
+
+    static List<ExpeditionOutcomeRecord> CopyOutcomes(
+        IReadOnlyList<ExpeditionOutcomeRecord> source)
+    {
+        var result = new List<ExpeditionOutcomeRecord>(source?.Count ?? 0);
+        if (source == null)
+            return result;
+        for (int i = 0; i < source.Count; i++)
+            if (source[i] != null)
+                result.Add(source[i].Copy());
+        return result;
+    }
+}
+
+/// <summary>
 /// Owns the prototype day/night loop, simulation speed, dungeon rating, and
 /// rating-based adventurer spawning.
 /// </summary>
@@ -67,6 +180,7 @@ public class GameplayLoopController : MonoBehaviour
     public int ActiveAdventurers => npcTraversal != null
         ? npcTraversal.ActiveAgentCount
         : 0;
+    public TileGridGenerator DungeonGrid => tileGrid;
     public int DungeonOpenCount => dungeonOpenCount;
     public int DaysOpened => dungeonOpenCount;
     public int AdventurerAura => adventurerAura;
@@ -260,6 +374,132 @@ public class GameplayLoopController : MonoBehaviour
             snapshot.Add(CopyRecord(record));
         }
         return snapshot;
+    }
+
+    public GameplayLoopScenarioState CaptureScenarioState()
+    {
+        return new GameplayLoopScenarioState(
+            dungeonOpenCount,
+            adventurerAura,
+            dungeonLevel,
+            selectedSpeed,
+            CaptureLivingAdventurers(),
+            auraHarvests,
+            expeditionOutcomes);
+    }
+
+    /// <summary>
+    /// Ends any active visit before a validated scenario begins changing the
+    /// dungeon. The resulting retreat records are replaced by the captured
+    /// scenario baseline after the authored layout has been restored.
+    /// </summary>
+    public void PrepareForScenarioApply()
+    {
+        SetPaused(false);
+        SetExpansion();
+    }
+
+    public void RestoreScenarioState(GameplayLoopScenarioState snapshot)
+    {
+        if (snapshot == null)
+        {
+            PrepareForScenarioApply();
+            ClearAuraHarvestHistory();
+            ClearExpeditionOutcomeHistory();
+            StateChanged?.Invoke();
+            return;
+        }
+
+        RestoreProgress(
+            snapshot.DungeonOpenCount,
+            snapshot.SelectedSpeed,
+            snapshot.AdventurerAura,
+            snapshot.DungeonLevel,
+            new List<NPCCharacterRecord>(snapshot.AdventurerRoster));
+
+        IReadOnlyList<AuraHarvestRecord> restoredHarvests =
+            snapshot.AuraHarvests;
+        for (int i = 0; i < restoredHarvests.Count; i++)
+        {
+            AuraHarvestRecord harvest = restoredHarvests[i]?.Copy();
+            if (harvest == null)
+                continue;
+            auraHarvests.Add(harvest);
+            auraHarvestsById.Add(harvest.HarvestId, harvest);
+        }
+
+        IReadOnlyList<ExpeditionOutcomeRecord> restoredOutcomes =
+            snapshot.ExpeditionOutcomes;
+        for (int i = 0; i < restoredOutcomes.Count; i++)
+        {
+            ExpeditionOutcomeRecord outcome = restoredOutcomes[i]?.Copy();
+            if (outcome == null)
+                continue;
+            expeditionOutcomes.Add(outcome);
+            expeditionOutcomesById.Add(outcome.ExpeditionId, outcome);
+        }
+        StateChanged?.Invoke();
+    }
+
+    public bool TryValidateScenarioState(
+        GameplayLoopScenarioState snapshot,
+        out string failure)
+    {
+        failure = string.Empty;
+        if (snapshot == null)
+            return true;
+
+        var rosterIds = new HashSet<string>();
+        IReadOnlyList<NPCCharacterRecord> roster = snapshot.AdventurerRoster;
+        for (int i = 0; i < roster.Count; i++)
+        {
+            NPCCharacterRecord record = roster[i];
+            if (record == null || string.IsNullOrWhiteSpace(record.id) ||
+                !rosterIds.Add(record.id))
+            {
+                failure = $"Adventurer roster record {i + 1} has a missing or duplicate ID.";
+                return false;
+            }
+        }
+
+        var harvestIds = new HashSet<string>();
+        IReadOnlyList<AuraHarvestRecord> harvests = snapshot.AuraHarvests;
+        for (int i = 0; i < harvests.Count; i++)
+        {
+            AuraHarvestRecord harvest = harvests[i];
+            if (harvest == null || string.IsNullOrWhiteSpace(harvest.HarvestId) ||
+                !harvestIds.Add(harvest.HarvestId))
+            {
+                failure = $"Aura harvest record {i + 1} has a missing or duplicate harvest ID.";
+                return false;
+            }
+            if (harvest.DungeonOpenCount > snapshot.DungeonOpenCount)
+            {
+                failure = $"Aura harvest '{harvest.HarvestId}' belongs to a later dungeon opening than the captured baseline.";
+                return false;
+            }
+        }
+
+        var expeditionIds = new HashSet<string>();
+        IReadOnlyList<ExpeditionOutcomeRecord> outcomes =
+            snapshot.ExpeditionOutcomes;
+        for (int i = 0; i < outcomes.Count; i++)
+        {
+            ExpeditionOutcomeRecord outcome = outcomes[i];
+            if (outcome == null ||
+                string.IsNullOrWhiteSpace(outcome.ExpeditionId) ||
+                !expeditionIds.Add(outcome.ExpeditionId))
+            {
+                failure = $"Expedition outcome record {i + 1} has a missing or duplicate expedition ID.";
+                return false;
+            }
+            if (outcome.DungeonOpenCount > snapshot.DungeonOpenCount)
+            {
+                failure = $"Expedition outcome '{outcome.ExpeditionId}' belongs to a later dungeon opening than the captured baseline.";
+                return false;
+            }
+        }
+        return true;
     }
 
     public void RestoreProgress(

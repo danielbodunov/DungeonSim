@@ -6,7 +6,9 @@ using UnityEngine;
 /// </summary>
 [DisallowMultipleComponent]
 [RequireComponent(typeof(DungeonPointOfInterest))]
-public sealed class RecoverableLootWorldDrop : MonoBehaviour
+public sealed class RecoverableLootWorldDrop :
+    MonoBehaviour,
+    IDungeonPointOfInterestInteraction
 {
     const string VisualRootName = "Loot Drop Bundle";
     const float InvestigationDuration = 1f;
@@ -80,6 +82,15 @@ public sealed class RecoverableLootWorldDrop : MonoBehaviour
 
         claimedDrop = null;
         return false;
+    }
+
+    public bool TryCompleteInvestigation(
+        DungeonPointOfInterest investigatedPointOfInterest,
+        NPCTraversalAgent investigator)
+    {
+        return investigatedPointOfInterest == pointOfInterest &&
+            investigator != null &&
+            investigator.TryTakeRecoverableLoot(this);
     }
 
     void BuildVisual(int itemCount)
