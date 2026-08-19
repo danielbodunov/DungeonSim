@@ -9,6 +9,13 @@
 ## Goal
 Make strategic trap planning reliable by validating the complete physical space a trap requires, not merely whether its target corridor cell is available.
 
+## Start Here
+- `docs/Architecture/Props_and_Traps.md`
+- `docs/Architecture/Save_System.md`
+- `docs/Design/World_Generation_and_Building.md`
+
+Begin with these documents and their directly related code. Broaden investigation only when required by a demonstrated dependency.
+
 ## Requirements
 - Formalize trap footprint/service-space reservations.
 - Detect conflicts with neighboring dungeon construction, other trap mechanisms, incompatible surfaces, and reserved infrastructure.
