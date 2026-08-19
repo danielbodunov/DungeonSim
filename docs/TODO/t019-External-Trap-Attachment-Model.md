@@ -9,6 +9,12 @@
 ## Goal
 Change traps from arbitrary occupants of traversable dungeon cells into mechanisms that require compatible construction/service space outside the playable corridor volume.
 
+## Start Here
+- `docs/Architecture/Props_and_Traps.md`
+- `docs/Design/World_Generation_and_Building.md`
+
+Begin with these documents and their directly related code. Broaden investigation only when required by a demonstrated dependency.
+
 ## Design Principle
 A trap should feel physically installed. Spikes entering a corridor from a floor, wall, or ceiling should have a corresponding mechanism/attachment region outside that traversable space.
 
