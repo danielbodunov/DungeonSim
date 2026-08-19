@@ -9,6 +9,12 @@
 ## Goal
 Introduce meaningful construction logistics so dungeon building is no longer effectively unlimited creative placement.
 
+## Start Here
+- `docs/Design/World_Generation_and_Building.md`
+- `docs/Architecture/Save_System.md`
+
+Begin with these documents and their directly related code. Broaden investigation only when required by a demonstrated dependency.
+
 ## Requirements
 - Add authoritative physical-resource costs to a deliberately small subset of build actions.
 - Validate affordability before placement and spend resources only after successful placement.
