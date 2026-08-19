@@ -9,6 +9,13 @@
 ## Goal
 Make trap orientation an explicit strategic placement decision so one trap definition can mount to compatible floor/wall/ceiling surfaces and project its hazard in the intended direction.
 
+## Start Here
+- `docs/Architecture/Props_and_Traps.md`
+- `docs/Design/World_Generation_and_Building.md`
+- `docs/Architecture/Save_System.md`
+
+Begin with these documents and their directly related code. Broaden investigation only when required by a demonstrated dependency.
+
 ## Requirements
 - Add preview rotation/orientation controls for trap placement.
 - Validate the rotated trap against attachment surface, service space, hazard direction, and affected dungeon volume.
