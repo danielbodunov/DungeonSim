@@ -9,6 +9,13 @@
 ## Goal
 Evolve dungeon tile prefabs enough to support physically believable external trap mechanisms and future construction variation without turning dungeon building into arbitrary voxel editing.
 
+## Start Here
+- `docs/Architecture/Props_and_Traps.md`
+- `docs/Design/World_Generation_and_Building.md`
+- `docs/Reference/Prefab_Conventions.md`
+
+Begin with these documents and their directly related code/assets. Broaden investigation only when required by a demonstrated dependency.
+
 ## Direction
 Separate the conceptual gameplay/traversal volume from configurable construction surfaces such as floor, ceiling, cardinal walls, openings, and trap/service regions.
 
