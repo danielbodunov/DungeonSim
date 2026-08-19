@@ -72,4 +72,4 @@ Record weaknesses as follow-up tickets rather than expanding this validation tic
 
 Suggested branch: `feature/t011-sinister-dungeon-slice`
 
-Proceed according to `docs/AGENTS.md` and provide the standard post-implementation report.
+Follow the repository `AGENTS.md`. Consult `docs/Reference/Codex_Workflow.md` for completion-report and pull-request procedure when needed.
