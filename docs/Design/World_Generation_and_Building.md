@@ -351,6 +351,20 @@ Recommended build transaction order:
 
 If any step fails, no currency or partial placement should remain.
 
+Initial construction-cost rule (t018): building a previously unbuilt dungeon
+cell costs one Construction Material. Re-resolving the width of an existing cell
+is free. Successfully removing a built cell refunds one Construction Material;
+failed placement or removal changes neither layout nor resources. The starting
+balance is five, recovered Construction Materials add to it, and Dread is never
+used for this ordinary construction transaction. Trap Components and Arcane
+Components use the same wallet/cost API and also begin with reserves of five,
+but do not yet have a configured build sink in this foundation.
+
+Recovered broad physical resources become fungible category balances exactly
+once when claimed. They are not retained as current itemized dungeon storage;
+the recovery record preserves their original stack details and provenance for
+audit. Treasure and future non-fungible loot remain itemized.
+
 
 DUNGEON PROGRESSION AND DREAD
 -----------------------------

@@ -5,7 +5,7 @@ using UnityEngine.Serialization;
 [Serializable]
 public class DungeonSaveData
 {
-    public const int CurrentVersion = 10;
+    public const int CurrentVersion = 13;
 
     public int version = CurrentVersion;
     public string saveName;
@@ -16,6 +16,9 @@ public class DungeonSaveData
     [FormerlySerializedAs("adventurerAura")]
     public int dread;
     public int dungeonLevel = 1;
+    public int constructionMaterials = 5;
+    public int trapComponents = 5;
+    public int arcaneComponents = 5;
     public float selectedGameplaySpeed = 1f;
     public int propGenerationSeed;
     public List<NPCCharacterRecord> livingAdventurers = new();

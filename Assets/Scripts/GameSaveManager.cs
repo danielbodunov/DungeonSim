@@ -72,6 +72,9 @@ public class GameSaveManager : MonoBehaviour
             dungeonOpenCount = gameplayLoop.DungeonOpenCount,
             dread = gameplayLoop.Dread,
             dungeonLevel = gameplayLoop.DungeonLevel,
+            constructionMaterials = gameplayLoop.ConstructionMaterials,
+            trapComponents = gameplayLoop.TrapComponents,
+            arcaneComponents = gameplayLoop.ArcaneComponents,
             selectedGameplaySpeed = gameplayLoop.SelectedSpeed,
             propGenerationSeed = tileGrid.PropGenerationSeed,
             livingAdventurers = gameplayLoop.CaptureLivingAdventurers(),
@@ -221,7 +224,22 @@ public class GameSaveManager : MonoBehaviour
             save.livingAdventurers,
             save.recoveredLootInventory,
             save.playerLootRecoveries,
-            save.dreadSpends);
+            save.dreadSpends,
+            save.version >= 11
+                ? save.constructionMaterials
+                : 5 + SumRecoveredPhysicalResource(
+                    save.recoveredLootInventory,
+                    PhysicalResourceCategory.ConstructionMaterials),
+            save.version >= 12
+                ? save.trapComponents
+                : 5 + SumRecoveredPhysicalResource(
+                    save.recoveredLootInventory,
+                    PhysicalResourceCategory.TrapComponents),
+            save.version >= 12
+                ? save.arcaneComponents
+                : 5 + SumRecoveredPhysicalResource(
+                    save.recoveredLootInventory,
+                    PhysicalResourceCategory.ArcaneComponents));
 
         int restoredTraps = RestoreTraps(save.traps);
         bool restoredEntrance = RestoreEntrance(save.entrance);
@@ -377,6 +395,23 @@ public class GameSaveManager : MonoBehaviour
         for (int i = 0; i < storedLoot.Count; i++)
             if (storedLoot[i] != null)
                 total += storedLoot[i].Value;
+        return total;
+    }
+
+    static int SumRecoveredPhysicalResource(
+        IReadOnlyList<DungeonStoredLootItem> storedLoot,
+        PhysicalResourceCategory category)
+    {
+        int total = 0;
+        if (storedLoot == null)
+            return total;
+        for (int i = 0; i < storedLoot.Count; i++)
+        {
+            DungeonStoredLootItem item = storedLoot[i];
+            if (item != null && item.IsPhysicalResource &&
+                item.ResourceCategory == category)
+                total += item.ResourceQuantity;
+        }
         return total;
     }
 
