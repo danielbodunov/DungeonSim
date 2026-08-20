@@ -5,7 +5,7 @@ using UnityEngine.Serialization;
 [Serializable]
 public class DungeonSaveData
 {
-    public const int CurrentVersion = 12;
+    public const int CurrentVersion = 13;
 
     public int version = CurrentVersion;
     public string saveName;

@@ -360,6 +360,11 @@ used for this ordinary construction transaction. Trap Components and Arcane
 Components use the same wallet/cost API and also begin with reserves of five,
 but do not yet have a configured build sink in this foundation.
 
+Recovered broad physical resources become fungible category balances exactly
+once when claimed. They are not retained as current itemized dungeon storage;
+the recovery record preserves their original stack details and provenance for
+audit. Treasure and future non-fungible loot remain itemized.
+
 
 DUNGEON PROGRESSION AND DREAD
 -----------------------------

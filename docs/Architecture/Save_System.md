@@ -14,10 +14,14 @@
 The save path currently captures state including gameplay progression, generation seed, adventurers, tile layout, connection intent, traps, floor props, recoverable loot, entrance state, recovered loot, Dread spending, and related histories.
 
 The authoritative Construction Material, Trap Component, and Arcane Component
-balances are persisted separately from Dread and from recovered-loot
-custody/history. Each category starts with a reserve of five. Older saves migrate
-each missing balance to that five-unit reserve plus any matching recovered
-physical resources already represented in storage.
+balances are persisted separately from Dread. Each category starts with a
+reserve of five. Current `DungeonStoredLootItem` storage contains treasure and
+other itemized loot only; fungible physical-resource contents remain in the
+permanent `PlayerLootRecoveryRecord` audit and are owned through category
+balances. Version 13 enforces this single-authority model. Pre-balance saves
+derive missing balances from legacy stored resource stacks, while saves that
+already contain category balances trust those values and discard the redundant
+legacy stacks without crediting them again.
 
 ## Save eligibility
 

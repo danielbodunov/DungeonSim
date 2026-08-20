@@ -31,6 +31,7 @@ public sealed class GameplayLoopScenarioState
     [SerializeField, Min(0)] int constructionMaterials = 5;
     [SerializeField, Min(0)] int trapComponents = 5;
     [SerializeField, Min(0)] int arcaneComponents = 5;
+    [SerializeField] bool hasAuthoritativePhysicalResourceBalances;
 
     public int DungeonOpenCount => Mathf.Max(0, dungeonOpenCount);
     public int Dread => Mathf.Max(0, dread);
@@ -57,6 +58,8 @@ public sealed class GameplayLoopScenarioState
     public int ConstructionMaterials => Mathf.Max(0, constructionMaterials);
     public int TrapComponents => Mathf.Max(0, trapComponents);
     public int ArcaneComponents => Mathf.Max(0, arcaneComponents);
+    public bool HasAuthoritativePhysicalResourceBalances =>
+        hasAuthoritativePhysicalResourceBalances;
 
     public GameplayLoopScenarioState(
         int openCount,
@@ -86,6 +89,7 @@ public sealed class GameplayLoopScenarioState
         constructionMaterials = Mathf.Max(0, savedConstructionMaterials);
         trapComponents = Mathf.Max(0, savedTrapComponents);
         arcaneComponents = Mathf.Max(0, savedArcaneComponents);
+        hasAuthoritativePhysicalResourceBalances = true;
     }
 
     internal GameplayLoopScenarioState Copy()
@@ -334,10 +338,10 @@ public class GameplayLoopController : MonoBehaviour
     public int RecoveredAdventurerLootValue =>
         SumRecoveredLootValue(RecoverableLootOrigin.AdventurerPossession);
     public int RecoveredPhysicalResourceQuantity =>
-        SumRecoveredPhysicalResourceQuantity(null);
+        ConstructionMaterials + TrapComponents + ArcaneComponents;
     public int GetRecoveredPhysicalResourceQuantity(
         PhysicalResourceCategory category) =>
-        SumRecoveredPhysicalResourceQuantity(category);
+        GetPhysicalResourceBalance(category);
     public int ConstructionMaterials => Mathf.Max(0, constructionMaterials);
     public int TrapComponents => Mathf.Max(0, trapComponents);
     public int ArcaneComponents => Mathf.Max(0, arcaneComponents);
@@ -565,6 +569,8 @@ public class GameplayLoopController : MonoBehaviour
         }
 
         var storedItems = new List<DungeonStoredLootItem>(availableDrop.ItemCount);
+        var recoveredResources = new List<RecoverableLootItem>();
+        int recoveredItemCount = 0;
         int dungeonOriginValue = 0;
         int adventurerOriginValue = 0;
         for (int i = 0; i < availableDrop.Items.Count; i++)
@@ -572,13 +578,17 @@ public class GameplayLoopController : MonoBehaviour
             RecoverableLootItem item = availableDrop.Items[i];
             if (item == null || string.IsNullOrWhiteSpace(item.ItemId))
                 continue;
-            storedItems.Add(new DungeonStoredLootItem(item, dropId));
+            recoveredItemCount++;
+            if (item.IsPhysicalResource)
+                recoveredResources.Add(item);
+            else
+                storedItems.Add(new DungeonStoredLootItem(item, dropId));
             if (item.Origin == RecoverableLootOrigin.DungeonTreasure)
                 dungeonOriginValue += item.Value;
             else
                 adventurerOriginValue += item.Value;
         }
-        if (storedItems.Count == 0)
+        if (recoveredItemCount == 0)
         {
             failure = $"Loot drop '{dropId}' contains no recoverable items.";
             return false;
@@ -591,15 +601,15 @@ public class GameplayLoopController : MonoBehaviour
         }
 
         recoveredLootInventory.AddRange(storedItems);
-        for (int i = 0; i < storedItems.Count; i++)
+        for (int i = 0; i < recoveredResources.Count; i++)
         {
-            DungeonStoredLootItem item = storedItems[i];
-            if (item != null && item.IsPhysicalResource)
+            RecoverableLootItem item = recoveredResources[i];
+            if (item != null)
                 AddPhysicalResource(item.ResourceCategory, item.ResourceQuantity);
         }
         recovery = new PlayerLootRecoveryRecord(
             claimedDrop,
-            storedItems.Count,
+            recoveredItemCount,
             dungeonOriginValue + adventurerOriginValue,
             dungeonOriginValue,
             adventurerOriginValue);
@@ -715,6 +725,7 @@ public class GameplayLoopController : MonoBehaviour
             return;
         }
 
+        bool hasBalances = snapshot.HasAuthoritativePhysicalResourceBalances;
         RestoreProgress(
             snapshot.DungeonOpenCount,
             snapshot.SelectedSpeed,
@@ -724,9 +735,18 @@ public class GameplayLoopController : MonoBehaviour
             snapshot.RecoveredLootInventory,
             snapshot.PlayerLootRecoveries,
             snapshot.DreadSpends,
-            snapshot.ConstructionMaterials,
-            snapshot.TrapComponents,
-            snapshot.ArcaneComponents);
+            hasBalances ? snapshot.ConstructionMaterials :
+                5 + SumStoredPhysicalResource(
+                    snapshot.RecoveredLootInventory,
+                    PhysicalResourceCategory.ConstructionMaterials),
+            hasBalances ? snapshot.TrapComponents :
+                5 + SumStoredPhysicalResource(
+                    snapshot.RecoveredLootInventory,
+                    PhysicalResourceCategory.TrapComponents),
+            hasBalances ? snapshot.ArcaneComponents :
+                5 + SumStoredPhysicalResource(
+                    snapshot.RecoveredLootInventory,
+                    PhysicalResourceCategory.ArcaneComponents));
 
         IReadOnlyList<DreadHarvestRecord> restoredHarvests =
             snapshot.DreadHarvests;
@@ -884,17 +904,42 @@ public class GameplayLoopController : MonoBehaviour
             int totalValue = 0;
             int dungeonValue = 0;
             int adventurerValue = 0;
-            for (int itemIndex = 0; itemIndex < storedLoot.Count; itemIndex++)
+            if (recovery.RecoveredItems.Count > 0)
             {
-                DungeonStoredLootItem item = storedLoot[itemIndex];
-                if (item.RecoveryDropId != recovery.SourceDropId)
-                    continue;
-                itemCount++;
-                totalValue += item.Value;
-                if (item.Origin == RecoverableLootOrigin.DungeonTreasure)
-                    dungeonValue += item.Value;
-                else
-                    adventurerValue += item.Value;
+                for (int itemIndex = 0;
+                     itemIndex < recovery.RecoveredItems.Count;
+                     itemIndex++)
+                {
+                    RecoverableLootItem item = recovery.RecoveredItems[itemIndex];
+                    if (item == null || string.IsNullOrWhiteSpace(item.ItemId))
+                    {
+                        failure = $"Player recovery '{recovery.SourceDropId}' has invalid audit contents.";
+                        return false;
+                    }
+                    itemCount++;
+                    totalValue += item.Value;
+                    if (item.Origin == RecoverableLootOrigin.DungeonTreasure)
+                        dungeonValue += item.Value;
+                    else
+                        adventurerValue += item.Value;
+                }
+            }
+            else
+            {
+                // Legacy scenarios used current storage as their only
+                // item-level recovery record. Accept it once for migration.
+                for (int itemIndex = 0; itemIndex < storedLoot.Count; itemIndex++)
+                {
+                    DungeonStoredLootItem item = storedLoot[itemIndex];
+                    if (item.RecoveryDropId != recovery.SourceDropId)
+                        continue;
+                    itemCount++;
+                    totalValue += item.Value;
+                    if (item.Origin == RecoverableLootOrigin.DungeonTreasure)
+                        dungeonValue += item.Value;
+                    else
+                        adventurerValue += item.Value;
+                }
             }
             if (itemCount != recovery.RecoveredItemCount ||
                 totalValue != recovery.RecoveredValue ||
@@ -1425,6 +1470,13 @@ public class GameplayLoopController : MonoBehaviour
                         recoveries[i].SourceDropId))
                 {
                     PlayerLootRecoveryRecord copy = recoveries[i].Copy();
+                    if (copy.RecoveredItems.Count == 0)
+                    {
+                        copy = copy.WithRecoveredItems(
+                            BuildLegacyRecoveryAudit(
+                                storedLoot,
+                                copy.SourceDropId));
+                    }
                     playerLootRecoveries.Add(copy);
                     playerLootRecoveriesByDropId.Add(copy.SourceDropId, copy);
                 }
@@ -1434,11 +1486,54 @@ public class GameplayLoopController : MonoBehaviour
             return;
         for (int i = 0; i < storedLoot.Count; i++)
             if (storedLoot[i] != null &&
+                !storedLoot[i].IsPhysicalResource &&
                 playerLootRecoveriesByDropId.ContainsKey(
                     storedLoot[i].RecoveryDropId))
             {
                 recoveredLootInventory.Add(storedLoot[i].Copy());
             }
+    }
+
+    static List<RecoverableLootItem> BuildLegacyRecoveryAudit(
+        IReadOnlyList<DungeonStoredLootItem> storedLoot,
+        string recoveryDropId)
+    {
+        var result = new List<RecoverableLootItem>();
+        if (storedLoot == null)
+            return result;
+        for (int i = 0; i < storedLoot.Count; i++)
+        {
+            DungeonStoredLootItem item = storedLoot[i];
+            if (item == null || item.RecoveryDropId != recoveryDropId)
+                continue;
+            result.Add(new RecoverableLootItem(
+                item.ItemId,
+                item.IsPhysicalResource ? item.UnitValue : item.Value,
+                item.Origin,
+                item.SourceCell,
+                item.HasSourceCell,
+                item.ContentKind,
+                item.ResourceCategory,
+                item.ResourceQuantity));
+        }
+        return result;
+    }
+
+    static int SumStoredPhysicalResource(
+        IReadOnlyList<DungeonStoredLootItem> storedLoot,
+        PhysicalResourceCategory category)
+    {
+        int total = 0;
+        if (storedLoot == null)
+            return total;
+        for (int i = 0; i < storedLoot.Count; i++)
+        {
+            DungeonStoredLootItem item = storedLoot[i];
+            if (item != null && item.IsPhysicalResource &&
+                item.ResourceCategory == category)
+                total += item.ResourceQuantity;
+        }
+        return total;
     }
 
     void ClearRecoveredLootState()
@@ -1472,22 +1567,6 @@ public class GameplayLoopController : MonoBehaviour
             DungeonStoredLootItem item = recoveredLootInventory[i];
             if (item != null && (!origin.HasValue || item.Origin == origin.Value))
                 total += item.Value;
-        }
-        return total;
-    }
-
-    int SumRecoveredPhysicalResourceQuantity(
-        PhysicalResourceCategory? category)
-    {
-        int total = 0;
-        for (int i = 0; i < recoveredLootInventory.Count; i++)
-        {
-            DungeonStoredLootItem item = recoveredLootInventory[i];
-            if (item != null && item.IsPhysicalResource &&
-                (!category.HasValue || item.ResourceCategory == category.Value))
-            {
-                total += item.ResourceQuantity;
-            }
         }
         return total;
     }

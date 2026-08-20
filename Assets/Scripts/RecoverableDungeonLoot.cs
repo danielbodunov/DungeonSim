@@ -442,8 +442,10 @@ public sealed class RecoverableLootDrop
 }
 
 /// <summary>
-/// One physical item deliberately recovered into dungeon storage by the
-/// player. This is inventory state, not a Dread balance.
+/// One itemized treasure/non-fungible loot entry owned by the dungeon. Legacy
+/// saves may deserialize physical-resource entries here, but restoration moves
+/// those fungible quantities to the authoritative category wallet and does not
+/// retain them as current inventory. This is never a Dread balance.
 /// </summary>
 [Serializable]
 public sealed class DungeonStoredLootItem
@@ -524,6 +526,7 @@ public sealed class PlayerLootRecoveryRecord
     [SerializeField, Min(0)] int recoveredValue;
     [SerializeField, Min(0)] int dungeonTreasureValue;
     [SerializeField, Min(0)] int adventurerLootValue;
+    [SerializeField] List<RecoverableLootItem> recoveredItems = new();
 
     public string SourceDropId => sourceDropId;
     public Vector2Int RecoveryCell => recoveryCell;
@@ -533,6 +536,9 @@ public sealed class PlayerLootRecoveryRecord
     public int RecoveredValue => recoveredValue;
     public int DungeonTreasureValue => dungeonTreasureValue;
     public int AdventurerLootValue => adventurerLootValue;
+    public IReadOnlyList<RecoverableLootItem> RecoveredItems =>
+        recoveredItems ??
+        (IReadOnlyList<RecoverableLootItem>)Array.Empty<RecoverableLootItem>();
 
     public PlayerLootRecoveryRecord(
         RecoverableLootDrop sourceDrop,
@@ -549,6 +555,7 @@ public sealed class PlayerLootRecoveryRecord
         recoveredValue = Mathf.Max(0, totalValue);
         dungeonTreasureValue = Mathf.Max(0, dungeonOriginValue);
         adventurerLootValue = Mathf.Max(0, adventurerOriginValue);
+        recoveredItems = CopyItems(sourceDrop?.Items);
     }
 
     internal PlayerLootRecoveryRecord Copy()
@@ -558,13 +565,42 @@ public sealed class PlayerLootRecoveryRecord
             recoveryCell,
             worldPosition,
             sourceAdventurerName,
-            null);
+            recoveredItems);
         return new PlayerLootRecoveryRecord(
             source,
             recoveredItemCount,
             recoveredValue,
             dungeonTreasureValue,
             adventurerLootValue);
+    }
+
+    internal PlayerLootRecoveryRecord WithRecoveredItems(
+        IReadOnlyList<RecoverableLootItem> items)
+    {
+        var source = new RecoverableLootDrop(
+            sourceDropId,
+            recoveryCell,
+            worldPosition,
+            sourceAdventurerName,
+            CopyItems(items));
+        return new PlayerLootRecoveryRecord(
+            source,
+            recoveredItemCount,
+            recoveredValue,
+            dungeonTreasureValue,
+            adventurerLootValue);
+    }
+
+    static List<RecoverableLootItem> CopyItems(
+        IReadOnlyList<RecoverableLootItem> source)
+    {
+        var result = new List<RecoverableLootItem>(source?.Count ?? 0);
+        if (source == null)
+            return result;
+        for (int i = 0; i < source.Count; i++)
+            if (source[i] != null)
+                result.Add(source[i].Copy());
+        return result;
     }
 }
 

@@ -56,12 +56,18 @@ Suggested branch: `feature/t018-build-cost-foundation`
 - The expansion HUD displays all three physical-resource balances, tile palette
   entries show their Construction Material cost, and build transaction failures
   and results are surfaced in the build UI.
-- Save format version 12 persists all three balances alongside constructed
+- Save format version 13 persists all three balances alongside constructed
   state. Older saves initialize missing balances from the five-unit reserve plus
   matching recovered physical resources. Scenario capture/restore also retains
   the balances.
 - The finalized transaction, refund, Dread-separation, and save migration rules
   are documented in the building-design and save-system documents.
+- Resolved the follow-up inventory-authority review: recovered fungible physical
+  resources now exist only in category balances, while itemized dungeon storage
+  retains treasure/non-fungible loot and recovery records preserve the complete
+  original drop contents and provenance. Legacy duplicate resource stacks are
+  migrated without re-crediting saves that already contain authoritative
+  balances.
 
 ## Validation Notes
 
