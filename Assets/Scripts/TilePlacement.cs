@@ -41,6 +41,9 @@ public class TilePlacement : MonoBehaviour
     private Renderer[] floorPropPreviewRenderers = System.Array.Empty<Renderer>();
     private Renderer[] cellIndicatorRenderers = System.Array.Empty<Renderer>();
     private MaterialPropertyBlock previewPropertyBlock;
+    private GameplayLoopController gameplayLoop;
+    static readonly BuildCost DungeonTileCost = new(
+        PhysicalResourceCategory.ConstructionMaterials, 1);
     private static readonly Color ValidPreviewColor =
         new(0.25f, 0.9f, 0.4f, 0.72f);
     private static readonly Color InvalidPreviewColor =
@@ -72,6 +75,8 @@ public class TilePlacement : MonoBehaviour
             ? cellIndicator.GetComponentsInChildren<Renderer>(true)
             : System.Array.Empty<Renderer>();
         previewPropertyBlock = new MaterialPropertyBlock();
+        gameplayLoop = GameplayLoopController.Instance
+            ?? FindAnyObjectByType<GameplayLoopController>();
         StopPlacement();
         //CreateGroundTiles();
     }
@@ -188,7 +193,12 @@ public class TilePlacement : MonoBehaviour
 
         Vector3 mousePosition = inputManager.GetSelectedMapPosition();
         Vector3Int gridPosition = grid.WorldToCell(mousePosition);
-        tileGridGenerator.PlaceGroundWorldPosition(grid.GetCellCenterWorld(gridPosition));
+        Vector3 cellCenter = grid.GetCellCenterWorld(gridPosition);
+        if (!tileGridGenerator.TryWorldToCell(cellCenter, out Vector2Int logicalCell) ||
+            !tileGridGenerator.IsPlacedCell(logicalCell.x, logicalCell.y))
+            return;
+        if (tileGridGenerator.PlaceGroundWorldPosition(cellCenter))
+            ResolveGameplayLoop()?.RefundBuildCost(DungeonTileCost);
     }
 
     private void PlaceAtCell(Vector3Int gridPosition)
@@ -246,12 +256,34 @@ public class TilePlacement : MonoBehaviour
         }
         else
         {
-            if (tileGridGenerator.ClickWorldPosition(
-                    cellCenter, widthIntent))
+            tileGridGenerator.TryWorldToCell(cellCenter, out Vector2Int logicalCell);
+            bool createsCell = !tileGridGenerator.IsPlacedCell(
+                logicalCell.x, logicalCell.y);
+            GameplayLoopController resources = ResolveGameplayLoop();
+            string failure = string.Empty;
+            if (createsCell && (resources == null ||
+                !resources.CanAfford(DungeonTileCost, out failure)))
             {
+                Debug.LogWarning(resources == null
+                    ? "Construction resources are unavailable."
+                    : failure, this);
+                return;
+            }
+            if (tileGridGenerator.ClickWorldPosition(cellCenter, widthIntent))
+            {
+                if (createsCell)
+                    resources.TrySpendBuildCost(DungeonTileCost, out _);
                 lastDragCell = gridPosition;
             }
         }
+    }
+
+    GameplayLoopController ResolveGameplayLoop()
+    {
+        if (gameplayLoop == null)
+            gameplayLoop = GameplayLoopController.Instance
+                ?? FindAnyObjectByType<GameplayLoopController>();
+        return gameplayLoop;
     }
 
     public void SetWidthIntent(CellWidthIntent intent)

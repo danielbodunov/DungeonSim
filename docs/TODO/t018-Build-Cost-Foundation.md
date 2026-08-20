@@ -2,7 +2,7 @@
 
 ## Tracking
 - **ID:** t018
-- **Status:** Planned
+- **Status:** Complete
 - **Milestone:** Physical Consequences & Dungeon Economy
 - **Depends on:** t017
 
@@ -37,3 +37,46 @@ Begin with these documents and their directly related code. Broaden investigatio
 
 ## Git
 Suggested branch: `feature/t018-build-cost-foundation`
+
+## Implementation Status
+
+- Added a shared `BuildCost` transaction model keyed by physical resource
+  category so tiles, traps, upgrades, and future infrastructure can use the same
+  affordability, spend, and refund API.
+- Added authoritative balances for Construction Materials, Trap Components, and
+  Arcane Components. Each category begins with a reserve of 5, and recovered
+  physical-resource loot credits the matching balance without affecting Dread.
+- Building a previously unbuilt dungeon cell costs exactly 1 Construction
+  Material. Existing-cell width re-resolution remains free.
+- Affordability is checked before tile placement. A failed or unaffordable
+  placement changes neither the dungeon layout nor resource balances, while a
+  successful placement spends once after the layout transaction commits.
+- Successfully removing a built dungeon cell refunds exactly 1 Construction
+  Material. Failed removal provides no refund.
+- The expansion HUD displays all three physical-resource balances, tile palette
+  entries show their Construction Material cost, and build transaction failures
+  and results are surfaced in the build UI.
+- Save format version 12 persists all three balances alongside constructed
+  state. Older saves initialize missing balances from the five-unit reserve plus
+  matching recovered physical resources. Scenario capture/restore also retains
+  the balances.
+- The finalized transaction, refund, Dread-separation, and save migration rules
+  are documented in the building-design and save-system documents.
+
+## Validation Notes
+
+- `Assembly-CSharp` compiled with 0 warnings and 0 errors.
+- Targeted `git diff --check` completed successfully for the t018-owned files.
+- Manual Unity validation was confirmed complete by the user on 2026-08-20.
+
+## Manual Unity Validation
+
+Completed successfully on 2026-08-20.
+
+## Known Limitations
+
+- Dungeon cells are the only action with a configured physical-resource cost in
+  this foundation. Trap Components and Arcane Components are available through
+  the shared wallet API and UI but do not yet have build sinks.
+- Final costs, reward rates, crafting, and broader economy balance remain future
+  work.

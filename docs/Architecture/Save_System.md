@@ -13,6 +13,12 @@
 
 The save path currently captures state including gameplay progression, generation seed, adventurers, tile layout, connection intent, traps, floor props, recoverable loot, entrance state, recovered loot, Dread spending, and related histories.
 
+The authoritative Construction Material, Trap Component, and Arcane Component
+balances are persisted separately from Dread and from recovered-loot
+custody/history. Each category starts with a reserve of five. Older saves migrate
+each missing balance to that five-unit reserve plus any matching recovered
+physical resources already represented in storage.
+
 ## Save eligibility
 
 Saving is intentionally constrained to a safe gameplay state. Current logic requires the dungeon to be initialized and the game to be in the `Expansion` phase.

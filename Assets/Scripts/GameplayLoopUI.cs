@@ -266,7 +266,9 @@ public class GameplayLoopUI : MonoBehaviour
                 item.Prefab.GetComponent<TreasureProp>() != null;
             string label = manifestsTreasure
                 ? $"Manifest Treasure\n{loop.TreasureManifestationDreadCost} Dread"
-                : item.Name;
+                : item.PlacementType == ObjectPlacementType.DungeonTile
+                    ? $"{item.Name}\n1 Construction Material"
+                    : item.Name;
             Button button = CreateButton(
                 row,
                 label,
@@ -987,7 +989,9 @@ public class GameplayLoopUI : MonoBehaviour
         RefreshPaletteSelection();
         RefreshRecoveryPanel();
         if (dreadActionText != null)
-            dreadActionText.text = loop.LastDreadActionMessage;
+            dreadActionText.text = string.IsNullOrEmpty(loop.LastBuildActionMessage)
+                ? loop.LastDreadActionMessage
+                : loop.LastBuildActionMessage;
 
         string pause = loop.IsPaused ? "  •  PAUSED" : string.Empty;
         if (loop.Phase == DungeonPhase.Expansion)
@@ -995,6 +999,9 @@ public class GameplayLoopUI : MonoBehaviour
             phaseDetails.text =
                 $"Rating {BuildRating(loop.DungeonRating)}  •  " +
                 $"Level {loop.DungeonLevel}  •  {loop.Dread} Dread  •  " +
+                $"Materials {loop.ConstructionMaterials}  •  " +
+                $"Trap Components {loop.TrapComponents}  •  " +
+                $"Arcane Components {loop.ArcaneComponents}  •  " +
                 $"Opened {loop.DungeonOpenCount} days  •  Build enabled{pause}";
             return;
         }

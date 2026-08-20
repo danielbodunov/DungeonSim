@@ -28,6 +28,9 @@ public sealed class GameplayLoopScenarioState
     [SerializeField] List<ExpeditionOutcomeRecord> expeditionOutcomes = new();
     [SerializeField] List<DungeonStoredLootItem> recoveredLootInventory = new();
     [SerializeField] List<PlayerLootRecoveryRecord> playerLootRecoveries = new();
+    [SerializeField, Min(0)] int constructionMaterials = 5;
+    [SerializeField, Min(0)] int trapComponents = 5;
+    [SerializeField, Min(0)] int arcaneComponents = 5;
 
     public int DungeonOpenCount => Mathf.Max(0, dungeonOpenCount);
     public int Dread => Mathf.Max(0, dread);
@@ -51,6 +54,9 @@ public sealed class GameplayLoopScenarioState
     public IReadOnlyList<PlayerLootRecoveryRecord> PlayerLootRecoveries =>
         playerLootRecoveries ??
         (IReadOnlyList<PlayerLootRecoveryRecord>)Array.Empty<PlayerLootRecoveryRecord>();
+    public int ConstructionMaterials => Mathf.Max(0, constructionMaterials);
+    public int TrapComponents => Mathf.Max(0, trapComponents);
+    public int ArcaneComponents => Mathf.Max(0, arcaneComponents);
 
     public GameplayLoopScenarioState(
         int openCount,
@@ -62,7 +68,10 @@ public sealed class GameplayLoopScenarioState
         IReadOnlyList<ExpeditionOutcomeRecord> outcomes,
         IReadOnlyList<DungeonStoredLootItem> storedLoot = null,
         IReadOnlyList<PlayerLootRecoveryRecord> recoveries = null,
-        IReadOnlyList<DreadSpendRecord> spends = null)
+        IReadOnlyList<DreadSpendRecord> spends = null,
+        int savedConstructionMaterials = 5,
+        int savedTrapComponents = 5,
+        int savedArcaneComponents = 5)
     {
         dungeonOpenCount = Mathf.Max(0, openCount);
         dread = Mathf.Max(0, savedDread);
@@ -74,6 +83,9 @@ public sealed class GameplayLoopScenarioState
         expeditionOutcomes = CopyOutcomes(outcomes);
         recoveredLootInventory = CopyStoredLoot(storedLoot);
         playerLootRecoveries = CopyRecoveries(recoveries);
+        constructionMaterials = Mathf.Max(0, savedConstructionMaterials);
+        trapComponents = Mathf.Max(0, savedTrapComponents);
+        arcaneComponents = Mathf.Max(0, savedArcaneComponents);
     }
 
     internal GameplayLoopScenarioState Copy()
@@ -88,7 +100,10 @@ public sealed class GameplayLoopScenarioState
             ExpeditionOutcomes,
             RecoveredLootInventory,
             PlayerLootRecoveries,
-            DreadSpends);
+            DreadSpends,
+            ConstructionMaterials,
+            TrapComponents,
+            ArcaneComponents);
     }
 
     static List<NPCCharacterRecord> CopyRoster(
@@ -191,6 +206,11 @@ public sealed class GameplayLoopScenarioState
 [DisallowMultipleComponent]
 public class GameplayLoopController : MonoBehaviour
 {
+    [Header("Physical Construction Resources")]
+    [SerializeField, Min(0)] int constructionMaterials = 5;
+    [SerializeField, Min(0)] int trapComponents = 5;
+    [SerializeField, Min(0)] int arcaneComponents = 5;
+
     [Header("Phase Timing")]
     [SerializeField, Min(5f)] float explorationDuration = 60f;
 
@@ -318,6 +338,10 @@ public class GameplayLoopController : MonoBehaviour
     public int GetRecoveredPhysicalResourceQuantity(
         PhysicalResourceCategory category) =>
         SumRecoveredPhysicalResourceQuantity(category);
+    public int ConstructionMaterials => Mathf.Max(0, constructionMaterials);
+    public int TrapComponents => Mathf.Max(0, trapComponents);
+    public int ArcaneComponents => Mathf.Max(0, arcaneComponents);
+    public string LastBuildActionMessage { get; private set; } = string.Empty;
 
     public event Action StateChanged;
     public event Action<DreadHarvestRecord> DreadHarvested;
@@ -567,6 +591,12 @@ public class GameplayLoopController : MonoBehaviour
         }
 
         recoveredLootInventory.AddRange(storedItems);
+        for (int i = 0; i < storedItems.Count; i++)
+        {
+            DungeonStoredLootItem item = storedItems[i];
+            if (item != null && item.IsPhysicalResource)
+                AddPhysicalResource(item.ResourceCategory, item.ResourceQuantity);
+        }
         recovery = new PlayerLootRecoveryRecord(
             claimedDrop,
             storedItems.Count,
@@ -655,7 +685,10 @@ public class GameplayLoopController : MonoBehaviour
             expeditionOutcomes,
             recoveredLootInventory,
             playerLootRecoveries,
-            dreadSpends);
+            dreadSpends,
+            constructionMaterials,
+            trapComponents,
+            arcaneComponents);
     }
 
     /// <summary>
@@ -690,7 +723,10 @@ public class GameplayLoopController : MonoBehaviour
             new List<NPCCharacterRecord>(snapshot.AdventurerRoster),
             snapshot.RecoveredLootInventory,
             snapshot.PlayerLootRecoveries,
-            snapshot.DreadSpends);
+            snapshot.DreadSpends,
+            snapshot.ConstructionMaterials,
+            snapshot.TrapComponents,
+            snapshot.ArcaneComponents);
 
         IReadOnlyList<DreadHarvestRecord> restoredHarvests =
             snapshot.DreadHarvests;
@@ -880,13 +916,19 @@ public class GameplayLoopController : MonoBehaviour
         List<NPCCharacterRecord> livingAdventurers,
         IReadOnlyList<DungeonStoredLootItem> storedLoot = null,
         IReadOnlyList<PlayerLootRecoveryRecord> recoveries = null,
-        IReadOnlyList<DreadSpendRecord> spends = null)
+        IReadOnlyList<DreadSpendRecord> spends = null,
+        int savedConstructionMaterials = 5,
+        int savedTrapComponents = 5,
+        int savedArcaneComponents = 5)
     {
         SetPaused(false);
         SetExpansion();
         dungeonOpenCount = Mathf.Max(0, savedDungeonOpenCount);
         dread = Mathf.Max(0, savedDread);
         dungeonLevel = Mathf.Max(1, savedDungeonLevel);
+        constructionMaterials = Mathf.Max(0, savedConstructionMaterials);
+        trapComponents = Mathf.Max(0, savedTrapComponents);
+        arcaneComponents = Mathf.Max(0, savedArcaneComponents);
         ClearDreadHarvestHistory();
         RestoreDreadSpendHistory(spends);
         ClearExpeditionOutcomeHistory();
@@ -913,6 +955,64 @@ public class GameplayLoopController : MonoBehaviour
 
         SetGameplaySpeed(savedGameplaySpeed);
         StateChanged?.Invoke();
+    }
+
+    public bool CanAfford(BuildCost cost, out string failure)
+    {
+        int available = GetPhysicalResourceBalance(cost.Category);
+        if (available >= cost.Amount)
+        {
+            failure = string.Empty;
+            return true;
+        }
+        failure = $"Needs {cost}; only {available} available.";
+        LastBuildActionMessage = failure;
+        StateChanged?.Invoke();
+        return false;
+    }
+
+    public bool TrySpendBuildCost(BuildCost cost, out string failure)
+    {
+        if (!CanAfford(cost, out failure))
+            return false;
+        AddPhysicalResource(cost.Category, -cost.Amount);
+        LastBuildActionMessage = $"Built for {cost}.";
+        StateChanged?.Invoke();
+        return true;
+    }
+
+    public void RefundBuildCost(BuildCost cost)
+    {
+        AddPhysicalResource(cost.Category, cost.Amount);
+        LastBuildActionMessage = $"Removed build; refunded {cost}.";
+        StateChanged?.Invoke();
+    }
+
+    public int GetPhysicalResourceBalance(PhysicalResourceCategory category)
+    {
+        return category switch
+        {
+            PhysicalResourceCategory.ConstructionMaterials => ConstructionMaterials,
+            PhysicalResourceCategory.TrapComponents => TrapComponents,
+            PhysicalResourceCategory.ArcaneComponents => ArcaneComponents,
+            _ => 0
+        };
+    }
+
+    void AddPhysicalResource(PhysicalResourceCategory category, int amount)
+    {
+        switch (category)
+        {
+            case PhysicalResourceCategory.ConstructionMaterials:
+                constructionMaterials = Mathf.Max(0, constructionMaterials + amount);
+                break;
+            case PhysicalResourceCategory.TrapComponents:
+                trapComponents = Mathf.Max(0, trapComponents + amount);
+                break;
+            case PhysicalResourceCategory.ArcaneComponents:
+                arcaneComponents = Mathf.Max(0, arcaneComponents + amount);
+                break;
+        }
     }
 
     static NPCCharacterRecord CopyRecord(NPCCharacterRecord source)
