@@ -432,7 +432,13 @@ public class GameSaveManager : MonoBehaviour
             }
 
             if (prefab != null && tileGrid.PlaceTrapCell(
-                savedTrap.x, savedTrap.y, prefab, savedTrap.objectId))
+                savedTrap.x,
+                savedTrap.y,
+                prefab,
+                savedTrap.objectId,
+                savedTrap.hasAttachmentSurface
+                    ? savedTrap.attachmentSurface
+                    : null))
             {
                 restored++;
             }

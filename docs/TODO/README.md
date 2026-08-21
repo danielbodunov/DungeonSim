@@ -8,7 +8,7 @@ None.
 
 ## Awaiting Unity Validation
 
-None.
+- [t019 — External Trap Attachment Model](t019-External-Trap-Attachment-Model.md)
 
 ## Ready
 
@@ -28,7 +28,6 @@ None.
 
 ## Planned — Strategic Construction
 
-- [t019 — External Trap Attachment Model](t019-External-Trap-Attachment-Model.md)
 - [t020 — Rotatable Trap Placement](t020-Rotatable-Trap-Placement.md)
 - [t021 — Modular Tile Construction Surfaces](t021-Modular-Tile-Construction-Surfaces.md)
 - [t022 — Trap Space & Compatibility Validation](t022-Trap-Space-Compatibility-Validation.md)

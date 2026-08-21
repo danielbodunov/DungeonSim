@@ -10,10 +10,12 @@ For a trap that occupies one dungeon cell and triggers when an NPC enters:
 
 1. Create a new component deriving from `CellTrap`.
 2. Put trap-local configuration and animation/timing in that subclass.
-3. Implement `OnNpcEntered(NPCCharacter npc)` and delegate shared NPC outcome logic to `NPCActionResolver` where appropriate.
-4. Create/configure the trap prefab.
-5. Add it to the build content database as `ObjectPlacementType.Trap`.
-6. Verify grid placement and save/load behavior.
+3. Add `TrapAttachmentDefinition` to the prefab root and configure its allowed
+   and preferred floor/wall/ceiling surfaces.
+4. Implement `OnNpcEntered(NPCCharacter npc)` and delegate shared NPC outcome logic to `NPCActionResolver` where appropriate.
+5. Create/configure the trap prefab.
+6. Add it to the build content database as `ObjectPlacementType.Trap`.
+7. Verify grid placement and save/load behavior.
 
 `SpikeWallTrap` is the current reference implementation.
 
@@ -46,7 +48,10 @@ The grid should own **where the trap is placed**, not how it resolves its gamepl
 
 ## Full-cell trap design
 
-For the current DungeonSim design direction, a trap should reserve at least one full cell. A wall-spike mechanism can live in the neighboring trap cell and orient toward the traversed/target cell rather than being squeezed into an arbitrary fragment of floor geometry.
+For the current DungeonSim design direction, the traversed target remains a
+built cell and the external mechanism reserves one adjacent unbuilt service
+cell. Its attachment surface determines the direction from that mechanism into
+the target corridor.
 
 A future crusher that requires mechanisms on opposite corridor sides is a **multi-cell trap**. Do not fake that as two unrelated one-cell traps if they must behave and persist as one logical structure; that requires explicit multi-cell structure ownership/footprint support.
 

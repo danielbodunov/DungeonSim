@@ -52,6 +52,8 @@ CURRENT TECHNICAL BASELINE
 - Lighting is sampled over the two-dimensional cell grid and spreads through
   valid cell connections.
 - Traps currently occupy one built cell.
+- Traps affect one built corridor cell but their mechanisms now reserve an
+  adjacent external service cell through a generic floor/wall/ceiling attachment.
 - One authoritative dungeon entrance can be placed on a compatible authored
   prop socket and is persisted independently from the host tile.
 - Player build intent supports Auto, Narrow, and Wide cells, plus explicit shared
