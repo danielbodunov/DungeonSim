@@ -79,11 +79,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PropSocketAuthoring
   structureId: Ladder
   laneId: Left
+  compatibleLaneIds: []
   bundleId: ShaftEntry_L
   selectionWeight: 1
   role: 0
   direction: 3
   allowsTraversalExit: 0
+  platformPolicy: 0
+  allowedTileRotations: 15
 --- !u!1 &1947499436496944208
 GameObject:
   m_ObjectHideFlags: 0
@@ -130,12 +133,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PropSocketAuthoring
   structureId: Ladder
   laneId: Center
+  compatibleLaneIds: []
   bundleId: ShaftEntry_Interm_C
   selectionWeight: 1
   role: 1
   direction: 3
   allowsTraversalExit: 1
   platformPolicy: 1
+  allowedTileRotations: 15
 --- !u!1 &2538831007897676234
 GameObject:
   m_ObjectHideFlags: 0
@@ -182,11 +187,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PropSocketAuthoring
   structureId: Ladder
   laneId: Left
+  compatibleLaneIds: []
   bundleId: Default
   selectionWeight: 1
   role: 2
   direction: 0
   allowsTraversalExit: 0
+  platformPolicy: 0
+  allowedTileRotations: 15
 --- !u!1 &3362162173382253812
 GameObject:
   m_ObjectHideFlags: 0
@@ -233,12 +241,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PropSocketAuthoring
   structureId: Ladder
   laneId: Left
+  compatibleLaneIds: []
   bundleId: ShaftEntry_Interm_L
   selectionWeight: 1
   role: 1
   direction: 3
   allowsTraversalExit: 1
   platformPolicy: 1
+  allowedTileRotations: 15
 --- !u!1 &4647711763513897174
 GameObject:
   m_ObjectHideFlags: 0
@@ -324,11 +334,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PropSocketAuthoring
   structureId: Ladder
   laneId: Right
+  compatibleLaneIds: []
   bundleId: Default
   selectionWeight: 1
   role: 2
   direction: 0
   allowsTraversalExit: 0
+  platformPolicy: 0
+  allowedTileRotations: 15
 --- !u!1 &4842501248947974967
 GameObject:
   m_ObjectHideFlags: 0
@@ -382,6 +395,96 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 1, y: 1, z: 1}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!1 &5434751735597127496
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1055424031239420153}
+  - component: {fileID: 1590343947589978261}
+  - component: {fileID: 4776615971831860269}
+  m_Layer: 0
+  m_Name: Wide_Floor_Opening
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1055424031239420153
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5434751735597127496}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: -0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 9200376040490532789}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &1590343947589978261
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5434751735597127496}
+  m_Mesh: {fileID: 828487171657467222, guid: 0173902b4b5105c4eac312998a2cc5e2, type: 3}
+--- !u!23 &4776615971831860269
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5434751735597127496}
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 2100000, guid: b6dda0f6d2202e64082961509dce011e, type: 2}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
 --- !u!1 &5674844955389797704
 GameObject:
   m_ObjectHideFlags: 0
@@ -462,11 +565,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PropSocketAuthoring
   structureId: Ladder
   laneId: Center
+  compatibleLaneIds: []
   bundleId: Default
   selectionWeight: 1
   role: 2
   direction: 0
   allowsTraversalExit: 0
+  platformPolicy: 0
+  allowedTileRotations: 15
 --- !u!1 &8283979952092191760
 GameObject:
   m_ObjectHideFlags: 0
@@ -520,6 +626,38 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 1, y: 1, z: 1}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!1 &8423312331240613135
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 9200376040490532789}
+  m_Layer: 0
+  m_Name: DungeonTiles
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &9200376040490532789
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8423312331240613135}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 1055424031239420153}
+  m_Father: {fileID: 5884355235971268170}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &8626911694811867912
 GameObject:
   m_ObjectHideFlags: 0
@@ -566,11 +704,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PropSocketAuthoring
   structureId: Ladder
   laneId: Right
+  compatibleLaneIds: []
   bundleId: ShaftEntry_R
   selectionWeight: 1
   role: 0
   direction: 0
   allowsTraversalExit: 0
+  platformPolicy: 0
+  allowedTileRotations: 15
 --- !u!1 &8825324147942760335
 GameObject:
   m_ObjectHideFlags: 0
@@ -617,84 +758,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PropSocketAuthoring
   structureId: Ladder
   laneId: Right
+  compatibleLaneIds: []
   bundleId: ShaftEntry_Interm_R
   selectionWeight: 1
   role: 1
   direction: 3
   allowsTraversalExit: 1
   platformPolicy: 1
---- !u!1001 &8657312931438827614
-PrefabInstance:
-  m_ObjectHideFlags: 0
-  serializedVersion: 2
-  m_Modification:
-    serializedVersion: 3
-    m_TransformParent: {fileID: 5884355235971268170}
-    m_Modifications:
-    - target: {fileID: -8679921383154817045, guid: 0173902b4b5105c4eac312998a2cc5e2, type: 3}
-      propertyPath: m_LocalPosition.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: 0173902b4b5105c4eac312998a2cc5e2, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: 0173902b4b5105c4eac312998a2cc5e2, type: 3}
-      propertyPath: m_LocalPosition.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: 0173902b4b5105c4eac312998a2cc5e2, type: 3}
-      propertyPath: m_LocalRotation.w
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: 0173902b4b5105c4eac312998a2cc5e2, type: 3}
-      propertyPath: m_LocalRotation.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: 0173902b4b5105c4eac312998a2cc5e2, type: 3}
-      propertyPath: m_LocalRotation.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: 0173902b4b5105c4eac312998a2cc5e2, type: 3}
-      propertyPath: m_LocalRotation.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: 0173902b4b5105c4eac312998a2cc5e2, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: 0173902b4b5105c4eac312998a2cc5e2, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: 0173902b4b5105c4eac312998a2cc5e2, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 919132149155446097, guid: 0173902b4b5105c4eac312998a2cc5e2, type: 3}
-      propertyPath: m_Name
-      value: DungeonTiles
-      objectReference: {fileID: 0}
-    m_RemovedComponents: []
-    m_RemovedGameObjects:
-    - {fileID: 539198585090279491, guid: 0173902b4b5105c4eac312998a2cc5e2, type: 3}
-    - {fileID: -6746074846156037031, guid: 0173902b4b5105c4eac312998a2cc5e2, type: 3}
-    - {fileID: 8343488867895794155, guid: 0173902b4b5105c4eac312998a2cc5e2, type: 3}
-    - {fileID: -3037906183720490160, guid: 0173902b4b5105c4eac312998a2cc5e2, type: 3}
-    - {fileID: -5950641026695691094, guid: 0173902b4b5105c4eac312998a2cc5e2, type: 3}
-    - {fileID: 4892689285941109098, guid: 0173902b4b5105c4eac312998a2cc5e2, type: 3}
-    - {fileID: 1686109638843666504, guid: 0173902b4b5105c4eac312998a2cc5e2, type: 3}
-    - {fileID: -715854098047928462, guid: 0173902b4b5105c4eac312998a2cc5e2, type: 3}
-    - {fileID: -8074336075775805865, guid: 0173902b4b5105c4eac312998a2cc5e2, type: 3}
-    - {fileID: -1909909184685572914, guid: 0173902b4b5105c4eac312998a2cc5e2, type: 3}
-    - {fileID: -3984118394428960787, guid: 0173902b4b5105c4eac312998a2cc5e2, type: 3}
-    - {fileID: -2765906956597160670, guid: 0173902b4b5105c4eac312998a2cc5e2, type: 3}
-    - {fileID: 5194172415454901453, guid: 0173902b4b5105c4eac312998a2cc5e2, type: 3}
-    m_AddedGameObjects: []
-    m_AddedComponents: []
-  m_SourcePrefab: {fileID: 100100000, guid: 0173902b4b5105c4eac312998a2cc5e2, type: 3}
---- !u!4 &9200376040490532789 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 0173902b4b5105c4eac312998a2cc5e2, type: 3}
-  m_PrefabInstance: {fileID: 8657312931438827614}
-  m_PrefabAsset: {fileID: 0}
+  allowedTileRotations: 15
