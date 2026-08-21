@@ -1,0 +1,462 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9652393d1f694693a9c01ce6e1642ba7, type: 3}
+  m_Name: DoubleBags
+  m_EditorClassIdentifier: Assembly-CSharp::DungeonTestScenario
+  scenarioName: Entrance Test
+  description: 
+  intendedTestPurpose: 
+  gridWidth: 15
+  gridHeight: 15
+  propGenerationSeed: 383115402
+  tileCells:
+  - x: 1
+    y: 1
+    isPlaced: 1
+    profileId: Narrow_Cap_R2
+    widthIntent: 0
+  - x: 2
+    y: 1
+    isPlaced: 1
+    profileId: Narrow_Straight_I_R0
+    widthIntent: 0
+  - x: 3
+    y: 1
+    isPlaced: 1
+    profileId: Narrow_Straight_I_R0
+    widthIntent: 0
+  - x: 3
+    y: 3
+    isPlaced: 1
+    profileId: Narrow_Cap_R2
+    widthIntent: 0
+  - x: 4
+    y: 1
+    isPlaced: 1
+    profileId: Narrow_Straight_I_R0
+    widthIntent: 0
+  - x: 4
+    y: 3
+    isPlaced: 1
+    profileId: Narrow_Straight_I_R0
+    widthIntent: 0
+  - x: 5
+    y: 1
+    isPlaced: 1
+    profileId: Narrow_Straight_I_R0
+    widthIntent: 0
+  - x: 5
+    y: 3
+    isPlaced: 1
+    profileId: Narrow_Straight_I_R0
+    widthIntent: 0
+  - x: 6
+    y: 1
+    isPlaced: 1
+    profileId: Narrow_Straight_I_R0
+    widthIntent: 0
+  - x: 6
+    y: 3
+    isPlaced: 1
+    profileId: Narrow_Straight_I_R0
+    widthIntent: 0
+  - x: 7
+    y: 1
+    isPlaced: 1
+    profileId: Narrow_T_R1
+    widthIntent: 0
+  - x: 7
+    y: 2
+    isPlaced: 1
+    profileId: Narrow_Straight_I_R1
+    widthIntent: 0
+  - x: 7
+    y: 3
+    isPlaced: 1
+    profileId: Narrow_Junction_X_R0
+    widthIntent: 0
+  - x: 7
+    y: 4
+    isPlaced: 1
+    profileId: Narrow_Cap_R1
+    widthIntent: 0
+  - x: 8
+    y: 1
+    isPlaced: 1
+    profileId: Narrow_Cap_R0
+    widthIntent: 0
+  - x: 8
+    y: 3
+    isPlaced: 1
+    profileId: Narrow_Straight_I_R0
+    widthIntent: 0
+  - x: 9
+    y: 3
+    isPlaced: 1
+    profileId: Narrow_Cap_R0
+    widthIntent: 0
+  connectionEdges:
+  - fromX: 1
+    fromY: 1
+    toX: 2
+    toY: 1
+    intent: 1
+  - fromX: 2
+    fromY: 1
+    toX: 3
+    toY: 1
+    intent: 1
+  - fromX: 3
+    fromY: 1
+    toX: 4
+    toY: 1
+    intent: 1
+  - fromX: 3
+    fromY: 3
+    toX: 4
+    toY: 3
+    intent: 1
+  - fromX: 4
+    fromY: 1
+    toX: 5
+    toY: 1
+    intent: 1
+  - fromX: 4
+    fromY: 3
+    toX: 5
+    toY: 3
+    intent: 1
+  - fromX: 5
+    fromY: 1
+    toX: 6
+    toY: 1
+    intent: 1
+  - fromX: 5
+    fromY: 3
+    toX: 6
+    toY: 3
+    intent: 1
+  - fromX: 6
+    fromY: 1
+    toX: 7
+    toY: 1
+    intent: 1
+  - fromX: 6
+    fromY: 3
+    toX: 7
+    toY: 3
+    intent: 1
+  - fromX: 7
+    fromY: 1
+    toX: 8
+    toY: 1
+    intent: 1
+  - fromX: 7
+    fromY: 1
+    toX: 7
+    toY: 2
+    intent: 1
+  - fromX: 7
+    fromY: 2
+    toX: 7
+    toY: 3
+    intent: 1
+  - fromX: 7
+    fromY: 3
+    toX: 8
+    toY: 3
+    intent: 1
+  - fromX: 7
+    fromY: 3
+    toX: 7
+    toY: 4
+    intent: 1
+  - fromX: 8
+    fromY: 3
+    toX: 9
+    toY: 3
+    intent: 1
+  traps: []
+  floorProps:
+  - x: 2
+    y: 1
+    objectId: 6
+    prefabName: Chest
+    prefab: {fileID: 2870602997783973031, guid: 90390a8738a86164dbb3b5463e1e8950, type: 3}
+    isResolved: 0
+  - x: 5
+    y: 3
+    objectId: 6
+    prefabName: Chest
+    prefab: {fileID: 2870602997783973031, guid: 90390a8738a86164dbb3b5463e1e8950, type: 3}
+    isResolved: 0
+  entranceMode: 1
+  entrance:
+    x: 4
+    y: 1
+    objectId: 5
+    prefabName: DungeonEntrance
+    prefab: {fileID: 1001, guid: ac13f74274c6481e904013b2ef8af8de, type: 3}
+    isResolved: 0
+  hasDefaultEntranceCell: 0
+  defaultEntranceCell: {x: 0, y: 0}
+  hasRuntimeStateSnapshot: 1
+  traversalState:
+    recoverableLootDrops: []
+    deathLootOutcomes: []
+    escapeLootOutcomes:
+    - sourceRuntimeAgentId: 1
+      sourceAdventurerName: Orin Blackbriar
+      exitCell: {x: 2, y: 1}
+      worldPosition: {x: 1.5099909, y: -1.8098953, z: 0.000012062688}
+      carriedItemCountBefore: 0
+      carriedValueBefore: 0
+      escapedItems: []
+      carriedItemCountAfter: 0
+      carriedValueAfter: 0
+      escapeProcessed: 1
+      duplicateProcessingAttempts: 0
+    - sourceRuntimeAgentId: 3
+      sourceAdventurerName: Quinn Vale
+      exitCell: {x: 2, y: 1}
+      worldPosition: {x: 1.5, y: -1.8098953, z: 0}
+      carriedItemCountBefore: 0
+      carriedValueBefore: 0
+      escapedItems: []
+      carriedItemCountAfter: 0
+      carriedValueAfter: 0
+      escapeProcessed: 1
+      duplicateProcessingAttempts: 0
+    - sourceRuntimeAgentId: 4
+      sourceAdventurerName: Nolan Wintermere
+      exitCell: {x: 2, y: 1}
+      worldPosition: {x: 1.5, y: -1.8098953, z: 0}
+      carriedItemCountBefore: 0
+      carriedValueBefore: 0
+      escapedItems: []
+      carriedItemCountAfter: 0
+      carriedValueAfter: 0
+      escapeProcessed: 1
+      duplicateProcessingAttempts: 0
+    - sourceRuntimeAgentId: 2
+      sourceAdventurerName: Tamsin Hawthorne
+      exitCell: {x: 2, y: 1}
+      worldPosition: {x: 1.5, y: -1.8098953, z: 0}
+      carriedItemCountBefore: 0
+      carriedValueBefore: 0
+      escapedItems: []
+      carriedItemCountAfter: 0
+      carriedValueAfter: 0
+      escapeProcessed: 1
+      duplicateProcessingAttempts: 0
+    - sourceRuntimeAgentId: 5
+      sourceAdventurerName: Orin Blackbriar
+      exitCell: {x: 2, y: 1}
+      worldPosition: {x: 1.5072544, y: -1.8098953, z: 0}
+      carriedItemCountBefore: 1
+      carriedValueBefore: 10
+      escapedItems:
+      - itemId: Chest_Basic
+        value: 10
+        origin: 0
+        sourceCell: {x: 6, y: 3}
+        hasSourceCell: 1
+      carriedItemCountAfter: 0
+      carriedValueAfter: 0
+      escapeProcessed: 1
+      duplicateProcessingAttempts: 0
+    - sourceRuntimeAgentId: 6
+      sourceAdventurerName: Tamsin Hawthorne
+      exitCell: {x: 2, y: 1}
+      worldPosition: {x: 1.5051631, y: -1.8098953, z: 0.00001196395}
+      carriedItemCountBefore: 0
+      carriedValueBefore: 0
+      escapedItems: []
+      carriedItemCountAfter: 0
+      carriedValueAfter: 0
+      escapeProcessed: 1
+      duplicateProcessingAttempts: 0
+    - sourceRuntimeAgentId: 7
+      sourceAdventurerName: Quinn Vale
+      exitCell: {x: 2, y: 1}
+      worldPosition: {x: 1.5086085, y: -1.8098953, z: 0.000014959527}
+      carriedItemCountBefore: 0
+      carriedValueBefore: 0
+      escapedItems: []
+      carriedItemCountAfter: 0
+      carriedValueAfter: 0
+      escapeProcessed: 1
+      duplicateProcessingAttempts: 0
+    - sourceRuntimeAgentId: 8
+      sourceAdventurerName: Nolan Wintermere
+      exitCell: {x: 2, y: 1}
+      worldPosition: {x: 1.5076991, y: -1.8098953, z: 0.000012380441}
+      carriedItemCountBefore: 0
+      carriedValueBefore: 0
+      escapedItems: []
+      carriedItemCountAfter: 0
+      carriedValueAfter: 0
+      escapeProcessed: 1
+      duplicateProcessingAttempts: 0
+    - sourceRuntimeAgentId: 9
+      sourceAdventurerName: Orin Blackbriar
+      exitCell: {x: 1, y: 4}
+      worldPosition: {x: 0.5056814, y: -4.8, z: 1.8937593e-14}
+      carriedItemCountBefore: 3
+      carriedValueBefore: 30
+      escapedItems:
+      - itemId: Chest_Basic
+        value: 10
+        origin: 0
+        sourceCell: {x: 2, y: 4}
+        hasSourceCell: 1
+      - itemId: Chest_Basic
+        value: 10
+        origin: 0
+        sourceCell: {x: 3, y: 4}
+        hasSourceCell: 1
+      - itemId: Chest_Basic
+        value: 10
+        origin: 0
+        sourceCell: {x: 8, y: 4}
+        hasSourceCell: 1
+      carriedItemCountAfter: 0
+      carriedValueAfter: 0
+      escapeProcessed: 1
+      duplicateProcessingAttempts: 0
+    - sourceRuntimeAgentId: 10
+      sourceAdventurerName: Tamsin Hawthorne
+      exitCell: {x: 1, y: 4}
+      worldPosition: {x: 0.5071203, y: -4.8, z: 2.5847204e-14}
+      carriedItemCountBefore: 0
+      carriedValueBefore: 0
+      escapedItems: []
+      carriedItemCountAfter: 0
+      carriedValueAfter: 0
+      escapeProcessed: 1
+      duplicateProcessingAttempts: 0
+    - sourceRuntimeAgentId: 11
+      sourceAdventurerName: Quinn Vale
+      exitCell: {x: 1, y: 4}
+      worldPosition: {x: 0.50522345, y: -4.8, z: 2.780158e-14}
+      carriedItemCountBefore: 1
+      carriedValueBefore: 10
+      escapedItems:
+      - itemId: Chest_Basic
+        value: 10
+        origin: 0
+        sourceCell: {x: 8, y: 1}
+        hasSourceCell: 1
+      carriedItemCountAfter: 0
+      carriedValueAfter: 0
+      escapeProcessed: 1
+      duplicateProcessingAttempts: 0
+    - sourceRuntimeAgentId: 12
+      sourceAdventurerName: Nolan Wintermere
+      exitCell: {x: 1, y: 4}
+      worldPosition: {x: 0.50233907, y: -4.7999997, z: 3.2502773e-10}
+      carriedItemCountBefore: 1
+      carriedValueBefore: 10
+      escapedItems:
+      - itemId: Chest_Basic
+        value: 10
+        origin: 0
+        sourceCell: {x: 9, y: 1}
+        hasSourceCell: 1
+      carriedItemCountAfter: 0
+      carriedValueAfter: 0
+      escapeProcessed: 1
+      duplicateProcessingAttempts: 0
+    - sourceRuntimeAgentId: 13
+      sourceAdventurerName: Greta Thornfield
+      exitCell: {x: 1, y: 4}
+      worldPosition: {x: 0.50824845, y: -4.8, z: 0.0000000011018887}
+      carriedItemCountBefore: 0
+      carriedValueBefore: 0
+      escapedItems: []
+      carriedItemCountAfter: 0
+      carriedValueAfter: 0
+      escapeProcessed: 1
+      duplicateProcessingAttempts: 0
+    nextRecoverableLootDropNumber: 1
+    nextRuntimeAgentId: 14
+  gameplayState:
+    dungeonOpenCount: 1
+    dread: 16
+    dungeonLevel: 1
+    selectedSpeed: 1
+    adventurerRoster:
+    - id: 9c37dff4706e4b629fc77db5633f2647
+      characterName: Joren Oakheart
+      level: 1
+      experience: 9
+      maxHealth: 10
+      maxStamina: 10
+      strength: 5
+      dexterity: 5
+      luck: 5
+      intelligence: 5
+      dungeonVisits: 1
+    - id: 06cb4ed4864c40fab3370877d8ab06ab
+      characterName: Sable Ironwood
+      level: 1
+      experience: 9
+      maxHealth: 10
+      maxStamina: 10
+      strength: 5
+      dexterity: 5
+      luck: 5
+      intelligence: 5
+      dungeonVisits: 1
+    - id: ecf56d4835c1400e9603da5f9b325b87
+      characterName: Joren Ashford
+      level: 1
+      experience: 9
+      maxHealth: 10
+      maxStamina: 10
+      strength: 5
+      dexterity: 5
+      luck: 5
+      intelligence: 5
+      dungeonVisits: 1
+    - id: 9711a80d2f8649a2a96fa304aab28b77
+      characterName: Yara Grimward
+      level: 1
+      experience: 9
+      maxHealth: 10
+      maxStamina: 10
+      strength: 5
+      dexterity: 5
+      luck: 5
+      intelligence: 5
+      dungeonVisits: 1
+    dreadHarvests: []
+    dreadSpends:
+    - spendId: dread:treasure:67c21fe2618847c79dfc3713a8cecfed
+      purpose: 0
+      amount: 10
+      dungeonOpenCount: 1
+      cell: {x: 5, y: 3}
+      objectId: 6
+      prefabName: Chest
+      duplicateAttempts: 0
+    - spendId: dread:treasure:c585e349876846e688d9920bf74b7e1c
+      purpose: 0
+      amount: 10
+      dungeonOpenCount: 1
+      cell: {x: 2, y: 1}
+      objectId: 6
+      prefabName: Chest
+      duplicateAttempts: 0
+    expeditionOutcomes: []
+    recoveredLootInventory: []
+    playerLootRecoveries: []

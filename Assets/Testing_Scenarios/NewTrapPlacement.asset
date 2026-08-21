@@ -1,0 +1,206 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9652393d1f694693a9c01ce6e1642ba7, type: 3}
+  m_Name: NewTrapPlacement
+  m_EditorClassIdentifier: Assembly-CSharp::DungeonTestScenario
+  scenarioName: New Dungeon Scenario
+  description: 
+  intendedTestPurpose: 
+  gridWidth: 15
+  gridHeight: 15
+  propGenerationSeed: -926314272
+  tileCells:
+  - x: 2
+    y: 1
+    isPlaced: 1
+    profileId: Narrow_Cap_R2
+    widthIntent: 0
+  - x: 3
+    y: 1
+    isPlaced: 1
+    profileId: Narrow_Straight_I_R0
+    widthIntent: 0
+  - x: 4
+    y: 1
+    isPlaced: 1
+    profileId: Narrow_T_R1
+    widthIntent: 0
+  - x: 4
+    y: 2
+    isPlaced: 1
+    profileId: Narrow_Straight_I_R1
+    widthIntent: 0
+  - x: 4
+    y: 3
+    isPlaced: 1
+    profileId: Narrow_Corner_L_R0
+    widthIntent: 0
+  - x: 5
+    y: 1
+    isPlaced: 1
+    profileId: Narrow_Straight_I_R0
+    widthIntent: 0
+  - x: 5
+    y: 3
+    isPlaced: 1
+    profileId: Narrow_Straight_I_R0
+    widthIntent: 0
+  - x: 6
+    y: 1
+    isPlaced: 1
+    profileId: Narrow_Corner_L_R2
+    widthIntent: 0
+  - x: 6
+    y: 2
+    isPlaced: 1
+    profileId: Narrow_Straight_I_R1
+    widthIntent: 0
+  - x: 6
+    y: 3
+    isPlaced: 1
+    profileId: Narrow_Corner_L_R3
+    widthIntent: 0
+  connectionEdges:
+  - fromX: 2
+    fromY: 1
+    toX: 3
+    toY: 1
+    intent: 1
+  - fromX: 3
+    fromY: 1
+    toX: 4
+    toY: 1
+    intent: 1
+  - fromX: 4
+    fromY: 1
+    toX: 5
+    toY: 1
+    intent: 1
+  - fromX: 4
+    fromY: 1
+    toX: 4
+    toY: 2
+    intent: 1
+  - fromX: 4
+    fromY: 2
+    toX: 4
+    toY: 3
+    intent: 1
+  - fromX: 4
+    fromY: 3
+    toX: 5
+    toY: 3
+    intent: 1
+  - fromX: 5
+    fromY: 1
+    toX: 6
+    toY: 1
+    intent: 1
+  - fromX: 5
+    fromY: 3
+    toX: 6
+    toY: 3
+    intent: 1
+  - fromX: 6
+    fromY: 1
+    toX: 6
+    toY: 2
+    intent: 1
+  - fromX: 6
+    fromY: 2
+    toX: 6
+    toY: 3
+    intent: 1
+  traps:
+  - x: 4
+    y: 2
+    objectId: 4
+    prefabName: SpikeWall
+    prefab: {fileID: 1001, guid: 5c39c4ab8a0e44398b0ec97618835a79, type: 3}
+    isResolved: 0
+    hasTrapAttachmentSurface: 1
+    trapAttachmentSurface: 2
+  - x: 4
+    y: 3
+    objectId: 4
+    prefabName: SpikeWall
+    prefab: {fileID: 1001, guid: 5c39c4ab8a0e44398b0ec97618835a79, type: 3}
+    isResolved: 0
+    hasTrapAttachmentSurface: 1
+    trapAttachmentSurface: 0
+  - x: 5
+    y: 3
+    objectId: 4
+    prefabName: SpikeWall
+    prefab: {fileID: 1001, guid: 5c39c4ab8a0e44398b0ec97618835a79, type: 3}
+    isResolved: 0
+    hasTrapAttachmentSurface: 1
+    trapAttachmentSurface: 0
+  - x: 6
+    y: 1
+    objectId: 4
+    prefabName: SpikeWall
+    prefab: {fileID: 1001, guid: 5c39c4ab8a0e44398b0ec97618835a79, type: 3}
+    isResolved: 0
+    hasTrapAttachmentSurface: 1
+    trapAttachmentSurface: 3
+  - x: 6
+    y: 2
+    objectId: 4
+    prefabName: SpikeWall
+    prefab: {fileID: 1001, guid: 5c39c4ab8a0e44398b0ec97618835a79, type: 3}
+    isResolved: 0
+    hasTrapAttachmentSurface: 1
+    trapAttachmentSurface: 2
+  - x: 6
+    y: 3
+    objectId: 4
+    prefabName: SpikeWall
+    prefab: {fileID: 1001, guid: 5c39c4ab8a0e44398b0ec97618835a79, type: 3}
+    isResolved: 0
+    hasTrapAttachmentSurface: 1
+    trapAttachmentSurface: 0
+  floorProps: []
+  entranceMode: 0
+  entrance:
+    x: 0
+    y: 0
+    objectId: -1
+    prefabName: 
+    prefab: {fileID: 0}
+    isResolved: 0
+    hasTrapAttachmentSurface: 0
+    trapAttachmentSurface: 0
+  hasDefaultEntranceCell: 1
+  defaultEntranceCell: {x: 2, y: 1}
+  hasRuntimeStateSnapshot: 1
+  traversalState:
+    recoverableLootDrops: []
+    deathLootOutcomes: []
+    escapeLootOutcomes: []
+    nextRecoverableLootDropNumber: 1
+    nextRuntimeAgentId: 1
+  gameplayState:
+    dungeonOpenCount: 0
+    dread: 0
+    dungeonLevel: 1
+    selectedSpeed: 1
+    adventurerRoster: []
+    dreadHarvests: []
+    dreadSpends: []
+    expeditionOutcomes: []
+    recoveredLootInventory: []
+    playerLootRecoveries: []
+    constructionMaterials: 995
+    trapComponents: 1000
+    arcaneComponents: 1000
+    hasAuthoritativePhysicalResourceBalances: 1

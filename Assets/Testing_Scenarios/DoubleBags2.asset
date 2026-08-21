@@ -1,0 +1,365 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9652393d1f694693a9c01ce6e1642ba7, type: 3}
+  m_Name: DoubleBags2
+  m_EditorClassIdentifier: Assembly-CSharp::DungeonTestScenario
+  scenarioName: Entrance Test
+  description: 
+  intendedTestPurpose: 
+  gridWidth: 15
+  gridHeight: 15
+  propGenerationSeed: 968755083
+  tileCells:
+  - x: 2
+    y: 1
+    isPlaced: 1
+    profileId: Narrow_Cap_R2
+    widthIntent: 0
+  - x: 3
+    y: 1
+    isPlaced: 1
+    profileId: Narrow_Straight_I_R0
+    widthIntent: 0
+  - x: 3
+    y: 3
+    isPlaced: 1
+    profileId: Wide_Corner_01_L_R0
+    widthIntent: 0
+  - x: 3
+    y: 4
+    isPlaced: 1
+    profileId: Wide_Corner_01_L_R3
+    widthIntent: 0
+  - x: 4
+    y: 1
+    isPlaced: 1
+    profileId: Narrow_Straight_I_R0
+    widthIntent: 0
+  - x: 4
+    y: 3
+    isPlaced: 1
+    profileId: Wide_Floor_Opening_L_R2
+    widthIntent: 0
+  - x: 4
+    y: 4
+    isPlaced: 1
+    profileId: Wide_Corner_01_L_R2
+    widthIntent: 0
+  - x: 5
+    y: 1
+    isPlaced: 1
+    profileId: Narrow_Straight_I_R0
+    widthIntent: 0
+  - x: 5
+    y: 3
+    isPlaced: 1
+    profileId: Narrow_Straight_I_R0
+    widthIntent: 0
+  - x: 6
+    y: 1
+    isPlaced: 1
+    profileId: Narrow_T_R1
+    widthIntent: 0
+  - x: 6
+    y: 2
+    isPlaced: 1
+    profileId: Narrow_Straight_I_R1
+    widthIntent: 0
+  - x: 6
+    y: 3
+    isPlaced: 1
+    profileId: Narrow_T_R3
+    widthIntent: 0
+  - x: 7
+    y: 1
+    isPlaced: 1
+    profileId: Narrow_Straight_I_R0
+    widthIntent: 0
+  - x: 7
+    y: 3
+    isPlaced: 1
+    profileId: Narrow_Straight_I_R0
+    widthIntent: 0
+  - x: 8
+    y: 1
+    isPlaced: 1
+    profileId: Narrow_Cap_R0
+    widthIntent: 0
+  - x: 8
+    y: 3
+    isPlaced: 1
+    profileId: Narrow_Cap_R0
+    widthIntent: 0
+  connectionEdges:
+  - fromX: 2
+    fromY: 1
+    toX: 3
+    toY: 1
+    intent: 1
+  - fromX: 3
+    fromY: 1
+    toX: 4
+    toY: 1
+    intent: 1
+  - fromX: 3
+    fromY: 3
+    toX: 4
+    toY: 3
+    intent: 1
+  - fromX: 3
+    fromY: 3
+    toX: 3
+    toY: 4
+    intent: 1
+  - fromX: 3
+    fromY: 4
+    toX: 4
+    toY: 4
+    intent: 1
+  - fromX: 4
+    fromY: 1
+    toX: 5
+    toY: 1
+    intent: 1
+  - fromX: 4
+    fromY: 3
+    toX: 5
+    toY: 3
+    intent: 1
+  - fromX: 4
+    fromY: 3
+    toX: 4
+    toY: 4
+    intent: 1
+  - fromX: 5
+    fromY: 1
+    toX: 6
+    toY: 1
+    intent: 1
+  - fromX: 5
+    fromY: 3
+    toX: 6
+    toY: 3
+    intent: 1
+  - fromX: 6
+    fromY: 1
+    toX: 7
+    toY: 1
+    intent: 1
+  - fromX: 6
+    fromY: 1
+    toX: 6
+    toY: 2
+    intent: 1
+  - fromX: 6
+    fromY: 2
+    toX: 6
+    toY: 3
+    intent: 1
+  - fromX: 6
+    fromY: 3
+    toX: 7
+    toY: 3
+    intent: 1
+  - fromX: 7
+    fromY: 1
+    toX: 8
+    toY: 1
+    intent: 1
+  - fromX: 7
+    fromY: 3
+    toX: 8
+    toY: 3
+    intent: 1
+  traps: []
+  floorProps:
+  - x: 4
+    y: 1
+    objectId: 6
+    prefabName: Chest
+    prefab: {fileID: 2870602997783973031, guid: 90390a8738a86164dbb3b5463e1e8950, type: 3}
+    isResolved: 1
+  - x: 7
+    y: 1
+    objectId: 6
+    prefabName: Chest
+    prefab: {fileID: 2870602997783973031, guid: 90390a8738a86164dbb3b5463e1e8950, type: 3}
+    isResolved: 1
+  - x: 7
+    y: 3
+    objectId: 6
+    prefabName: Chest
+    prefab: {fileID: 2870602997783973031, guid: 90390a8738a86164dbb3b5463e1e8950, type: 3}
+    isResolved: 0
+  - x: 8
+    y: 1
+    objectId: 6
+    prefabName: Chest
+    prefab: {fileID: 2870602997783973031, guid: 90390a8738a86164dbb3b5463e1e8950, type: 3}
+    isResolved: 1
+  entranceMode: 0
+  entrance:
+    x: 0
+    y: 0
+    objectId: -1
+    prefabName: 
+    prefab: {fileID: 0}
+    isResolved: 0
+  hasDefaultEntranceCell: 1
+  defaultEntranceCell: {x: 2, y: 1}
+  hasRuntimeStateSnapshot: 1
+  traversalState:
+    recoverableLootDrops:
+    - dropId: recovered-loot-0003
+      dropCell: {x: 5, y: 3}
+      worldPosition: {x: 4.7655725, y: -3.8000002, z: 0.079671465}
+      sourceAdventurerName: Sable Fairwind
+      items:
+      - itemId: Chest_Basic
+        value: 10
+        origin: 0
+        sourceCell: {x: 4, y: 1}
+        hasSourceCell: 1
+      - itemId: Chest_Basic
+        value: 10
+        origin: 0
+        sourceCell: {x: 5, y: 1}
+        hasSourceCell: 1
+      - itemId: Chest_Basic
+        value: 10
+        origin: 0
+        sourceCell: {x: 8, y: 1}
+        hasSourceCell: 1
+    deathLootOutcomes:
+    - sourceRuntimeAgentId: 1
+      sourceAdventurerName: Petra Blackbriar
+      deathCell: {x: 7, y: 1}
+      worldPosition: {x: 6.69815, y: -1.8, z: 0.297}
+      carriedItemCountBefore: 2
+      carriedValueBefore: 20
+      recoveredItemCount: 2
+      recoveredValue: 20
+      recoveryDropId: recovered-loot-0001
+      carriedItemCountAfter: 0
+      carriedValueAfter: 0
+      recoveryProcessed: 1
+      duplicateProcessingAttempts: 0
+    - sourceRuntimeAgentId: 3
+      sourceAdventurerName: Elara Ironwood
+      deathCell: {x: 6, y: 1}
+      worldPosition: {x: 5.535177, y: -1.7822866, z: 0.000008703462}
+      carriedItemCountBefore: 3
+      carriedValueBefore: 30
+      recoveredItemCount: 3
+      recoveredValue: 30
+      recoveryDropId: recovered-loot-0002
+      carriedItemCountAfter: 0
+      carriedValueAfter: 0
+      recoveryProcessed: 1
+      duplicateProcessingAttempts: 0
+    - sourceRuntimeAgentId: 4
+      sourceAdventurerName: Sable Fairwind
+      deathCell: {x: 5, y: 3}
+      worldPosition: {x: 4.7655725, y: -3.8000002, z: 0.079671465}
+      carriedItemCountBefore: 3
+      carriedValueBefore: 30
+      recoveredItemCount: 3
+      recoveredValue: 30
+      recoveryDropId: recovered-loot-0003
+      carriedItemCountAfter: 0
+      carriedValueAfter: 0
+      recoveryProcessed: 1
+      duplicateProcessingAttempts: 0
+    - sourceRuntimeAgentId: 2
+      sourceAdventurerName: Quinn Wintermere
+      deathCell: {x: 5, y: 1}
+      worldPosition: {x: 4.861714, y: -1.8, z: 0.10851417}
+      carriedItemCountBefore: 1
+      carriedValueBefore: 10
+      recoveredItemCount: 1
+      recoveredValue: 10
+      recoveryDropId: recovered-loot-0004
+      carriedItemCountAfter: 0
+      carriedValueAfter: 0
+      recoveryProcessed: 1
+      duplicateProcessingAttempts: 0
+    escapeLootOutcomes: []
+    nextRecoverableLootDropNumber: 5
+    nextRuntimeAgentId: 5
+  gameplayState:
+    dungeonOpenCount: 1
+    adventurerAura: 109
+    dungeonLevel: 1
+    selectedSpeed: 1
+    adventurerRoster:
+    - id: 4853f438553d4d38b32892f1ee7d5481
+      characterName: Petra Blackbriar
+      level: 1
+      experience: 6
+      maxHealth: 10
+      maxStamina: 10
+      strength: 5
+      dexterity: 5
+      luck: 5
+      intelligence: 5
+      dungeonVisits: 1
+    - id: b4a0d01d9dfc4a61ad83c1521166da5a
+      characterName: Quinn Wintermere
+      level: 1
+      experience: 8
+      maxHealth: 10
+      maxStamina: 10
+      strength: 5
+      dexterity: 5
+      luck: 5
+      intelligence: 5
+      dungeonVisits: 1
+    - id: 68851bd22c584868b2dc2889f1910cc1
+      characterName: Elara Ironwood
+      level: 1
+      experience: 7
+      maxHealth: 10
+      maxStamina: 10
+      strength: 5
+      dexterity: 5
+      luck: 5
+      intelligence: 5
+      dungeonVisits: 1
+    - id: d93facee0bca489cb015ae0feefad797
+      characterName: Sable Fairwind
+      level: 1
+      experience: 8
+      maxHealth: 10
+      maxStamina: 10
+      strength: 5
+      dexterity: 5
+      luck: 5
+      intelligence: 5
+      dungeonVisits: 1
+    auraHarvests: []
+    expeditionOutcomes: []
+    recoveredLootInventory:
+    - itemId: Chest_Basic
+      value: 10
+      origin: 0
+      sourceCell: {x: 7, y: 1}
+      hasSourceCell: 1
+      recoveryDropId: recovered-loot-0004
+    playerLootRecoveries:
+    - sourceDropId: recovered-loot-0004
+      recoveryCell: {x: 5, y: 1}
+      worldPosition: {x: 4.861714, y: -1.8, z: 0.10851417}
+      sourceAdventurerName: Quinn Wintermere
+      recoveredItemCount: 1
+      recoveredValue: 10
+      dungeonTreasureValue: 10
+      adventurerLootValue: 0
