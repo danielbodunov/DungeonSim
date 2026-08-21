@@ -53,6 +53,16 @@ prop or other trap-service reservation. Building into reserved service space is
 rejected. The resolved surface is saved and scenario-captured so reconstruction
 does not choose a different orientation based on restore order.
 
+During placement, `TilePlacement` owns the player's selected discrete surface.
+The build palette exposes clockwise/counterclockwise controls and cycles only
+through surfaces supported by the trap definition. Grid validation does not
+fall back when an explicit surface is requested: an incompatible tile surface
+or occupied service cell remains invalid until the player rotates or moves the
+preview. The preview clone is positioned in the candidate service cell and a
+colored line projects into the target corridor. Both preview and committed
+instances use the same grid-owned pose calculation, keeping visual rotation and
+`CellTrap.HazardDirection` aligned.
+
 `SpikeWallTrap` is an example concrete implementation. Its prefab supports all
 four attachment surfaces and currently prefers Floor when more than one is
 available. It owns damage, difficulty, dodge settings, animation timing,

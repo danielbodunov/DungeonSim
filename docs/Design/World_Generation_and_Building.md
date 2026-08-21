@@ -54,6 +54,10 @@ CURRENT TECHNICAL BASELINE
 - Traps currently occupy one built cell.
 - Traps affect one built corridor cell but their mechanisms now reserve an
   adjacent external service cell through a generic floor/wall/ceiling attachment.
+- Trap mounting orientation is an explicit discrete build choice. Clockwise and
+  counterclockwise controls rotate among prefab-supported surfaces; incompatible
+  tile/service-space combinations remain visibly invalid instead of choosing a
+  different surface automatically.
 - One authoritative dungeon entrance can be placed on a compatible authored
   prop socket and is persisted independently from the host tile.
 - Player build intent supports Auto, Narrow, and Wide cells, plus explicit shared

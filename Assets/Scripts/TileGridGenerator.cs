@@ -2544,13 +2544,55 @@ public class TileGridGenerator : MonoBehaviour
         return true;
     }
 
-    public void PlaceTrapWorldPosition(
+    public bool TryGetTrapPreviewPose(
+        Vector3 targetWorldPosition,
+        GameObject trapPrefab,
+        TrapAttachmentSurface surface,
+        out Vector3 mechanismPosition,
+        out Quaternion mechanismRotation,
+        out Vector3 hazardTargetPosition,
+        out string failure)
+    {
+        Vector2Int targetCell = GetGridCoordinates(targetWorldPosition);
+        bool valid = TryValidateTrapPlacement(
+            GetLivePlacementValidationContext(),
+            targetCell,
+            trapPrefab,
+            surface,
+            out TrapAttachmentPlacement attachment,
+            out failure);
+        hazardTargetPosition = GetCellWorldPosition(targetCell.x, targetCell.y);
+        if (!valid)
+        {
+            Vector2Int serviceCell = targetCell +
+                TrapAttachmentDefinition.GetServiceOffset(surface);
+            mechanismPosition = GetCellWorldPosition(
+                serviceCell.x, serviceCell.y);
+            mechanismRotation = GetTrapAttachmentRotation(
+                mechanismPosition, hazardTargetPosition);
+            return false;
+        }
+
+        mechanismPosition = GetCellWorldPosition(
+            attachment.ServiceCell.x, attachment.ServiceCell.y);
+        mechanismRotation = GetTrapAttachmentRotation(
+            mechanismPosition, hazardTargetPosition);
+        return true;
+    }
+
+    public bool PlaceTrapWorldPosition(
         Vector3 worldPosition,
         GameObject trapPrefab,
-        int objectId = -1)
+        int objectId = -1,
+        TrapAttachmentSurface? requestedSurface = null)
     {
         Vector2Int coordinates = GetGridCoordinates(worldPosition);
-        PlaceTrapCell(coordinates.x, coordinates.y, trapPrefab, objectId);
+        return PlaceTrapCell(
+            coordinates.x,
+            coordinates.y,
+            trapPrefab,
+            objectId,
+            requestedSurface);
     }
 
     public bool RemoveTrapWorldPosition(Vector3 worldPosition)
@@ -2592,11 +2634,11 @@ public class TileGridGenerator : MonoBehaviour
         GameObject instance = Instantiate(
             trapPrefab,
             GetCellWorldPosition(attachment.ServiceCell.x, attachment.ServiceCell.y),
-            Quaternion.FromToRotation(Vector3.up,
-                (GetCellWorldPosition(x, y) -
-                 GetCellWorldPosition(
+            GetTrapAttachmentRotation(
+                GetCellWorldPosition(
                     attachment.ServiceCell.x,
-                    attachment.ServiceCell.y)).normalized),
+                    attachment.ServiceCell.y),
+                GetCellWorldPosition(x, y)),
             trapContainer);
         if (instance.GetComponentInChildren<DungeonLightReceiver>(true) == null)
             instance.AddComponent<DungeonLightReceiver>();
@@ -2615,6 +2657,17 @@ public class TileGridGenerator : MonoBehaviour
         placedTrapObjectIds[cell] = objectId;
         placedTrapPrefabNames[cell] = trapPrefab.name;
         return true;
+    }
+
+    static Quaternion GetTrapAttachmentRotation(
+        Vector3 mechanismPosition,
+        Vector3 hazardTargetPosition)
+    {
+        Vector3 hazardDirection =
+            (hazardTargetPosition - mechanismPosition).normalized;
+        return hazardDirection.sqrMagnitude > 0f
+            ? Quaternion.FromToRotation(Vector3.up, hazardDirection)
+            : Quaternion.identity;
     }
 
     public List<SavedTrapCell> CaptureTrapLayout()

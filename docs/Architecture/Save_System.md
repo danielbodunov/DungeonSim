@@ -18,10 +18,16 @@ balances are persisted separately from Dread. Each category starts with a
 reserve of five. Current `DungeonStoredLootItem` storage contains treasure and
 other itemized loot only; fungible physical-resource contents remain in the
 permanent `PlayerLootRecoveryRecord` audit and are owned through category
-balances. Version 13 enforces this single-authority model. Pre-balance saves
+balances. Version 13 introduced this single-authority model. Pre-balance saves
 derive missing balances from legacy stored resource stacks, while saves that
 already contain category balances trust those values and discard the redundant
 legacy stacks without crediting them again.
+
+Version 14 also persists each trap's resolved attachment surface. That discrete
+surface is authoritative orientation state; mechanism position, rotation,
+service cell, and hazard direction are rebuilt from it and the target cell.
+Older trap records choose one compatible surface during migration and save that
+resolved choice on their next checkpoint.
 
 ## Save eligibility
 
