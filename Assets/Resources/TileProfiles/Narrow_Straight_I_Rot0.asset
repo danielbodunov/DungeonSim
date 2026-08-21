@@ -62,6 +62,8 @@ MonoBehaviour:
   - Narrow_T_R1
   - Narrow_T_R2
   - Narrow_T_R3
+  - Wide_Corner_Openings_L_R2
+  - Wide_Corner_Openings_L_R3
   - Wide_Floor_Opening_L_R0
   - Wide_Floor_Opening_Reversed_L_R2
   - Wide_Opening_T_R2
@@ -74,6 +76,8 @@ MonoBehaviour:
   - Narrow_T_R0
   - Narrow_T_R1
   - Narrow_T_R3
+  - Wide_Corner_Openings_L_R0
+  - Wide_Corner_Openings_L_R1
   - Wide_Floor_Opening_L_R2
   - Wide_Floor_Opening_Reversed_L_R0
   - Wide_Opening_T_R0

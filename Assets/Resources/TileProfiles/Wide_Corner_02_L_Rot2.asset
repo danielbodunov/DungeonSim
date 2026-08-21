@@ -25,6 +25,7 @@ MonoBehaviour:
   - Wide_Corner_01_L_R1
   - Wide_Corner_02_L_R3
   - Wide_Corner_03_U_R0
+  - Wide_Corner_Openings_L_R0
   - Wide_Floor_Opening_L_R2
   - Wide_Floor_Opening_Reversed_L_R3
   - Wide_Opening_T_R0
@@ -39,6 +40,7 @@ MonoBehaviour:
   - Wide_Corner_01_L_R1
   - Wide_Corner_02_L_R1
   - Wide_Corner_03_U_R0
+  - Wide_Corner_Openings_L_R0
   - Wide_Floor_Opening_L_R2
   - Wide_Floor_Opening_Reversed_L_R3
   - Wide_Opening_T_R3

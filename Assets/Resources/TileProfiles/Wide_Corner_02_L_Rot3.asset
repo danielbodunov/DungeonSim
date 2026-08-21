@@ -30,6 +30,7 @@ MonoBehaviour:
   southMatches:
   - Wide_Corner_01_L_R2
   - Wide_Corner_02_L_R2
+  - Wide_Corner_Openings_L_R1
   - Wide_Floor_Opening_L_R3
   - Wide_Floor_Opening_Reversed_L_R0
   - Wide_Opening_T_R0
@@ -37,6 +38,7 @@ MonoBehaviour:
   eastMatches:
   - Wide_Corner_01_L_R2
   - Wide_Corner_02_L_R0
+  - Wide_Corner_Openings_L_R1
   - Wide_Floor_Opening_L_R3
   - Wide_Floor_Opening_Reversed_L_R0
   - Wide_Opening_T_R1

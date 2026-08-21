@@ -78,6 +78,8 @@ MonoBehaviour:
   - Narrow_T_R0
   - Narrow_T_R1
   - Narrow_T_R3
+  - Wide_Corner_Openings_L_R0
+  - Wide_Corner_Openings_L_R1
   - Wide_Floor_Opening_L_R2
   - Wide_Floor_Opening_Reversed_L_R0
   - Wide_Opening_T_R0
@@ -93,17 +95,6 @@ MonoBehaviour:
     platformPolicy: 0
     localPosition: {x: 0, y: 0, z: 0}
     localRotation: {x: 0, y: 0, z: -0.7071066, w: -0.70710707}
-  - structureId: Treasure
-    laneId: Default
-    compatibleLaneIds: []
-    bundleId: Default
-    selectionWeight: 1
-    role: 3
-    direction: 2
-    allowsTraversalExit: 0
-    platformPolicy: 0
-    localPosition: {x: 0.24, y: -0.25, z: 0}
-    localRotation: {x: 0, y: 0, z: 0, w: 1}
   - structureId: Ladder
     laneId: Right
     compatibleLaneIds: []
@@ -126,3 +117,14 @@ MonoBehaviour:
     platformPolicy: 0
     localPosition: {x: 0, y: -0.20000003, z: 0}
     localRotation: {x: 0, y: 0, z: -0.7071066, w: -0.70710707}
+  - structureId: Treasure
+    laneId: Default
+    compatibleLaneIds: []
+    bundleId: Default
+    selectionWeight: 1
+    role: 3
+    direction: 2
+    allowsTraversalExit: 0
+    platformPolicy: 0
+    localPosition: {x: 0.24, y: -0.25, z: 0}
+    localRotation: {x: 0, y: 0, z: 0, w: 1}

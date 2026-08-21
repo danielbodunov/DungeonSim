@@ -10,31 +10,26 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: d3cb726cbd9fa8e4d8fabbba5854d153, type: 3}
-  m_Name: Narrow_Junction_X_Rot0
+  m_Name: Wide_Corner_Openings_L_Rot2
   m_EditorClassIdentifier: Assembly-CSharp::TileSocketProfile
-  sourcePrefab: {fileID: 379014342053146673, guid: 3a4822513188de84e9c2568cd0077e54, type: 3}
+  sourcePrefab: {fileID: 5674844955389797704, guid: 253e1aa39d839cc4f9526c9924d392bc, type: 3}
   resolution: 8
-  rotation: 0
-  baseTileName: Narrow_Junction_X
-  category: 2
-  northHash: 00111100
+  rotation: 2
+  baseTileName: Wide_Corner_Openings_L
+  category: 3
+  northHash: 00111111
   southHash: 00111100
   westHash: 00111100
-  eastHash: 00111100
+  eastHash: 00111111
   northMatches:
-  - Narrow_Cap_R3
-  - Narrow_Corner_L_R1
-  - Narrow_Corner_L_R2
-  - Narrow_Junction_X_R0
-  - Narrow_Straight_I_R1
-  - Narrow_T_R0
-  - Narrow_T_R1
-  - Narrow_T_R2
-  - Wide_Corner_Openings_L_R1
-  - Wide_Corner_Openings_L_R2
-  - Wide_Floor_Opening_L_R3
-  - Wide_Floor_Opening_Reversed_L_R1
-  - Wide_Opening_T_R1
+  - Wide_Corner_01_L_R0
+  - Wide_Corner_02_L_R0
+  - Wide_Corner_03_U_R3
+  - Wide_Corner_Openings_L_R3
+  - Wide_Floor_Opening_L_R1
+  - Wide_Floor_Opening_Reversed_L_R2
+  - Wide_Opening_T_R2
+  - Wide_Side_T_R0
   southMatches:
   - Narrow_Cap_R1
   - Narrow_Corner_L_R0
@@ -50,19 +45,13 @@ MonoBehaviour:
   - Wide_Floor_Opening_Reversed_L_R3
   - Wide_Opening_T_R3
   eastMatches:
-  - Narrow_Cap_R0
-  - Narrow_Corner_L_R2
-  - Narrow_Corner_L_R3
-  - Narrow_Junction_X_R0
-  - Narrow_Straight_I_R0
-  - Narrow_T_R1
-  - Narrow_T_R2
-  - Narrow_T_R3
-  - Wide_Corner_Openings_L_R2
-  - Wide_Corner_Openings_L_R3
-  - Wide_Floor_Opening_L_R0
-  - Wide_Floor_Opening_Reversed_L_R2
-  - Wide_Opening_T_R2
+  - Wide_Corner_01_L_R2
+  - Wide_Corner_02_L_R0
+  - Wide_Corner_Openings_L_R1
+  - Wide_Floor_Opening_L_R3
+  - Wide_Floor_Opening_Reversed_L_R0
+  - Wide_Opening_T_R1
+  - Wide_Side_T_R3
   westMatches:
   - Narrow_Cap_R2
   - Narrow_Corner_L_R0
@@ -79,49 +68,16 @@ MonoBehaviour:
   - Wide_Opening_T_R0
   propSockets:
   - structureId: Ladder
-    laneId: Center
-    compatibleLaneIds: []
-    bundleId: Default
-    selectionWeight: 1
-    role: 0
-    direction: 2
-    allowsTraversalExit: 0
-    platformPolicy: 0
-    localPosition: {x: 0, y: 0, z: 0}
-    localRotation: {x: 0, y: 0, z: 0, w: 1}
-  - structureId: Ladder
-    laneId: Center
-    compatibleLaneIds: []
-    bundleId: ShaftEntry_Interm_C
-    selectionWeight: 1
-    role: 1
-    direction: 2
-    allowsTraversalExit: 0
-    platformPolicy: 0
-    localPosition: {x: 0, y: 0, z: 0}
-    localRotation: {x: 0, y: 0, z: 0, w: 1}
-  - structureId: Ladder
     laneId: Left
     compatibleLaneIds: []
     bundleId: ShaftEntry_L
     selectionWeight: 1
     role: 0
-    direction: 2
+    direction: 3
     allowsTraversalExit: 0
     platformPolicy: 0
     localPosition: {x: 0, y: 0, z: 0}
-    localRotation: {x: 0, y: 0, z: 0, w: 1}
-  - structureId: Ladder
-    laneId: Left
-    compatibleLaneIds: []
-    bundleId: ShaftEntry_Interm_L
-    selectionWeight: 1
-    role: 1
-    direction: 2
-    allowsTraversalExit: 1
-    platformPolicy: 0
-    localPosition: {x: 0, y: 0, z: 0}
-    localRotation: {x: 0, y: 0, z: 0, w: 1}
+    localRotation: {x: 0, y: 0, z: -0.7071058, w: -0.70710784}
   - structureId: Ladder
     laneId: Right
     compatibleLaneIds: []
@@ -132,7 +88,62 @@ MonoBehaviour:
     allowsTraversalExit: 0
     platformPolicy: 0
     localPosition: {x: 0, y: 0, z: 0}
-    localRotation: {x: 0, y: 0, z: 0, w: 1}
+    localRotation: {x: -0, y: 0, z: 1, w: 0.0000015497205}
+  - structureId: Ladder
+    laneId: Center
+    compatibleLaneIds: []
+    bundleId: ShaftEntry_Interm_C
+    selectionWeight: 1
+    role: 1
+    direction: 1
+    allowsTraversalExit: 1
+    platformPolicy: 1
+    localPosition: {x: 0, y: 0, z: 0}
+    localRotation: {x: -0, y: 0, z: 0.7071042, w: 0.7071094}
+  - structureId: Ladder
+    laneId: Center
+    compatibleLaneIds: []
+    bundleId: ShaftEntry_Interm_C
+    selectionWeight: 1
+    role: 1
+    direction: 2
+    allowsTraversalExit: 1
+    platformPolicy: 1
+    localPosition: {x: 0, y: 0, z: 0}
+    localRotation: {x: -0, y: 0, z: 1, w: 0.0000029504295}
+  - structureId: Ladder
+    laneId: Left
+    compatibleLaneIds: []
+    bundleId: ShaftEntry_Interm_L
+    selectionWeight: 1
+    role: 1
+    direction: 1
+    allowsTraversalExit: 1
+    platformPolicy: 1
+    localPosition: {x: 0, y: 0, z: 0}
+    localRotation: {x: -0, y: 0, z: 0.7071042, w: 0.7071094}
+  - structureId: Ladder
+    laneId: Left
+    compatibleLaneIds: []
+    bundleId: ShaftEntry_Interm_L
+    selectionWeight: 1
+    role: 1
+    direction: 2
+    allowsTraversalExit: 1
+    platformPolicy: 1
+    localPosition: {x: 0, y: 0, z: 0}
+    localRotation: {x: -0, y: 0, z: 1, w: 0.0000029504295}
+  - structureId: Ladder
+    laneId: Right
+    compatibleLaneIds: []
+    bundleId: ShaftEntry_Interm_R
+    selectionWeight: 1
+    role: 1
+    direction: 1
+    allowsTraversalExit: 1
+    platformPolicy: 1
+    localPosition: {x: 0, y: 0, z: 0}
+    localRotation: {x: -0, y: 0, z: 0.7071042, w: 0.7071094}
   - structureId: Ladder
     laneId: Right
     compatibleLaneIds: []
@@ -141,6 +152,6 @@ MonoBehaviour:
     role: 1
     direction: 2
     allowsTraversalExit: 1
-    platformPolicy: 0
+    platformPolicy: 1
     localPosition: {x: 0, y: 0, z: 0}
-    localRotation: {x: 0, y: 0, z: 0, w: 1}
+    localRotation: {x: -0, y: 0, z: 1, w: 0.0000029504295}
