@@ -128,6 +128,7 @@ public class NPCTraversal : MonoBehaviour
         public Vector2Int destination;
         public List<Vector3> waypoints;
         public bool isLadder;
+        public List<Vector2Int> intermediateCells;
     }
 
     internal class RouteStep
@@ -135,6 +136,7 @@ public class NPCTraversal : MonoBehaviour
         public Vector2Int from;
         public Vector2Int to;
         public List<Vector3> waypoints;
+        public List<Vector2Int> intermediateCells;
     }
 
     public NPCTraversalAgent ActiveAgent => agent;
@@ -982,7 +984,10 @@ public class NPCTraversal : MonoBehaviour
 
             // Every adjacent pair permits entry/exit at authored intermediate stops.
             for (int i = 1; i < run.traversalEndpoints.Count; i++)
-                AddTwoWayLadderEdge(run.traversalEndpoints[i - 1], run.traversalEndpoints[i]);
+                AddTwoWayLadderEdge(
+                    run.traversalEndpoints[i - 1],
+                    run.traversalEndpoints[i],
+                    run.pieces);
         }
 
         Debug.Log(
@@ -1160,13 +1165,23 @@ public class NPCTraversal : MonoBehaviour
         floorConnectionCount++;
     }
 
-    void AddTwoWayLadderEdge(GeneratedTraversalEndpoint a, GeneratedTraversalEndpoint b)
+    void AddTwoWayLadderEdge(
+        GeneratedTraversalEndpoint a,
+        GeneratedTraversalEndpoint b,
+        IReadOnlyList<GeneratedStructurePiece> pieces)
     {
         if (!graph.ContainsKey(a.cell) || !graph.ContainsKey(b.cell))
             return;
 
         Vector3 aEntry = GetLadderEntryAtWalkingHeight(a);
         Vector3 bEntry = GetLadderEntryAtWalkingHeight(b);
+        var forwardIntermediate = GetIntermediateLadderCells(pieces, a.cell, b.cell);
+        var reverseIntermediate = new List<Vector2Int>(forwardIntermediate);
+        reverseIntermediate.Reverse();
+        List<Vector3> forwardWaypoints = BuildLadderWaypoints(
+            aEntry, bEntry, forwardIntermediate);
+        List<Vector3> reverseWaypoints = BuildLadderWaypoints(
+            bEntry, aEntry, reverseIntermediate);
 
         graph[a.cell].Add(new RouteEdge
         {
@@ -1174,16 +1189,67 @@ public class NPCTraversal : MonoBehaviour
             // Stop at the ladder exit. If the route continues, its next edge
             // can lead straight toward that destination instead of snapping to
             // the center of this cell first.
-            waypoints = new List<Vector3> { aEntry, bEntry },
-            isLadder = true
+            waypoints = forwardWaypoints,
+            isLadder = true,
+            intermediateCells = forwardIntermediate
         });
         graph[b.cell].Add(new RouteEdge
         {
             destination = a.cell,
-            waypoints = new List<Vector3> { bEntry, aEntry },
-            isLadder = true
+            waypoints = reverseWaypoints,
+            isLadder = true,
+            intermediateCells = reverseIntermediate
         });
         ladderConnectionCount++;
+    }
+
+    List<Vector3> BuildLadderWaypoints(
+        Vector3 start,
+        Vector3 end,
+        IReadOnlyList<Vector2Int> intermediateCells)
+    {
+        var result = new List<Vector3> { start };
+        for (int i = 0; i < intermediateCells.Count; i++)
+        {
+            Vector2Int cell = intermediateCells[i];
+            Vector3 waypoint = grid.GetCellWorldPosition(cell.x, cell.y);
+            waypoint.x = start.x;
+            waypoint.z = start.z;
+            result.Add(waypoint);
+        }
+        result.Add(end);
+        return result;
+    }
+
+    static List<Vector2Int> GetIntermediateLadderCells(
+        IReadOnlyList<GeneratedStructurePiece> pieces,
+        Vector2Int from,
+        Vector2Int to)
+    {
+        var result = new List<Vector2Int>();
+        if (pieces == null)
+            return result;
+        int fromIndex = -1;
+        int toIndex = -1;
+        for (int i = 0; i < pieces.Count; i++)
+        {
+            if (pieces[i] == null)
+                continue;
+            if (fromIndex < 0 && pieces[i].cell == from)
+                fromIndex = i;
+            if (fromIndex >= 0 && pieces[i].cell == to)
+            {
+                toIndex = i;
+                break;
+            }
+        }
+        if (fromIndex < 0 || toIndex <= fromIndex)
+            return result;
+        for (int i = fromIndex + 1; i < toIndex; i++)
+            if (pieces[i] != null &&
+                (result.Count == 0 || result[result.Count - 1] != pieces[i].cell))
+                result.Add(pieces[i].cell);
+        return result;
     }
 
     Vector3 GetLadderEntryAtWalkingHeight(GeneratedTraversalEndpoint endpoint)
@@ -1495,7 +1561,13 @@ public class NPCTraversal : MonoBehaviour
         {
             Vector2Int from = previousCell[to];
             RouteEdge edge = previousEdge[to];
-            steps.Add(new RouteStep { from = from, to = to, waypoints = edge.waypoints });
+            steps.Add(new RouteStep
+            {
+                from = from,
+                to = to,
+                waypoints = edge.waypoints,
+                intermediateCells = edge.intermediateCells
+            });
             to = from;
         }
         steps.Reverse();
@@ -1969,6 +2041,17 @@ public class NPCTraversalAgent : MonoBehaviour, ICarriedLootPresentationSource
                         character.SpendStamina(distanceMoved * movementStaminaCost * multiplier);
                     }
                     yield return null;
+                }
+
+                if (step.intermediateCells != null && i > 0 &&
+                    i <= step.intermediateCells.Count)
+                {
+                    RecordArrival(step.intermediateCells[i - 1]);
+                    if (character == null || character.IsDead)
+                    {
+                        movement = null;
+                        yield break;
+                    }
                 }
             }
 

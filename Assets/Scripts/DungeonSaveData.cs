@@ -5,7 +5,7 @@ using UnityEngine.Serialization;
 [Serializable]
 public class DungeonSaveData
 {
-    public const int CurrentVersion = 13;
+    public const int CurrentVersion = 14;
 
     public int version = CurrentVersion;
     public string saveName;
@@ -51,6 +51,8 @@ public class SavedTrapCell
     public int y;
     public int objectId = -1;
     public string prefabName;
+    public bool hasAttachmentSurface;
+    public TrapAttachmentSurface attachmentSurface;
 }
 
 [Serializable]

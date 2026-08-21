@@ -26,6 +26,18 @@ public class TileSocketProfile : ScriptableObject
     public List<string> eastMatches = new();
     public List<string> westMatches = new();
     public List<BakedPropSocket> propSockets = new();
+    [Tooltip("Trap attachment surfaces supported by this tile. None preserves " +
+        "legacy profiles by allowing every surface.")]
+    public TrapAttachmentSurfaceMask trapAttachmentSurfaces;
+
+    public bool SupportsTrapAttachment(TrapAttachmentSurface surface)
+    {
+        TrapAttachmentSurfaceMask effective = trapAttachmentSurfaces ==
+            TrapAttachmentSurfaceMask.None
+                ? TrapAttachmentSurfaceMask.All
+                : trapAttachmentSurfaces;
+        return (effective & TrapAttachmentDefinition.ToMask(surface)) != 0;
+    }
 
     public string GetHash(TileSide side)
     {

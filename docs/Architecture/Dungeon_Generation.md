@@ -57,7 +57,9 @@ This distinction is important when implementing regeneration, save/load, or repl
 - base tile name and `TileCategory`;
 - north/south/east/west edge hashes;
 - compatibility match lists;
-- baked prop sockets.
+- baked prop sockets;
+- compatible trap attachment surfaces (an unauthored legacy mask currently
+  permits all surfaces).
 
 Profiles are therefore both visual candidates and authored compatibility records. A new tile prefab generally needs its profile data baked/registered before the solver can use it.
 
@@ -67,7 +69,8 @@ Profiles are therefore both visual candidates and authored compatibility records
 
 Examples:
 - `FloorProp.IsCompatibleWith(...)` provides a content-local compatibility hook.
-- trap/content reservation is considered during validation so two objects do not claim the same cell.
+- trap target and external service-space reservations are considered during
+  validation so mechanisms do not overlap content or each other.
 
 When adding a new placeable type, ask whether it can fit an existing category (`Trap`, `Entrance`, `FloorProp`) before expanding the grid's core placement taxonomy.
 

@@ -20,6 +20,8 @@ public sealed class DungeonScenarioPlacedObject
     public string prefabName;
     public GameObject prefab;
     public bool isResolved;
+    public bool hasTrapAttachmentSurface;
+    public TrapAttachmentSurface trapAttachmentSurface;
 }
 
 /// <summary>
@@ -253,7 +255,10 @@ public sealed class DungeonTestScenario : ScriptableObject
             DungeonScenarioPlacedObject trap = traps[i];
             if (!grid.PlaceTrapCell(
                     trap.x, trap.y, ResolvePrefab(trap, ObjectPlacementType.Trap),
-                    trap.objectId))
+                    trap.objectId,
+                    trap.hasTrapAttachmentSurface
+                        ? trap.trapAttachmentSurface
+                        : null))
             {
                 report = $"Could not restore trap '{trap.prefabName}' at " +
                     $"({trap.x},{trap.y}).";
@@ -429,13 +434,20 @@ public sealed class DungeonTestScenario : ScriptableObject
             GameObject prefab = ResolvePrefab(trap, ObjectPlacementType.Trap);
             var cell = new Vector2Int(trap.x, trap.y);
             if (!grid.TryValidateTrapPlacement(
-                    placementContext, cell, prefab, out string failure))
+                    placementContext,
+                    cell,
+                    prefab,
+                    trap.hasTrapAttachmentSurface
+                        ? trap.trapAttachmentSurface
+                        : null,
+                    out TrapAttachmentPlacement attachment,
+                    out string failure))
             {
                 report = $"Trap '{trap.prefabName}' at ({trap.x},{trap.y}) " +
                     $"is invalid: {failure}";
                 return false;
             }
-            placementContext.ReserveTrap(cell);
+            placementContext.ReserveTrap(cell, attachment.ServiceCell);
         }
 
         if (effectiveEntranceMode == DungeonScenarioEntranceMode.Manual)
@@ -643,9 +655,12 @@ public sealed class DungeonTestScenario : ScriptableObject
         for (int i = 0; i < saved.Count; i++)
         {
             SavedTrapCell item = saved[i];
-            result.Add(CreatePlacedObject(
+            DungeonScenarioPlacedObject placed = CreatePlacedObject(
                 item.x, item.y, item.objectId, item.prefabName, false,
-                objectCatalog, placementType));
+                objectCatalog, placementType);
+            placed.hasTrapAttachmentSurface = item.hasAttachmentSurface;
+            placed.trapAttachmentSurface = item.attachmentSurface;
+            result.Add(placed);
         }
         result.Sort(ComparePlacedObjects);
         return result;
@@ -822,7 +837,9 @@ public sealed class DungeonTestScenario : ScriptableObject
             objectId = source.objectId,
             prefabName = source.prefabName,
             prefab = source.prefab,
-            isResolved = source.isResolved
+            isResolved = source.isResolved,
+            hasTrapAttachmentSurface = source.hasTrapAttachmentSurface,
+            trapAttachmentSurface = source.trapAttachmentSurface
         };
     }
 }

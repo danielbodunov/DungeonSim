@@ -35,6 +35,7 @@ public class TileGridGenerator : MonoBehaviour
         readonly TileGridGenerator owner;
         readonly ValidatedTileLayout layout;
         readonly HashSet<Vector2Int> reservedTraps = new();
+        readonly HashSet<Vector2Int> reservedTrapServiceSpaces = new();
         readonly HashSet<Vector2Int> reservedFloorProps = new();
         Vector2Int? reservedEntrance;
 
@@ -68,6 +69,7 @@ public class TileGridGenerator : MonoBehaviour
         internal void ResetReservations()
         {
             reservedTraps.Clear();
+            reservedTrapServiceSpaces.Clear();
             reservedFloorProps.Clear();
             reservedEntrance = null;
         }
@@ -98,7 +100,31 @@ public class TileGridGenerator : MonoBehaviour
                 owner.placedEntranceCell == cell;
         }
 
-        internal void ReserveTrap(Vector2Int cell) => reservedTraps.Add(cell);
+        internal void ReserveTrap(
+            Vector2Int cell,
+            Vector2Int serviceCell)
+        {
+            reservedTraps.Add(cell);
+            reservedTrapServiceSpaces.Add(serviceCell);
+        }
+
+        internal bool IsTrapServiceSpaceAvailable(Vector2Int cell)
+        {
+            if (owner == null || cell.x <= 0 || cell.y <= 0 ||
+                cell.x >= owner.width - 1 || cell.y >= owner.height - 1 ||
+                IsPlacedCell(cell.x, cell.y) ||
+                reservedTrapServiceSpaces.Contains(cell))
+                return false;
+            if (layout != null)
+                return true;
+            if (owner.fixedGround != null && owner.fixedGround[cell.x, cell.y])
+                return false;
+            foreach (CellTrap trap in owner.placedTraps.Values)
+                if (trap != null && trap.ServiceCell == cell)
+                    return false;
+            return owner.propGenerator == null ||
+                !owner.propGenerator.IsCellOccupiedByGeneratedProp(cell);
+        }
         internal void ReserveFloorProp(Vector2Int cell) =>
             reservedFloorProps.Add(cell);
         internal void ReserveEntrance(Vector2Int cell) => reservedEntrance = cell;
@@ -183,7 +209,7 @@ public class TileGridGenerator : MonoBehaviour
                 owner.propGenerator.IsCellOccupiedByGeneratedProp(cell);
         }
 
-        TileSocketProfile GetCellProfile(Vector2Int cell)
+        internal TileSocketProfile GetCellProfile(Vector2Int cell)
         {
             if (owner == null || cell.x < 0 || cell.y < 0 ||
                 cell.x >= owner.width || cell.y >= owner.height)
@@ -1060,6 +1086,19 @@ public class TileGridGenerator : MonoBehaviour
         GameObject trapPrefab,
         out string failure)
     {
+        return TryValidateTrapPlacement(
+            context, cell, trapPrefab, null, out _, out failure);
+    }
+
+    public bool TryValidateTrapPlacement(
+        PlacementValidationContext context,
+        Vector2Int cell,
+        GameObject trapPrefab,
+        TrapAttachmentSurface? requestedSurface,
+        out TrapAttachmentPlacement attachment,
+        out string failure)
+    {
+        attachment = default;
         if (!TryValidatePlacementContext(context, out failure))
             return false;
         if (trapPrefab == null)
@@ -1071,6 +1110,14 @@ public class TileGridGenerator : MonoBehaviour
         {
             failure = $"Trap prefab '{trapPrefab.name}' needs a component " +
                 "derived from CellTrap on its root.";
+            return false;
+        }
+        TrapAttachmentDefinition definition =
+            trapPrefab.GetComponent<TrapAttachmentDefinition>();
+        if (definition == null)
+        {
+            failure = $"Trap prefab '{trapPrefab.name}' needs a " +
+                "TrapAttachmentDefinition on its root.";
             return false;
         }
         if (!context.IsPlacedCell(cell.x, cell.y))
@@ -1095,8 +1142,66 @@ public class TileGridGenerator : MonoBehaviour
             return false;
         }
 
+        TileSocketProfile profile = context.GetCellProfile(cell);
+        if (!TryResolveTrapAttachment(
+                context,
+                cell,
+                definition,
+                profile,
+                requestedSurface,
+                out attachment))
+        {
+            failure = requestedSurface.HasValue
+                ? $"The {requestedSurface.Value} attachment/service space for " +
+                    $"cell ({cell.x},{cell.y}) is incompatible or unavailable."
+                : $"No compatible external attachment/service space is " +
+                    $"available for trap '{trapPrefab.name}' at cell " +
+                    $"({cell.x},{cell.y}).";
+            return false;
+        }
+
         failure = string.Empty;
         return true;
+    }
+
+    static bool TryResolveTrapAttachment(
+        PlacementValidationContext context,
+        Vector2Int targetCell,
+        TrapAttachmentDefinition definition,
+        TileSocketProfile profile,
+        TrapAttachmentSurface? requestedSurface,
+        out TrapAttachmentPlacement attachment)
+    {
+        attachment = default;
+        TrapAttachmentSurface[] order =
+        {
+            definition.PreferredSurface,
+            TrapAttachmentSurface.Floor,
+            TrapAttachmentSurface.Ceiling,
+            TrapAttachmentSurface.LeftWall,
+            TrapAttachmentSurface.RightWall
+        };
+        for (int i = 0; i < order.Length; i++)
+        {
+            TrapAttachmentSurface surface = requestedSurface ?? order[i];
+            if (requestedSurface.HasValue && i > 0)
+                break;
+            bool alreadyTried = false;
+            for (int prior = 0; prior < i; prior++)
+                if (order[prior] == surface)
+                    alreadyTried = true;
+            if (alreadyTried || !definition.Allows(surface) ||
+                profile == null || !profile.SupportsTrapAttachment(surface))
+                continue;
+            Vector2Int serviceCell = targetCell +
+                TrapAttachmentDefinition.GetServiceOffset(surface);
+            if (!context.IsTrapServiceSpaceAvailable(serviceCell))
+                continue;
+            attachment = new TrapAttachmentPlacement(
+                surface, serviceCell, targetCell);
+            return true;
+        }
+        return false;
     }
 
     public bool TryValidateEntrancePlacement(
@@ -2419,6 +2524,18 @@ public class TileGridGenerator : MonoBehaviour
             return false;
         }
 
+        var requestedCell = new Vector2Int(x, y);
+        foreach (CellTrap trap in placedTraps.Values)
+        {
+            if (trap != null && trap.ServiceCell == requestedCell)
+            {
+                Debug.LogWarning(
+                    $"Cell ({x},{y}) is reserved as external service space " +
+                    $"for the trap affecting {trap.Cell}.");
+                return false;
+            }
+        }
+
         if (!TryResolveLocalPlacement(x, y, widthIntent))
         {
             Debug.LogWarning($"No local tile combination can connect at ({x},{y}) without changing tiles farther away.");
@@ -2446,13 +2563,16 @@ public class TileGridGenerator : MonoBehaviour
         int x,
         int y,
         GameObject trapPrefab,
-        int objectId = -1)
+        int objectId = -1,
+        TrapAttachmentSurface? requestedSurface = null)
     {
         var cell = new Vector2Int(x, y);
         if (!TryValidateTrapPlacement(
                 GetLivePlacementValidationContext(),
                 cell,
                 trapPrefab,
+                requestedSurface,
+                out TrapAttachmentPlacement attachment,
                 out string failure))
         {
             Debug.LogWarning(failure, this);
@@ -2470,7 +2590,14 @@ public class TileGridGenerator : MonoBehaviour
         }
 
         GameObject instance = Instantiate(
-            trapPrefab, GetCellWorldPosition(x, y), Quaternion.identity, trapContainer);
+            trapPrefab,
+            GetCellWorldPosition(attachment.ServiceCell.x, attachment.ServiceCell.y),
+            Quaternion.FromToRotation(Vector3.up,
+                (GetCellWorldPosition(x, y) -
+                 GetCellWorldPosition(
+                    attachment.ServiceCell.x,
+                    attachment.ServiceCell.y)).normalized),
+            trapContainer);
         if (instance.GetComponentInChildren<DungeonLightReceiver>(true) == null)
             instance.AddComponent<DungeonLightReceiver>();
         CellTrap trap = instance.GetComponent<CellTrap>();
@@ -2483,7 +2610,7 @@ public class TileGridGenerator : MonoBehaviour
             return false;
         }
 
-        trap.Initialize(this, cell);
+        trap.Initialize(this, attachment);
         placedTraps.Add(cell, trap);
         placedTrapObjectIds[cell] = objectId;
         placedTrapPrefabNames[cell] = trapPrefab.name;
@@ -2505,7 +2632,9 @@ public class TileGridGenerator : MonoBehaviour
                 x = pair.Key.x,
                 y = pair.Key.y,
                 objectId = objectId,
-                prefabName = prefabName
+                prefabName = prefabName,
+                hasAttachmentSurface = true,
+                attachmentSurface = pair.Value.AttachmentSurface
             });
         }
         return result;

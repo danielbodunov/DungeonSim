@@ -26,16 +26,48 @@ DungeonSim currently separates several kinds of dungeon content because they hav
 
 Generated structures are derived state. If the authoritative layout is restored, generated props can be discarded and regenerated.
 
-## Cell traps
+## Externally attached cell traps
 
-`CellTrap` is the base contract for a trap bound to one dungeon cell:
+`CellTrap` is the base contract for a trap affecting one dungeon cell while its
+mechanism occupies adjacent external service space:
 
 ```text
-Initialize(TileGridGenerator grid, Vector2Int cell)
+Initialize(TileGridGenerator grid, TrapAttachmentPlacement attachment)
 OnNpcEntered(NPCCharacter npc)
 ```
 
-`SpikeWallTrap` is an example concrete implementation. It owns damage, difficulty, dodge settings, animation timing, cooldown, and animation state. It delegates the actual NPC challenge/effect resolution to `NPCActionResolver`.
+`TrapAttachmentDefinition` on the trap prefab declares allowed and preferred
+Floor, Ceiling, LeftWall, and RightWall surfaces. `TileSocketProfile` may narrow
+the surfaces supported by a concrete tile profile. A legacy profile with no mask
+authored currently permits every surface.
+
+The resolved `TrapAttachmentPlacement` keeps three identities separate:
+
+- `TargetCell`: traversable corridor cell whose NPC-entry event triggers the trap;
+- `ServiceCell`: adjacent, unbuilt cell reserved by the external mechanism;
+- `Surface`: determines the relationship and hazard direction from mechanism to
+  corridor.
+
+The service cell must be an interior, unbuilt, non-fixed cell with no generated
+prop or other trap-service reservation. Building into reserved service space is
+rejected. The resolved surface is saved and scenario-captured so reconstruction
+does not choose a different orientation based on restore order.
+
+`SpikeWallTrap` is an example concrete implementation. Its prefab supports all
+four attachment surfaces and currently prefers Floor when more than one is
+available. It owns damage, difficulty, dodge settings, animation timing,
+cooldown, and animation state. It delegates the actual NPC challenge/effect
+resolution to `NPCActionResolver`.
+
+### Tile prefab/modularity implications
+
+The current cell-sized service-region model proves the ownership and validation
+contract without rebuilding tile meshes. It also exposes the next authoring
+need: concrete tiles will eventually need smaller, explicit construction
+volumes/sockets so a mechanism can occupy wall thickness, under-floor space, or
+ceiling space without reserving an entire neighboring logical cell. That work
+belongs with modular construction surfaces (t021) and compatibility/conflict
+validation (t022), not this foundation.
 
 This is the preferred pattern: the grid knows where the trap is; the trap knows its local behavior; the action resolver knows how the NPC outcome is resolved.
 
