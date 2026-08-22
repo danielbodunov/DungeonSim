@@ -2544,55 +2544,146 @@ public class TileGridGenerator : MonoBehaviour
         return true;
     }
 
-    public bool TryGetTrapPreviewPose(
-        Vector3 targetWorldPosition,
+    public int GetTrapPlacementCandidates(
+        Vector2Int serviceCell,
         GameObject trapPrefab,
-        TrapAttachmentSurface surface,
+        List<TrapAttachmentPlacement> results,
+        out string failure)
+    {
+        results?.Clear();
+        PlacementValidationContext context = GetLivePlacementValidationContext();
+        if (!TryValidateTrapServiceCell(context, serviceCell, out failure))
+            return 0;
+        TrapAttachmentDefinition definition = trapPrefab != null
+            ? trapPrefab.GetComponent<TrapAttachmentDefinition>()
+            : null;
+        if (definition == null)
+        {
+            failure = trapPrefab == null
+                ? "A trap prefab must be assigned before it can be placed."
+                : $"Trap prefab '{trapPrefab.name}' needs a " +
+                    "TrapAttachmentDefinition on its root.";
+            return 0;
+        }
+
+        TrapAttachmentSurface[] order =
+        {
+            definition.PreferredSurface,
+            TrapAttachmentSurface.Floor,
+            TrapAttachmentSurface.Ceiling,
+            TrapAttachmentSurface.LeftWall,
+            TrapAttachmentSurface.RightWall
+        };
+        for (int i = 0; i < order.Length; i++)
+        {
+            TrapAttachmentSurface surface = order[i];
+            bool duplicate = false;
+            for (int prior = 0; prior < i; prior++)
+                if (order[prior] == surface)
+                    duplicate = true;
+            if (duplicate || !definition.Allows(surface))
+                continue;
+            Vector2Int targetCell = serviceCell -
+                TrapAttachmentDefinition.GetServiceOffset(surface);
+            if (TryValidateTrapPlacement(
+                    context,
+                    targetCell,
+                    trapPrefab,
+                    surface,
+                    out TrapAttachmentPlacement attachment,
+                    out _))
+                results?.Add(attachment);
+        }
+
+        int count = results?.Count ?? 0;
+        failure = count > 0
+            ? string.Empty
+            : $"Service cell ({serviceCell.x},{serviceCell.y}) has no " +
+                "compatible adjacent corridor target.";
+        return count;
+    }
+
+    bool TryValidateTrapServiceCell(
+        PlacementValidationContext context,
+        Vector2Int serviceCell,
+        out string failure)
+    {
+        if (!TryValidatePlacementContext(context, out failure))
+            return false;
+        if (!context.IsTrapServiceSpaceAvailable(serviceCell))
+        {
+            failure = $"Cell ({serviceCell.x},{serviceCell.y}) cannot be " +
+                "reserved as trap service space.";
+            return false;
+        }
+        if (context.HasTrap(serviceCell) || context.HasFloorProp(serviceCell) ||
+            context.HasEntranceAt(serviceCell) ||
+            context.IsGeneratedPropOccupied(serviceCell))
+        {
+            failure = $"Cell ({serviceCell.x},{serviceCell.y}) contains " +
+                "authoritative or topology-sensitive content.";
+            return false;
+        }
+        failure = string.Empty;
+        return true;
+    }
+
+    public bool TryGetTrapPreviewPose(
+        Vector3 serviceWorldPosition,
+        GameObject trapPrefab,
+        int candidateIndex,
         out Vector3 mechanismPosition,
         out Quaternion mechanismRotation,
         out Vector3 hazardTargetPosition,
+        out TrapAttachmentPlacement attachment,
+        out int candidateCount,
         out string failure)
     {
-        Vector2Int targetCell = GetGridCoordinates(targetWorldPosition);
-        bool valid = TryValidateTrapPlacement(
-            GetLivePlacementValidationContext(),
-            targetCell,
-            trapPrefab,
-            surface,
-            out TrapAttachmentPlacement attachment,
-            out failure);
-        hazardTargetPosition = GetCellWorldPosition(targetCell.x, targetCell.y);
-        if (!valid)
+        Vector2Int serviceCell = GetGridCoordinates(serviceWorldPosition);
+        var candidates = new List<TrapAttachmentPlacement>(4);
+        candidateCount = GetTrapPlacementCandidates(
+            serviceCell, trapPrefab, candidates, out failure);
+        mechanismPosition = GetCellWorldPosition(serviceCell.x, serviceCell.y);
+        attachment = default;
+        if (candidateCount == 0)
         {
-            Vector2Int serviceCell = targetCell +
-                TrapAttachmentDefinition.GetServiceOffset(surface);
-            mechanismPosition = GetCellWorldPosition(
-                serviceCell.x, serviceCell.y);
-            mechanismRotation = GetTrapAttachmentRotation(
-                mechanismPosition, hazardTargetPosition);
+            hazardTargetPosition = mechanismPosition;
+            mechanismRotation = Quaternion.identity;
             return false;
         }
 
-        mechanismPosition = GetCellWorldPosition(
-            attachment.ServiceCell.x, attachment.ServiceCell.y);
+        int normalizedIndex = Mathf.Clamp(candidateIndex, 0, candidateCount - 1);
+        attachment = candidates[normalizedIndex];
+        hazardTargetPosition = GetCellWorldPosition(
+            attachment.TargetCell.x, attachment.TargetCell.y);
         mechanismRotation = GetTrapAttachmentRotation(
             mechanismPosition, hazardTargetPosition);
         return true;
     }
 
-    public bool PlaceTrapWorldPosition(
-        Vector3 worldPosition,
+    public bool PlaceTrapFromServiceWorldPosition(
+        Vector3 serviceWorldPosition,
         GameObject trapPrefab,
         int objectId = -1,
-        TrapAttachmentSurface? requestedSurface = null)
+        int candidateIndex = 0)
     {
-        Vector2Int coordinates = GetGridCoordinates(worldPosition);
+        Vector2Int serviceCell = GetGridCoordinates(serviceWorldPosition);
+        var candidates = new List<TrapAttachmentPlacement>(4);
+        int count = GetTrapPlacementCandidates(
+            serviceCell, trapPrefab, candidates, out string failure);
+        if (count == 0)
+        {
+            Debug.LogWarning(failure, this);
+            return false;
+        }
+        int normalizedIndex = Mathf.Clamp(candidateIndex, 0, count - 1);
+        TrapAttachmentPlacement attachment = candidates[normalizedIndex];
         return PlaceTrapCell(
-            coordinates.x,
-            coordinates.y,
+            attachment.TargetCell.x,
+            attachment.TargetCell.y,
             trapPrefab,
             objectId,
-            requestedSurface);
+            attachment.Surface);
     }
 
     public bool RemoveTrapWorldPosition(Vector3 worldPosition)

@@ -1,13 +1,15 @@
-# t020 — Rotatable Trap Placement
+# t020 — Service-Cell Trap Placement & Automatic Orientation
 
 ## Tracking
 - **ID:** t020
-- **Status:** Awaiting Unity Validation
+- **Status:** Complete
 - **Milestone:** Strategic Construction
 - **Depends on:** t019
 
 ## Goal
-Make trap orientation an explicit strategic placement decision so one trap definition can mount to compatible floor/wall/ceiling surfaces and project its hazard in the intended direction.
+Make external service space the primary trap-placement interaction. Derive trap
+orientation from the hovered service cell and a compatible adjacent corridor,
+with candidate cycling only when more than one valid target exists.
 
 ## Start Here
 - `docs/Architecture/Props_and_Traps.md`
@@ -17,20 +19,26 @@ Make trap orientation an explicit strategic placement decision so one trap defin
 Begin with these documents and their directly related code. Broaden investigation only when required by a demonstrated dependency.
 
 ## Requirements
-- Add preview rotation/orientation controls for trap placement.
-- Validate the rotated trap against attachment surface, service space, hazard direction, and affected dungeon volume.
+- Discover valid cardinally adjacent corridor targets from the hovered service
+  cell and derive surface, hazard direction, and pose automatically.
+- Select a deterministic default and let `R` cycle only current valid candidates.
+- Validate the entire candidate transaction without mutating live dungeon state.
 - Persist trap orientation through save/load and test scenarios.
-- Preview should clearly communicate mechanism location and hazard direction.
-- Rotation semantics should be generic enough for future directional traps.
+- Preview must communicate mechanism location, target corridor, hazard direction,
+  selected surface, and validity.
+- Keep attachment semantics generic enough for future directional traps.
 
 ## Acceptance Criteria
-- Player can rotate a supported trap through its valid mounting orientations.
-- Invalid orientations/attachments are rejected before placement.
+- A hovered eligible service cell automatically previews a compatible adjacent
+  target with the correct orientation.
+- `R` cycles only valid adjacent targets when multiple candidates exist.
+- Invalid or nonreplaceable service cells are rejected before mutation.
 - Saved/scenario-restored traps retain orientation.
 - Trigger/damage direction matches the visual orientation.
 
 ## Out of Scope
 - Arbitrary free-angle placement where discrete mounting orientations suffice
+- Full input remapping and arbitrary multi-cell mechanisms
 - Modular tile construction changes (t021)
 
 ## Git
@@ -38,39 +46,53 @@ Suggested branch: `feature/t020-rotatable-traps`
 
 ## Implementation Status
 
-- Added clockwise and counterclockwise build-palette controls while a trap is
-  selected. Rotation cycles through the discrete surfaces supported by the trap
-  definition.
-- The explicitly selected surface is passed through shared grid validation and
-  placement. Invalid tile compatibility or service space is rejected without
-  falling back to another orientation.
-- Added a live trap preview at the external mechanism location. The mechanism
-  and target-cell indicator tint green/red for valid/invalid placement, and a
-  matching hazard-direction line projects from the mechanism into the affected
-  corridor.
+- Trap placement now treats the hovered cell as the service/mechanism cell and
+  asks the grid for fully valid cardinally adjacent corridor candidates.
+- Surface and hazard direction derive from each service-to-target offset. The
+  preferred supported surface is considered first, followed by a stable
+  Floor/Ceiling/LeftWall/RightWall order for deterministic selection.
+- The `R` input action cycles only the current valid candidates. Moving to a new
+  service cell resets selection to the deterministic default.
+- Removed manual surface state and the build palette's CCW/CW buttons. The UI
+  reports the selected target and surface, and shows the `R` affordance only
+  when multiple candidates exist.
+- The live preview places the mechanism in the hovered service cell, highlights
+  the selected target corridor, and projects a validity-colored hazard line.
 - Preview and committed instances share the same pose calculation. The stored
   `CellTrap.HazardDirection` therefore matches the visual direction into the
   target cell.
 - Save format version 14 and DungeonTestScenario already persist the resolved
-  attachment surface introduced by t019; t020 now commits the player's explicit
-  selection through that authoritative field.
-- Rotation remains four-way and surface-based; arbitrary angles and modular tile
-  construction changes remain out of scope.
+  target/surface state introduced by t019; candidate index remains transient.
+- Preview is validation-only. The current minimum foundation reserves the whole
+  unbuilt cell rather than resolving a dedicated support tile. Modular service
+  tile conversion remains deferred to t021.
 
 ## Validation Notes
 
 - `Assembly-CSharp` compiled with 0 warnings and 0 errors.
-- Manual Unity validation remains pending.
+- `Assembly-CSharp-Editor` compiled with 0 errors and one pre-existing unused
+  `TileSocketBakerWindow.visualizeSamples` warning.
+- Manual Unity validation completed successfully in Unity on 2026-08-22.
 
 ## Manual Unity Validation
 
-1. Select SpikeWall and use CCW/CW. Confirm the label cycles Floor, LeftWall,
-   Ceiling, and RightWall and the mechanism moves around the target cell.
-2. Confirm the hazard line always points from the external mechanism into the
-   highlighted corridor cell.
-3. Rotate toward a built, fixed, reserved, or unsupported service region.
-   Confirm the preview turns red and clicking does not place a trap.
-4. Rotate to a valid surface, place the trap, and run an adventurer through the
-   target cell. Confirm damage triggers from the visually indicated direction.
-5. Save/load and capture/reset a DungeonTestScenario. Confirm the trap returns
-   on the selected surface with the same hazard direction.
+Validated in Unity on 2026-08-22.
+
+1. Hover an eligible ground cell beside exactly one compatible corridor. Confirm
+   the mechanism remains in the hovered cell and automatically faces the
+   highlighted corridor.
+2. Click and inspect the placed trap: `ServiceCell` is the hovered cell, `Cell`
+   is the corridor, and surface/hazard direction match the preview.
+3. Hover a service cell beside multiple compatible corridors. Confirm `R`
+   cycles only those valid targets and the preview, label, and target indicator
+   update together. Click and confirm the displayed candidate is committed.
+4. Test unsupported adjacency, no adjacent corridor, built/fixed cells,
+   entrances, floor props/treasure, generated content, traps, and existing
+   service reservations. Confirm preview is invalid and clicking causes no
+   topology, content, resource, or reservation mutation.
+5. Place a trap and attempt another using the same service cell. Confirm the
+   second placement is rejected.
+6. Run an adventurer through the target corridor. Confirm triggering remains
+   corridor-cell-based and damage direction matches the visual orientation.
+7. Save/load and capture/reset a DungeonTestScenario. Confirm target, service
+   cell, surface, pose, and hazard direction are unchanged.

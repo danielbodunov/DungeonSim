@@ -9,7 +9,6 @@ None.
 ## Awaiting Unity Validation
 
 - [t019 — External Trap Attachment Model](t019-External-Trap-Attachment-Model.md)
-- [t020 — Rotatable Trap Placement](t020-Rotatable-Trap-Placement.md)
 
 ## Ready
 
@@ -35,6 +34,7 @@ None.
 
 ## Completed / Existing Work
 
+- [t020 — Service-Cell Trap Placement & Automatic Orientation](t020-Rotatable-Trap-Placement.md)
 - [Initial building and adventurer vertical slices](2026-08-09-initial-vertical-slices.md)
 - [DEV001 — Generic Prop & Treasure Placement](DEV001-Generic-Prop-Treasure-Placement.md)
 - [DEV002 — Reusable Dungeon Test Scenarios](DEV002-Reusable-Dungeon-Test-Scenarios.md)

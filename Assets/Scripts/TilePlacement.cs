@@ -43,8 +43,14 @@ public class TilePlacement : MonoBehaviour
     private Renderer[] trapPreviewRenderers = System.Array.Empty<Renderer>();
     private LineRenderer trapHazardPreview;
     private Material trapHazardPreviewMaterial;
-    private TrapAttachmentSurface trapAttachmentSurface =
-        TrapAttachmentSurface.Floor;
+    private GameObject trapTargetIndicator;
+    private Renderer[] trapTargetIndicatorRenderers =
+        System.Array.Empty<Renderer>();
+    private int selectedTrapCandidateIndex;
+    private int trapCandidateCount;
+    private TrapAttachmentPlacement selectedTrapCandidate;
+    private bool hasSelectedTrapCandidate;
+    private Vector3Int? lastTrapPreviewCell;
     private Renderer[] cellIndicatorRenderers = System.Array.Empty<Renderer>();
     private MaterialPropertyBlock previewPropertyBlock;
     private GameplayLoopController gameplayLoop;
@@ -66,8 +72,10 @@ public class TilePlacement : MonoBehaviour
         database != null && selectedObjectIndex < database.objectsData.Count &&
         database.objectsData[selectedObjectIndex].PlacementType ==
             ObjectPlacementType.Trap;
-    public TrapAttachmentSurface TrapAttachmentSurface =>
-        trapAttachmentSurface;
+    public int TrapCandidateCount => trapCandidateCount;
+    public bool HasSelectedTrapCandidate => hasSelectedTrapCandidate;
+    public TrapAttachmentPlacement SelectedTrapCandidate =>
+        selectedTrapCandidate;
     public int SelectedObjectId => selectedObjectIndex >= 0 &&
         database != null && selectedObjectIndex < database.objectsData.Count
             ? database.objectsData[selectedObjectIndex].ID
@@ -241,11 +249,11 @@ public class TilePlacement : MonoBehaviour
         Debug.Log($"Placing {selectedObject.Name} (ID {selectedObject.ID}) at grid position ({gridPosition.x}, {gridPosition.y})");
         if (selectedObject.PlacementType == ObjectPlacementType.Trap)
         {
-            if (tileGridGenerator.PlaceTrapWorldPosition(
+            if (tileGridGenerator.PlaceTrapFromServiceWorldPosition(
                     cellCenter,
                     selectedObject.Prefab,
                     selectedObject.ID,
-                    trapAttachmentSurface))
+                    selectedTrapCandidateIndex))
                 lastDragCell = gridPosition;
         }
         else if (selectedObject.PlacementType == ObjectPlacementType.Entrance)
@@ -307,36 +315,13 @@ public class TilePlacement : MonoBehaviour
         widthIntent = intent;
     }
 
-    public void RotateTrapAttachment(int direction)
+    public void CycleTrapCandidate()
     {
-        if (!IsTrapPlacementActive || direction == 0)
+        if (!IsTrapPlacementActive || trapCandidateCount <= 1)
             return;
-        ObjectData selectedObject = database.objectsData[selectedObjectIndex];
-        TrapAttachmentDefinition definition = selectedObject.Prefab != null
-            ? selectedObject.Prefab.GetComponent<TrapAttachmentDefinition>()
-            : null;
-        if (definition == null)
-            return;
-
-        TrapAttachmentSurface[] clockwise =
-        {
-            TrapAttachmentSurface.Floor,
-            TrapAttachmentSurface.LeftWall,
-            TrapAttachmentSurface.Ceiling,
-            TrapAttachmentSurface.RightWall
-        };
-        int current = System.Array.IndexOf(clockwise, trapAttachmentSurface);
-        int step = direction > 0 ? 1 : -1;
-        for (int i = 0; i < clockwise.Length; i++)
-        {
-            current = (current + step + clockwise.Length) % clockwise.Length;
-            if (definition.Allows(clockwise[current]))
-            {
-                trapAttachmentSurface = clockwise[current];
-                lastDragCell = null;
-                return;
-            }
-        }
+        selectedTrapCandidateIndex =
+            (selectedTrapCandidateIndex + 1) % trapCandidateCount;
+        lastDragCell = null;
     }
 
     public void StopPlacement()
@@ -355,6 +340,10 @@ public class TilePlacement : MonoBehaviour
         inputManager.OnRightClicked -= PlaceGround;
         inputManager.OnExit -= StopPlacement;
         lastDragCell = null;
+        selectedTrapCandidateIndex = 0;
+        trapCandidateCount = 0;
+        hasSelectedTrapCandidate = false;
+        lastTrapPreviewCell = null;
     }
 
 
@@ -373,7 +362,21 @@ public class TilePlacement : MonoBehaviour
         cellIndicator.transform.position = grid.GetCellCenterWorld(gridPosition);
 
         UpdateFloorPropPreview(grid.GetCellCenterWorld(gridPosition));
-        UpdateTrapPreview(grid.GetCellCenterWorld(gridPosition));
+        Vector3 cellCenter = grid.GetCellCenterWorld(gridPosition);
+        if (IsTrapPlacementActive &&
+            (!lastTrapPreviewCell.HasValue ||
+             lastTrapPreviewCell.Value != gridPosition))
+        {
+            selectedTrapCandidateIndex = 0;
+            lastTrapPreviewCell = gridPosition;
+        }
+        UpdateTrapPreview(cellCenter);
+        if (IsTrapPlacementActive && inputManager.TrapCandidateCyclePressed &&
+            trapCandidateCount > 1)
+        {
+            CycleTrapCandidate();
+            UpdateTrapPreview(cellCenter);
+        }
 
         // Wall toggles are discrete clicks handled by PlaceStructure. Keeping
         // them out of the held-button path prevents one click toggling twice.
@@ -441,11 +444,8 @@ public class TilePlacement : MonoBehaviour
             selectedObject.Prefab == null)
             return;
 
-        TrapAttachmentDefinition definition =
-            selectedObject.Prefab.GetComponent<TrapAttachmentDefinition>();
-        if (definition == null)
+        if (selectedObject.Prefab.GetComponent<TrapAttachmentDefinition>() == null)
             return;
-        trapAttachmentSurface = definition.PreferredSurface;
         trapPreview = Instantiate(selectedObject.Prefab);
         trapPreview.name = $"{selectedObject.Prefab.name} Placement Preview";
         trapPreview.hideFlags = HideFlags.DontSave;
@@ -468,6 +468,17 @@ public class TilePlacement : MonoBehaviour
                 hideFlags = HideFlags.DontSave
             };
             trapHazardPreview.sharedMaterial = trapHazardPreviewMaterial;
+        }
+
+        if (cellIndicator != null)
+        {
+            trapTargetIndicator = Instantiate(cellIndicator);
+            trapTargetIndicator.name = "Trap Target Corridor Preview";
+            trapTargetIndicator.hideFlags = HideFlags.DontSave;
+            DisablePreviewGameplay(trapTargetIndicator);
+            trapTargetIndicatorRenderers =
+                trapTargetIndicator.GetComponentsInChildren<Renderer>(true);
+            trapTargetIndicator.SetActive(false);
         }
     }
 
@@ -516,11 +527,19 @@ public class TilePlacement : MonoBehaviour
         bool isValid = tileGridGenerator.TryGetTrapPreviewPose(
             cellCenter,
             selectedObject.Prefab,
-            trapAttachmentSurface,
+            selectedTrapCandidateIndex,
             out Vector3 mechanismPosition,
             out Quaternion mechanismRotation,
             out Vector3 hazardTargetPosition,
+            out selectedTrapCandidate,
+            out trapCandidateCount,
             out _);
+        hasSelectedTrapCandidate = isValid;
+        if (trapCandidateCount > 0)
+            selectedTrapCandidateIndex = Mathf.Clamp(
+                selectedTrapCandidateIndex, 0, trapCandidateCount - 1);
+        else
+            selectedTrapCandidateIndex = 0;
         trapPreview.transform.SetPositionAndRotation(
             mechanismPosition, mechanismRotation);
         Color tint = isValid ? ValidPreviewColor : InvalidPreviewColor;
@@ -532,6 +551,16 @@ public class TilePlacement : MonoBehaviour
             trapHazardPreview.SetPosition(1, hazardTargetPosition);
             trapHazardPreview.startColor = tint;
             trapHazardPreview.endColor = tint;
+            trapHazardPreview.enabled = isValid;
+        }
+        if (trapTargetIndicator != null)
+        {
+            trapTargetIndicator.SetActive(isValid);
+            if (isValid)
+            {
+                trapTargetIndicator.transform.position = hazardTargetPosition;
+                ApplyPreviewTint(trapTargetIndicatorRenderers, tint);
+            }
         }
     }
 
@@ -583,10 +612,14 @@ public class TilePlacement : MonoBehaviour
             Destroy(trapHazardPreview.gameObject);
         if (trapHazardPreviewMaterial != null)
             Destroy(trapHazardPreviewMaterial);
+        if (trapTargetIndicator != null)
+            Destroy(trapTargetIndicator);
         trapPreview = null;
         trapPreviewRenderers = System.Array.Empty<Renderer>();
         trapHazardPreview = null;
         trapHazardPreviewMaterial = null;
+        trapTargetIndicator = null;
+        trapTargetIndicatorRenderers = System.Array.Empty<Renderer>();
     }
 
     // private void CreateGroundTiles()

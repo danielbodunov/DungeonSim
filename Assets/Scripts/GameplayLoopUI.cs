@@ -41,9 +41,7 @@ public class GameplayLoopUI : MonoBehaviour
     Image removeTrapButtonImage;
     Image removeEntranceButtonImage;
     Image toggleWallButtonImage;
-    Button rotateTrapCounterClockwiseButton;
-    Button rotateTrapClockwiseButton;
-    TMP_Text trapOrientationText;
+    TMP_Text trapCandidateText;
     readonly Dictionary<float, Image> speedButtonImages = new();
     readonly Dictionary<int, Image> paletteButtonImages = new();
     readonly Dictionary<CellWidthIntent, Image> widthButtonImages = new();
@@ -236,19 +234,13 @@ public class GameplayLoopUI : MonoBehaviour
         CreateLabel(
             panel, "Click a shared boundary", 12,
             new Vector2(850f, -13f), new Vector2(145f, 26f));
-        rotateTrapCounterClockwiseButton = CreateButton(
-            panel, "CCW", new Vector2(1000f, -8f), new Vector2(42f, 34f),
-            () => placement?.RotateTrapAttachment(-1));
-        rotateTrapClockwiseButton = CreateButton(
-            panel, "CW", new Vector2(1048f, -8f), new Vector2(42f, 34f),
-            () => placement?.RotateTrapAttachment(1));
-        trapOrientationText = CreateText(
-            "Trap Orientation", panel, string.Empty, 12, FontStyles.Bold,
+        trapCandidateText = CreateText(
+            "Trap Candidate", panel, string.Empty, 12, FontStyles.Bold,
             TextAlignmentOptions.MidlineLeft, Ink);
         SetTopLeftRect(
-            trapOrientationText.rectTransform,
-            new Vector2(1098f, -8f),
-            new Vector2(142f, 34f));
+            trapCandidateText.rectTransform,
+            new Vector2(1000f, -8f),
+            new Vector2(235f, 42f));
         dreadActionText = CreateText(
             "Dread Action",
             panel,
@@ -1052,18 +1044,26 @@ public class GameplayLoopUI : MonoBehaviour
         foreach (KeyValuePair<CellWidthIntent, Image> pair in widthButtonImages)
             pair.Value.color = pair.Key == selectedWidth ? Accent : ButtonColor;
 
-        bool rotatingTrap = placement != null &&
+        bool placingTrap = placement != null &&
             placement.IsTrapPlacementActive;
-        if (rotateTrapCounterClockwiseButton != null)
-            rotateTrapCounterClockwiseButton.gameObject.SetActive(rotatingTrap);
-        if (rotateTrapClockwiseButton != null)
-            rotateTrapClockwiseButton.gameObject.SetActive(rotatingTrap);
-        if (trapOrientationText != null)
+        if (trapCandidateText != null)
         {
-            trapOrientationText.gameObject.SetActive(rotatingTrap);
-            trapOrientationText.text = rotatingTrap
-                ? placement.TrapAttachmentSurface.ToString()
-                : string.Empty;
+            trapCandidateText.gameObject.SetActive(placingTrap);
+            if (!placingTrap)
+                trapCandidateText.text = string.Empty;
+            else if (!placement.HasSelectedTrapCandidate)
+                trapCandidateText.text = "No valid adjacent corridor";
+            else
+            {
+                TrapAttachmentPlacement candidate =
+                    placement.SelectedTrapCandidate;
+                string cycleHint = placement.TrapCandidateCount > 1
+                    ? "  R: Change side"
+                    : string.Empty;
+                trapCandidateText.text =
+                    $"Target {candidate.TargetCell.x},{candidate.TargetCell.y}  " +
+                    $"{candidate.Surface}{cycleHint}";
+            }
         }
 
         if (toggleWallButtonImage != null)

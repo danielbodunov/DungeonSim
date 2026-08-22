@@ -1,0 +1,441 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9652393d1f694693a9c01ce6e1642ba7, type: 3}
+  m_Name: SurfaceAlignedTraps
+  m_EditorClassIdentifier: Assembly-CSharp::DungeonTestScenario
+  scenarioName: SurfaceAlignedTraps
+  description:
+  intendedTestPurpose:
+  gridWidth: 15
+  gridHeight: 15
+  propGenerationSeed: 316312716
+  tileCells:
+  - x: 2
+    y: 1
+    isPlaced: 1
+    profileId: Narrow_Cap_R2
+    widthIntent: 0
+  - x: 2
+    y: 3
+    isPlaced: 1
+    profileId: Narrow_Cap_R2
+    widthIntent: 0
+  - x: 3
+    y: 1
+    isPlaced: 1
+    profileId: Narrow_Straight_I_R0
+    widthIntent: 0
+  - x: 3
+    y: 3
+    isPlaced: 1
+    profileId: Narrow_Straight_I_R0
+    widthIntent: 0
+  - x: 4
+    y: 1
+    isPlaced: 1
+    profileId: Narrow_T_R1
+    widthIntent: 0
+  - x: 4
+    y: 2
+    isPlaced: 1
+    profileId: Narrow_Straight_I_R1
+    widthIntent: 0
+  - x: 4
+    y: 3
+    isPlaced: 1
+    profileId: Narrow_Corner_L_R3
+    widthIntent: 0
+  - x: 5
+    y: 1
+    isPlaced: 1
+    profileId: Narrow_Straight_I_R0
+    widthIntent: 0
+  - x: 5
+    y: 3
+    isPlaced: 0
+    profileId: Ground_Full_X_R0
+    widthIntent: 0
+  - x: 6
+    y: 1
+    isPlaced: 1
+    profileId: Narrow_T_R1
+    widthIntent: 0
+  - x: 6
+    y: 2
+    isPlaced: 1
+    profileId: Narrow_Straight_I_R1
+    widthIntent: 0
+  - x: 6
+    y: 3
+    isPlaced: 1
+    profileId: Narrow_Corner_L_R0
+    widthIntent: 0
+  - x: 7
+    y: 1
+    isPlaced: 1
+    profileId: Narrow_Straight_I_R0
+    widthIntent: 0
+  - x: 7
+    y: 3
+    isPlaced: 1
+    profileId: Narrow_Straight_I_R0
+    widthIntent: 0
+  - x: 8
+    y: 1
+    isPlaced: 1
+    profileId: Wide_Floor_Opening_Reversed_L_R2
+    widthIntent: 0
+  - x: 8
+    y: 2
+    isPlaced: 1
+    profileId: Wide_Side_T_R0
+    widthIntent: 0
+  - x: 8
+    y: 3
+    isPlaced: 1
+    profileId: Wide_Floor_Opening_L_R0
+    widthIntent: 0
+  - x: 9
+    y: 1
+    isPlaced: 1
+    profileId: Wide_Corner_01_L_R1
+    widthIntent: 0
+  - x: 9
+    y: 2
+    isPlaced: 1
+    profileId: Wide_Opening_T_R0
+    widthIntent: 0
+  - x: 9
+    y: 3
+    isPlaced: 1
+    profileId: Wide_Corner_01_L_R2
+    widthIntent: 0
+  - x: 10
+    y: 2
+    isPlaced: 1
+    profileId: Narrow_Cap_R0
+    widthIntent: 0
+  connectionEdges:
+  - fromX: 2
+    fromY: 1
+    toX: 3
+    toY: 1
+    intent: 1
+  - fromX: 2
+    fromY: 3
+    toX: 3
+    toY: 3
+    intent: 1
+  - fromX: 3
+    fromY: 1
+    toX: 4
+    toY: 1
+    intent: 1
+  - fromX: 3
+    fromY: 3
+    toX: 4
+    toY: 3
+    intent: 1
+  - fromX: 4
+    fromY: 1
+    toX: 5
+    toY: 1
+    intent: 1
+  - fromX: 4
+    fromY: 1
+    toX: 4
+    toY: 2
+    intent: 1
+  - fromX: 4
+    fromY: 2
+    toX: 4
+    toY: 3
+    intent: 1
+  - fromX: 5
+    fromY: 1
+    toX: 6
+    toY: 1
+    intent: 1
+  - fromX: 6
+    fromY: 1
+    toX: 7
+    toY: 1
+    intent: 1
+  - fromX: 6
+    fromY: 1
+    toX: 6
+    toY: 2
+    intent: 1
+  - fromX: 6
+    fromY: 2
+    toX: 6
+    toY: 3
+    intent: 1
+  - fromX: 6
+    fromY: 3
+    toX: 7
+    toY: 3
+    intent: 1
+  - fromX: 7
+    fromY: 1
+    toX: 8
+    toY: 1
+    intent: 1
+  - fromX: 7
+    fromY: 3
+    toX: 8
+    toY: 3
+    intent: 1
+  - fromX: 8
+    fromY: 1
+    toX: 9
+    toY: 1
+    intent: 1
+  - fromX: 8
+    fromY: 1
+    toX: 8
+    toY: 2
+    intent: 1
+  - fromX: 8
+    fromY: 2
+    toX: 9
+    toY: 2
+    intent: 1
+  - fromX: 8
+    fromY: 2
+    toX: 8
+    toY: 3
+    intent: 1
+  - fromX: 8
+    fromY: 3
+    toX: 9
+    toY: 3
+    intent: 1
+  - fromX: 9
+    fromY: 1
+    toX: 9
+    toY: 2
+    intent: 1
+  - fromX: 9
+    fromY: 2
+    toX: 10
+    toY: 2
+    intent: 1
+  - fromX: 9
+    fromY: 2
+    toX: 9
+    toY: 3
+    intent: 1
+  traps:
+  - x: 4
+    y: 2
+    objectId: 4
+    prefabName: SpikeWall
+    prefab: {fileID: 1001, guid: 5c39c4ab8a0e44398b0ec97618835a79, type: 3}
+    isResolved: 0
+    hasTrapAttachmentSurface: 1
+    trapAttachmentSurface: 2
+  - x: 4
+    y: 3
+    objectId: 4
+    prefabName: SpikeWall
+    prefab: {fileID: 1001, guid: 5c39c4ab8a0e44398b0ec97618835a79, type: 3}
+    isResolved: 0
+    hasTrapAttachmentSurface: 1
+    trapAttachmentSurface: 0
+  - x: 5
+    y: 1
+    objectId: 4
+    prefabName: SpikeWall
+    prefab: {fileID: 1001, guid: 5c39c4ab8a0e44398b0ec97618835a79, type: 3}
+    isResolved: 0
+    hasTrapAttachmentSurface: 1
+    trapAttachmentSurface: 0
+  - x: 6
+    y: 2
+    objectId: 4
+    prefabName: SpikeWall
+    prefab: {fileID: 1001, guid: 5c39c4ab8a0e44398b0ec97618835a79, type: 3}
+    isResolved: 0
+    hasTrapAttachmentSurface: 1
+    trapAttachmentSurface: 3
+  - x: 6
+    y: 3
+    objectId: 4
+    prefabName: SpikeWall
+    prefab: {fileID: 1001, guid: 5c39c4ab8a0e44398b0ec97618835a79, type: 3}
+    isResolved: 0
+    hasTrapAttachmentSurface: 1
+    trapAttachmentSurface: 0
+  floorProps: []
+  entranceMode: 0
+  entrance:
+    x: 0
+    y: 0
+    objectId: -1
+    prefabName:
+    prefab: {fileID: 0}
+    isResolved: 0
+    hasTrapAttachmentSurface: 0
+    trapAttachmentSurface: 0
+  hasDefaultEntranceCell: 1
+  defaultEntranceCell: {x: 2, y: 1}
+  hasRuntimeStateSnapshot: 1
+  traversalState:
+    recoverableLootDrops: []
+    deathLootOutcomes:
+    - sourceRuntimeAgentId: 2
+      sourceAdventurerName: Hale Swift
+      deathCell: {x: 6, y: 2}
+      worldPosition: {x: 5.3000584, y: -2.4918578, z: 0.29990932}
+      carriedItemCountBefore: 2
+      carriedValueBefore: 10
+      recoveredItemCount: 2
+      recoveredValue: 10
+      recoveryDropId: recovered-loot-0001
+      carriedItemCountAfter: 0
+      carriedValueAfter: 0
+      recoveryProcessed: 1
+      duplicateProcessingAttempts: 0
+    escapeLootOutcomes:
+    - sourceRuntimeAgentId: 1
+      sourceAdventurerName: Cassia Emberfall
+      exitCell: {x: 2, y: 1}
+      worldPosition: {x: 1.507594, y: -1.8098953, z: 0.000015842335}
+      carriedItemCountBefore: 1
+      carriedValueBefore: 4
+      escapedItems:
+      - itemId: construction-materials
+        value: 2
+        origin: 1
+        sourceCell: {x: 0, y: 0}
+        hasSourceCell: 0
+        contentKind: 1
+        resourceCategory: 0
+        resourceQuantity: 2
+      carriedItemCountAfter: 0
+      carriedValueAfter: 0
+      escapeProcessed: 1
+      duplicateProcessingAttempts: 0
+    - sourceRuntimeAgentId: 3
+      sourceAdventurerName: Dorian Emberfall
+      exitCell: {x: 2, y: 1}
+      worldPosition: {x: 1.5089465, y: -1.8098953, z: 3.63162e-10}
+      carriedItemCountBefore: 1
+      carriedValueBefore: 4
+      escapedItems:
+      - itemId: construction-materials
+        value: 2
+        origin: 1
+        sourceCell: {x: 0, y: 0}
+        hasSourceCell: 0
+        contentKind: 1
+        resourceCategory: 0
+        resourceQuantity: 2
+      carriedItemCountAfter: 0
+      carriedValueAfter: 0
+      escapeProcessed: 1
+      duplicateProcessingAttempts: 0
+    nextRecoverableLootDropNumber: 2
+    nextRuntimeAgentId: 4
+  gameplayState:
+    dungeonOpenCount: 1
+    dread: 68
+    dungeonLevel: 1
+    selectedSpeed: 1
+    adventurerRoster:
+    - id: 6e19f508f1fa4eeea8b90697632a7ecc
+      characterName: Cassia Emberfall
+      level: 1
+      experience: 11
+      maxHealth: 10
+      maxStamina: 10
+      strength: 5
+      dexterity: 5
+      luck: 5
+      intelligence: 5
+      dungeonVisits: 1
+      startingResources:
+      - resourceId: construction-materials
+        category: 0
+        quantity: 2
+        unitValue: 2
+    - id: 252b620d3f71482698ecdd5045e36957
+      characterName: Hale Swift
+      level: 1
+      experience: 11
+      maxHealth: 10
+      maxStamina: 10
+      strength: 5
+      dexterity: 5
+      luck: 5
+      intelligence: 5
+      dungeonVisits: 1
+      startingResources:
+      - resourceId: trap-components
+        category: 1
+        quantity: 1
+        unitValue: 4
+      - resourceId: arcane-components
+        category: 2
+        quantity: 1
+        unitValue: 6
+    - id: b53fc1fef1ca41ada4242c899d96b75c
+      characterName: Dorian Emberfall
+      level: 1
+      experience: 11
+      maxHealth: 10
+      maxStamina: 10
+      strength: 5
+      dexterity: 5
+      luck: 5
+      intelligence: 5
+      dungeonVisits: 1
+      startingResources:
+      - resourceId: construction-materials
+        category: 0
+        quantity: 2
+        unitValue: 2
+    dreadHarvests: []
+    dreadSpends: []
+    expeditionOutcomes: []
+    recoveredLootInventory: []
+    playerLootRecoveries:
+    - sourceDropId: recovered-loot-0001
+      recoveryCell: {x: 6, y: 3}
+      worldPosition: {x: 5.3000584, y: -3.7997499, z: 0.29990932}
+      sourceAdventurerName: Hale Swift
+      recoveredItemCount: 2
+      recoveredValue: 10
+      dungeonTreasureValue: 0
+      adventurerLootValue: 10
+      recoveredItems:
+      - itemId: trap-components
+        value: 4
+        origin: 1
+        sourceCell: {x: 0, y: 0}
+        hasSourceCell: 0
+        contentKind: 1
+        resourceCategory: 1
+        resourceQuantity: 1
+      - itemId: arcane-components
+        value: 6
+        origin: 1
+        sourceCell: {x: 0, y: 0}
+        hasSourceCell: 0
+        contentKind: 1
+        resourceCategory: 2
+        resourceQuantity: 1
+    constructionMaterials: 985
+    trapComponents: 1001
+    arcaneComponents: 1001
+    hasAuthoritativePhysicalResourceBalances: 1

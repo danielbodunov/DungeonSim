@@ -29,6 +29,11 @@ service cell, and hazard direction are rebuilt from it and the target cell.
 Older trap records choose one compatible surface during migration and save that
 resolved choice on their next checkpoint.
 
+Service-cell-first placement does not add transient preview or candidate-index
+state to the save. The committed target cell and resolved surface remain the
+authoritative pair; save/load and scenario restoration deterministically derive
+the same service cell, mechanism pose, and hazard direction from them.
+
 ## Save eligibility
 
 Saving is intentionally constrained to a safe gameplay state. Current logic requires the dungeon to be initialized and the game to be in the `Expansion` phase.
