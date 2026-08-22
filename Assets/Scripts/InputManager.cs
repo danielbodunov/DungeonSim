@@ -40,6 +40,7 @@ public class InputManager : MonoBehaviour
     public bool MiddlePressed { get; private set; }
     public bool LeftClick { get; private set; }
     public bool EscapePressed { get; private set; }
+    public bool TrapCandidateCyclePressed { get; private set; }
     public bool PointerInputOwned { get; private set; } = true;
     public bool KeyboardInputOwned { get; private set; } = true;
 
@@ -50,6 +51,7 @@ public class InputManager : MonoBehaviour
     private InputAction mouseDeltaAction;
     private InputAction middleButtonAction;
     private InputAction escapeAction;
+    private InputAction trapCandidateCycleAction;
 
     void Awake()
     {
@@ -91,6 +93,8 @@ public class InputManager : MonoBehaviour
 
         escapeAction = new InputAction("Escape", InputActionType.Button);
         escapeAction.AddBinding("<Keyboard>/escape");
+        trapCandidateCycleAction = new InputAction(
+            "CycleTrapCandidate", InputActionType.Button, "<Keyboard>/r");
     }
 
     void OnEnable()
@@ -102,6 +106,7 @@ public class InputManager : MonoBehaviour
         mouseDeltaAction?.Enable();
         middleButtonAction?.Enable();
         escapeAction?.Enable();
+        trapCandidateCycleAction?.Enable();
 
         clickLeftAction.performed += OnClickPerformed;
         clickRightAction.performed += OnRightClickPerformed;
@@ -117,6 +122,7 @@ public class InputManager : MonoBehaviour
         mouseDeltaAction?.Disable();
         middleButtonAction?.Disable();
         escapeAction?.Disable();
+        trapCandidateCycleAction?.Disable();
 
         clickLeftAction.performed -= OnClickPerformed;
         clickRightAction.performed -= OnRightClickPerformed;
@@ -146,6 +152,9 @@ public class InputManager : MonoBehaviour
             middleButtonAction.ReadValue<float>() > 0.5f;
         EscapePressed = KeyboardInputOwned && escapeAction != null &&
             escapeAction.WasPressedThisFrame();
+        TrapCandidateCyclePressed = KeyboardInputOwned &&
+            trapCandidateCycleAction != null &&
+            trapCandidateCycleAction.WasPressedThisFrame();
     }
 
     void OnDestroy()
@@ -157,6 +166,7 @@ public class InputManager : MonoBehaviour
         mouseDeltaAction?.Dispose();
         middleButtonAction?.Dispose();
         escapeAction?.Dispose();
+        trapCandidateCycleAction?.Dispose();
     }
 
     public bool IsPointerOverUI()
@@ -210,6 +220,7 @@ public class InputManager : MonoBehaviour
         MiddlePressed = false;
         LeftClick = false;
         EscapePressed = false;
+        TrapCandidateCyclePressed = false;
     }
 
     public Vector3 GetSelectedMapPosition()

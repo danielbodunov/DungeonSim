@@ -2544,13 +2544,146 @@ public class TileGridGenerator : MonoBehaviour
         return true;
     }
 
-    public void PlaceTrapWorldPosition(
-        Vector3 worldPosition,
+    public int GetTrapPlacementCandidates(
+        Vector2Int serviceCell,
         GameObject trapPrefab,
-        int objectId = -1)
+        List<TrapAttachmentPlacement> results,
+        out string failure)
     {
-        Vector2Int coordinates = GetGridCoordinates(worldPosition);
-        PlaceTrapCell(coordinates.x, coordinates.y, trapPrefab, objectId);
+        results?.Clear();
+        PlacementValidationContext context = GetLivePlacementValidationContext();
+        if (!TryValidateTrapServiceCell(context, serviceCell, out failure))
+            return 0;
+        TrapAttachmentDefinition definition = trapPrefab != null
+            ? trapPrefab.GetComponent<TrapAttachmentDefinition>()
+            : null;
+        if (definition == null)
+        {
+            failure = trapPrefab == null
+                ? "A trap prefab must be assigned before it can be placed."
+                : $"Trap prefab '{trapPrefab.name}' needs a " +
+                    "TrapAttachmentDefinition on its root.";
+            return 0;
+        }
+
+        TrapAttachmentSurface[] order =
+        {
+            definition.PreferredSurface,
+            TrapAttachmentSurface.Floor,
+            TrapAttachmentSurface.Ceiling,
+            TrapAttachmentSurface.LeftWall,
+            TrapAttachmentSurface.RightWall
+        };
+        for (int i = 0; i < order.Length; i++)
+        {
+            TrapAttachmentSurface surface = order[i];
+            bool duplicate = false;
+            for (int prior = 0; prior < i; prior++)
+                if (order[prior] == surface)
+                    duplicate = true;
+            if (duplicate || !definition.Allows(surface))
+                continue;
+            Vector2Int targetCell = serviceCell -
+                TrapAttachmentDefinition.GetServiceOffset(surface);
+            if (TryValidateTrapPlacement(
+                    context,
+                    targetCell,
+                    trapPrefab,
+                    surface,
+                    out TrapAttachmentPlacement attachment,
+                    out _))
+                results?.Add(attachment);
+        }
+
+        int count = results?.Count ?? 0;
+        failure = count > 0
+            ? string.Empty
+            : $"Service cell ({serviceCell.x},{serviceCell.y}) has no " +
+                "compatible adjacent corridor target.";
+        return count;
+    }
+
+    bool TryValidateTrapServiceCell(
+        PlacementValidationContext context,
+        Vector2Int serviceCell,
+        out string failure)
+    {
+        if (!TryValidatePlacementContext(context, out failure))
+            return false;
+        if (!context.IsTrapServiceSpaceAvailable(serviceCell))
+        {
+            failure = $"Cell ({serviceCell.x},{serviceCell.y}) cannot be " +
+                "reserved as trap service space.";
+            return false;
+        }
+        if (context.HasTrap(serviceCell) || context.HasFloorProp(serviceCell) ||
+            context.HasEntranceAt(serviceCell) ||
+            context.IsGeneratedPropOccupied(serviceCell))
+        {
+            failure = $"Cell ({serviceCell.x},{serviceCell.y}) contains " +
+                "authoritative or topology-sensitive content.";
+            return false;
+        }
+        failure = string.Empty;
+        return true;
+    }
+
+    public bool TryGetTrapPreviewPose(
+        Vector3 serviceWorldPosition,
+        GameObject trapPrefab,
+        int candidateIndex,
+        out Vector3 mechanismPosition,
+        out Quaternion mechanismRotation,
+        out Vector3 hazardTargetPosition,
+        out TrapAttachmentPlacement attachment,
+        out int candidateCount,
+        out string failure)
+    {
+        Vector2Int serviceCell = GetGridCoordinates(serviceWorldPosition);
+        var candidates = new List<TrapAttachmentPlacement>(4);
+        candidateCount = GetTrapPlacementCandidates(
+            serviceCell, trapPrefab, candidates, out failure);
+        mechanismPosition = GetCellWorldPosition(serviceCell.x, serviceCell.y);
+        attachment = default;
+        if (candidateCount == 0)
+        {
+            hazardTargetPosition = mechanismPosition;
+            mechanismRotation = Quaternion.identity;
+            return false;
+        }
+
+        int normalizedIndex = Mathf.Clamp(candidateIndex, 0, candidateCount - 1);
+        attachment = candidates[normalizedIndex];
+        hazardTargetPosition = GetCellWorldPosition(
+            attachment.TargetCell.x, attachment.TargetCell.y);
+        mechanismRotation = GetTrapAttachmentRotation(
+            mechanismPosition, hazardTargetPosition);
+        return true;
+    }
+
+    public bool PlaceTrapFromServiceWorldPosition(
+        Vector3 serviceWorldPosition,
+        GameObject trapPrefab,
+        int objectId = -1,
+        int candidateIndex = 0)
+    {
+        Vector2Int serviceCell = GetGridCoordinates(serviceWorldPosition);
+        var candidates = new List<TrapAttachmentPlacement>(4);
+        int count = GetTrapPlacementCandidates(
+            serviceCell, trapPrefab, candidates, out string failure);
+        if (count == 0)
+        {
+            Debug.LogWarning(failure, this);
+            return false;
+        }
+        int normalizedIndex = Mathf.Clamp(candidateIndex, 0, count - 1);
+        TrapAttachmentPlacement attachment = candidates[normalizedIndex];
+        return PlaceTrapCell(
+            attachment.TargetCell.x,
+            attachment.TargetCell.y,
+            trapPrefab,
+            objectId,
+            attachment.Surface);
     }
 
     public bool RemoveTrapWorldPosition(Vector3 worldPosition)
@@ -2592,11 +2725,11 @@ public class TileGridGenerator : MonoBehaviour
         GameObject instance = Instantiate(
             trapPrefab,
             GetCellWorldPosition(attachment.ServiceCell.x, attachment.ServiceCell.y),
-            Quaternion.FromToRotation(Vector3.up,
-                (GetCellWorldPosition(x, y) -
-                 GetCellWorldPosition(
+            GetTrapAttachmentRotation(
+                GetCellWorldPosition(
                     attachment.ServiceCell.x,
-                    attachment.ServiceCell.y)).normalized),
+                    attachment.ServiceCell.y),
+                GetCellWorldPosition(x, y)),
             trapContainer);
         if (instance.GetComponentInChildren<DungeonLightReceiver>(true) == null)
             instance.AddComponent<DungeonLightReceiver>();
@@ -2615,6 +2748,17 @@ public class TileGridGenerator : MonoBehaviour
         placedTrapObjectIds[cell] = objectId;
         placedTrapPrefabNames[cell] = trapPrefab.name;
         return true;
+    }
+
+    static Quaternion GetTrapAttachmentRotation(
+        Vector3 mechanismPosition,
+        Vector3 hazardTargetPosition)
+    {
+        Vector3 hazardDirection =
+            (hazardTargetPosition - mechanismPosition).normalized;
+        return hazardDirection.sqrMagnitude > 0f
+            ? Quaternion.FromToRotation(Vector3.up, hazardDirection)
+            : Quaternion.identity;
     }
 
     public List<SavedTrapCell> CaptureTrapLayout()

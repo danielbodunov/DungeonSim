@@ -53,6 +53,25 @@ prop or other trap-service reservation. Building into reserved service space is
 rejected. The resolved surface is saved and scenario-captured so reconstruction
 does not choose a different orientation based on restore order.
 
+During placement, the hovered cell is the prospective service cell. The grid
+examines its cardinal neighbors and returns only fully valid corridor targets.
+For each candidate, the service-to-target offset determines the attachment
+surface, hazard direction, and mechanism pose. The preferred supported surface
+is considered first, followed by Floor, Ceiling, LeftWall, and RightWall, so the
+default is deterministic. `R` cycles only the valid candidates for the current
+service cell; moving to another cell resets the selection.
+
+The mechanism clone remains in the hovered service cell, a second indicator
+identifies the selected target corridor, and a colored line shows the hazard
+direction. Preview validation does not mutate topology or reservations. Both
+preview and committed instances use the same grid-owned candidate and pose
+resolution, keeping visual rotation and `CellTrap.HazardDirection` aligned.
+
+The current foundation reserves the whole existing unbuilt cell as service
+space; it does not resolve that cell into a dedicated trap-support tile. A
+prospective service-tile visual and modular conversion are deferred to t021
+because they require the planned tile-construction redesign.
+
 `SpikeWallTrap` is an example concrete implementation. Its prefab supports all
 four attachment surfaces and currently prefers Floor when more than one is
 available. It owns damage, difficulty, dodge settings, animation timing,

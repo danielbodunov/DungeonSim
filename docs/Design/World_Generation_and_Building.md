@@ -54,6 +54,16 @@ CURRENT TECHNICAL BASELINE
 - Traps currently occupy one built cell.
 - Traps affect one built corridor cell but their mechanisms now reserve an
   adjacent external service cell through a generic floor/wall/ceiling attachment.
+- Trap placement is service-cell-first: hovering an eligible external cell
+  discovers compatible cardinally adjacent corridor targets and derives the
+  mounting surface and hazard direction from service-to-target position.
+- A deterministic valid target is selected automatically. `R` cycles only when
+  more than one valid adjacent target exists; unsupported or blocked sides are
+  never offered.
+- Preview is prospective and non-mutating. The current implementation visualizes
+  and reserves the entire unbuilt service cell but does not convert it to a
+  dedicated modular support tile; that construction work remains deferred to
+  t021.
 - One authoritative dungeon entrance can be placed on a compatible authored
   prop socket and is persisted independently from the host tile.
 - Player build intent supports Auto, Narrow, and Wide cells, plus explicit shared
