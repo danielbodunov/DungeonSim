@@ -32,6 +32,7 @@ None.
 - [t021 — Modular Tile Construction Surfaces](t021-Modular-Tile-Construction-Surfaces.md)
 - [t022 — Trap Space & Compatibility Validation](t022-Trap-Space-Compatibility-Validation.md)
 - [t023 — Strategic Building Vertical Slice](t023-Strategic-Building-Vertical-Slice.md)
+- [t024 — Rotation-Safe Tile Textures](t024-Rotation-Safe-Tile-Textures.md)
 
 ## Completed / Existing Work
 
