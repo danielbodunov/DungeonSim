@@ -17,7 +17,7 @@ MonoBehaviour:
   intendedTestPurpose: 
   gridWidth: 15
   gridHeight: 15
-  propGenerationSeed: -926314272
+  propGenerationSeed: -434071069
   tileCells:
   - x: 2
     y: 1
@@ -27,47 +27,47 @@ MonoBehaviour:
   - x: 3
     y: 1
     isPlaced: 1
-    profileId: Narrow_Straight_I_R0
+    profileId: Narrow_Corner_L_R2
     widthIntent: 0
-  - x: 4
-    y: 1
-    isPlaced: 1
-    profileId: Narrow_T_R1
-    widthIntent: 0
-  - x: 4
+  - x: 3
     y: 2
-    isPlaced: 1
-    profileId: Narrow_Straight_I_R1
-    widthIntent: 0
-  - x: 4
-    y: 3
     isPlaced: 1
     profileId: Narrow_Corner_L_R0
     widthIntent: 0
-  - x: 5
+  - x: 4
     y: 1
+    isPlaced: 0
+    profileId: Ground_Full_X_R0
+    widthIntent: 0
+  - x: 4
+    y: 2
     isPlaced: 1
     profileId: Narrow_Straight_I_R0
     widthIntent: 0
   - x: 5
-    y: 3
+    y: 1
+    isPlaced: 0
+    profileId: Ground_Full_X_R0
+    widthIntent: 0
+  - x: 5
+    y: 2
     isPlaced: 1
     profileId: Narrow_Straight_I_R0
     widthIntent: 0
   - x: 6
     y: 1
-    isPlaced: 1
-    profileId: Narrow_Corner_L_R2
+    isPlaced: 0
+    profileId: Ground_Full_X_R0
     widthIntent: 0
   - x: 6
     y: 2
     isPlaced: 1
-    profileId: Narrow_Straight_I_R1
+    profileId: Narrow_Straight_I_R0
     widthIntent: 0
-  - x: 6
-    y: 3
+  - x: 7
+    y: 2
     isPlaced: 1
-    profileId: Narrow_Corner_L_R3
+    profileId: Narrow_Cap_R0
     widthIntent: 0
   connectionEdges:
   - fromX: 2
@@ -77,51 +77,31 @@ MonoBehaviour:
     intent: 1
   - fromX: 3
     fromY: 1
-    toX: 4
-    toY: 1
+    toX: 3
+    toY: 2
     intent: 1
-  - fromX: 4
-    fromY: 1
-    toX: 5
-    toY: 1
-    intent: 1
-  - fromX: 4
-    fromY: 1
+  - fromX: 3
+    fromY: 2
     toX: 4
     toY: 2
     intent: 1
   - fromX: 4
     fromY: 2
-    toX: 4
-    toY: 3
-    intent: 1
-  - fromX: 4
-    fromY: 3
     toX: 5
-    toY: 3
+    toY: 2
     intent: 1
   - fromX: 5
-    fromY: 1
-    toX: 6
-    toY: 1
-    intent: 1
-  - fromX: 5
-    fromY: 3
-    toX: 6
-    toY: 3
-    intent: 1
-  - fromX: 6
-    fromY: 1
+    fromY: 2
     toX: 6
     toY: 2
     intent: 1
   - fromX: 6
     fromY: 2
-    toX: 6
-    toY: 3
+    toX: 7
+    toY: 2
     intent: 1
   traps:
-  - x: 4
+  - x: 3
     y: 2
     objectId: 4
     prefabName: SpikeWall
@@ -130,15 +110,15 @@ MonoBehaviour:
     hasTrapAttachmentSurface: 1
     trapAttachmentSurface: 2
   - x: 4
-    y: 3
+    y: 2
     objectId: 4
     prefabName: SpikeWall
     prefab: {fileID: 1001, guid: 5c39c4ab8a0e44398b0ec97618835a79, type: 3}
     isResolved: 0
     hasTrapAttachmentSurface: 1
-    trapAttachmentSurface: 0
+    trapAttachmentSurface: 1
   - x: 5
-    y: 3
+    y: 2
     objectId: 4
     prefabName: SpikeWall
     prefab: {fileID: 1001, guid: 5c39c4ab8a0e44398b0ec97618835a79, type: 3}
@@ -146,29 +126,21 @@ MonoBehaviour:
     hasTrapAttachmentSurface: 1
     trapAttachmentSurface: 0
   - x: 6
-    y: 1
+    y: 2
+    objectId: 4
+    prefabName: SpikeWall
+    prefab: {fileID: 1001, guid: 5c39c4ab8a0e44398b0ec97618835a79, type: 3}
+    isResolved: 0
+    hasTrapAttachmentSurface: 1
+    trapAttachmentSurface: 0
+  - x: 7
+    y: 2
     objectId: 4
     prefabName: SpikeWall
     prefab: {fileID: 1001, guid: 5c39c4ab8a0e44398b0ec97618835a79, type: 3}
     isResolved: 0
     hasTrapAttachmentSurface: 1
     trapAttachmentSurface: 3
-  - x: 6
-    y: 2
-    objectId: 4
-    prefabName: SpikeWall
-    prefab: {fileID: 1001, guid: 5c39c4ab8a0e44398b0ec97618835a79, type: 3}
-    isResolved: 0
-    hasTrapAttachmentSurface: 1
-    trapAttachmentSurface: 2
-  - x: 6
-    y: 3
-    objectId: 4
-    prefabName: SpikeWall
-    prefab: {fileID: 1001, guid: 5c39c4ab8a0e44398b0ec97618835a79, type: 3}
-    isResolved: 0
-    hasTrapAttachmentSurface: 1
-    trapAttachmentSurface: 0
   floorProps: []
   entranceMode: 0
   entrance:
@@ -185,22 +157,126 @@ MonoBehaviour:
   hasRuntimeStateSnapshot: 1
   traversalState:
     recoverableLootDrops: []
-    deathLootOutcomes: []
+    deathLootOutcomes:
+    - sourceRuntimeAgentId: 3
+      sourceAdventurerName: Iris Wyrmwood
+      deathCell: {x: 3, y: 2}
+      worldPosition: {x: 2.5000424, y: -2.7966022, z: 0}
+      carriedItemCountBefore: 1
+      carriedValueBefore: 4
+      recoveredItemCount: 1
+      recoveredValue: 4
+      recoveryDropId: recovered-loot-0001
+      carriedItemCountAfter: 0
+      carriedValueAfter: 0
+      recoveryProcessed: 1
+      duplicateProcessingAttempts: 0
+    - sourceRuntimeAgentId: 4
+      sourceAdventurerName: Vera Moonbrook
+      deathCell: {x: 3, y: 2}
+      worldPosition: {x: 2.5001705, y: -2.7966022, z: 0}
+      carriedItemCountBefore: 2
+      carriedValueBefore: 10
+      recoveredItemCount: 2
+      recoveredValue: 10
+      recoveryDropId: recovered-loot-0002
+      carriedItemCountAfter: 0
+      carriedValueAfter: 0
+      recoveryProcessed: 1
+      duplicateProcessingAttempts: 0
     escapeLootOutcomes: []
-    nextRecoverableLootDropNumber: 1
-    nextRuntimeAgentId: 1
+    nextRecoverableLootDropNumber: 3
+    nextRuntimeAgentId: 5
   gameplayState:
-    dungeonOpenCount: 0
-    dread: 0
+    dungeonOpenCount: 1
+    dread: 54
     dungeonLevel: 1
     selectedSpeed: 1
-    adventurerRoster: []
+    adventurerRoster:
+    - id: 2ee09fb93eba4a6d9251de2c065bcfb1
+      characterName: Iris Wyrmwood
+      level: 1
+      experience: 7
+      maxHealth: 10
+      maxStamina: 10
+      strength: 5
+      dexterity: 5
+      luck: 5
+      intelligence: 5
+      dungeonVisits: 1
+      startingResources:
+      - resourceId: construction-materials
+        category: 0
+        quantity: 2
+        unitValue: 2
+    - id: 493416259fc34ef8943dab18fd310d72
+      characterName: Vera Moonbrook
+      level: 1
+      experience: 7
+      maxHealth: 10
+      maxStamina: 10
+      strength: 5
+      dexterity: 5
+      luck: 5
+      intelligence: 5
+      dungeonVisits: 1
+      startingResources:
+      - resourceId: trap-components
+        category: 1
+        quantity: 1
+        unitValue: 4
+      - resourceId: arcane-components
+        category: 2
+        quantity: 1
+        unitValue: 6
     dreadHarvests: []
     dreadSpends: []
     expeditionOutcomes: []
     recoveredLootInventory: []
-    playerLootRecoveries: []
-    constructionMaterials: 995
-    trapComponents: 1000
-    arcaneComponents: 1000
+    playerLootRecoveries:
+    - sourceDropId: recovered-loot-0001
+      recoveryCell: {x: 3, y: 2}
+      worldPosition: {x: 2.5000424, y: -2.7966022, z: 0}
+      sourceAdventurerName: Iris Wyrmwood
+      recoveredItemCount: 1
+      recoveredValue: 4
+      dungeonTreasureValue: 0
+      adventurerLootValue: 4
+      recoveredItems:
+      - itemId: construction-materials
+        value: 2
+        origin: 1
+        sourceCell: {x: 0, y: 0}
+        hasSourceCell: 0
+        contentKind: 1
+        resourceCategory: 0
+        resourceQuantity: 2
+    - sourceDropId: recovered-loot-0002
+      recoveryCell: {x: 3, y: 2}
+      worldPosition: {x: 2.5001705, y: -2.7966022, z: 0}
+      sourceAdventurerName: Vera Moonbrook
+      recoveredItemCount: 2
+      recoveredValue: 10
+      dungeonTreasureValue: 0
+      adventurerLootValue: 10
+      recoveredItems:
+      - itemId: trap-components
+        value: 4
+        origin: 1
+        sourceCell: {x: 0, y: 0}
+        hasSourceCell: 0
+        contentKind: 1
+        resourceCategory: 1
+        resourceQuantity: 1
+      - itemId: arcane-components
+        value: 6
+        origin: 1
+        sourceCell: {x: 0, y: 0}
+        hasSourceCell: 0
+        contentKind: 1
+        resourceCategory: 2
+        resourceQuantity: 1
+    constructionMaterials: 1000
+    trapComponents: 1001
+    arcaneComponents: 1001
     hasAuthoritativePhysicalResourceBalances: 1

@@ -41,6 +41,7 @@ public class GameplayLoopUI : MonoBehaviour
     Image removeTrapButtonImage;
     Image removeEntranceButtonImage;
     Image toggleWallButtonImage;
+    TMP_Text trapCandidateText;
     readonly Dictionary<float, Image> speedButtonImages = new();
     readonly Dictionary<int, Image> paletteButtonImages = new();
     readonly Dictionary<CellWidthIntent, Image> widthButtonImages = new();
@@ -232,7 +233,14 @@ public class GameplayLoopUI : MonoBehaviour
         toggleWallButtonImage = toggleWall.GetComponent<Image>();
         CreateLabel(
             panel, "Click a shared boundary", 12,
-            new Vector2(850f, -13f), new Vector2(200f, 26f));
+            new Vector2(850f, -13f), new Vector2(145f, 26f));
+        trapCandidateText = CreateText(
+            "Trap Candidate", panel, string.Empty, 12, FontStyles.Bold,
+            TextAlignmentOptions.MidlineLeft, Ink);
+        SetTopLeftRect(
+            trapCandidateText.rectTransform,
+            new Vector2(1000f, -8f),
+            new Vector2(235f, 42f));
         dreadActionText = CreateText(
             "Dread Action",
             panel,
@@ -243,8 +251,8 @@ public class GameplayLoopUI : MonoBehaviour
             Ink);
         SetTopLeftRect(
             dreadActionText.rectTransform,
-            new Vector2(1050f, -8f),
-            new Vector2(450f, 52f));
+            new Vector2(1240f, -8f),
+            new Vector2(260f, 52f));
 
         RectTransform row = CreateRect("Items", panel);
         SetRect(row, Vector2.zero, Vector2.one, new Vector2(14f, 12f), new Vector2(-14f, -78f));
@@ -1035,6 +1043,28 @@ public class GameplayLoopUI : MonoBehaviour
             : CellWidthIntent.Auto;
         foreach (KeyValuePair<CellWidthIntent, Image> pair in widthButtonImages)
             pair.Value.color = pair.Key == selectedWidth ? Accent : ButtonColor;
+
+        bool placingTrap = placement != null &&
+            placement.IsTrapPlacementActive;
+        if (trapCandidateText != null)
+        {
+            trapCandidateText.gameObject.SetActive(placingTrap);
+            if (!placingTrap)
+                trapCandidateText.text = string.Empty;
+            else if (!placement.HasSelectedTrapCandidate)
+                trapCandidateText.text = "No valid adjacent corridor";
+            else
+            {
+                TrapAttachmentPlacement candidate =
+                    placement.SelectedTrapCandidate;
+                string cycleHint = placement.TrapCandidateCount > 1
+                    ? "  R: Change side"
+                    : string.Empty;
+                trapCandidateText.text =
+                    $"Target {candidate.TargetCell.x},{candidate.TargetCell.y}  " +
+                    $"{candidate.Surface}{cycleHint}";
+            }
+        }
 
         if (toggleWallButtonImage != null)
             toggleWallButtonImage.color = placement != null && placement.IsEditingEdges
