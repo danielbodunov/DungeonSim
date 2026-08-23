@@ -18,11 +18,17 @@ Runtime scripts usually should **not** need modification for a new tile that fit
 1. Build the prefab to the established cell scale and pivot/orientation conventions.
 2. Author/bake edge sockets for the prefab.
 3. Author any prop sockets the tile is intended to expose.
-4. Bake/register rotated `TileSocketProfile` variants.
-5. Confirm each profile has the intended `TileCategory` (`Narrow`, `Wide`, `Transition`, `Starter`, etc.).
-6. Verify north/south/east/west hashes and match data are generated as expected.
-7. Add the profile to the adjacency/solver data through the existing editor workflow.
-8. Test placement in several neighborhoods rather than only in isolation.
+4. If the tile supports modular construction, add the
+   `TileConstructionSurfaces` root component and authored surface anchors.
+5. Bake/register rotated `TileSocketProfile` variants.
+6. Confirm each profile has the intended `TileCategory` (`Narrow`, `Wide`, `Transition`, `Starter`, etc.).
+7. Verify north/south/east/west hashes and match data are generated as expected.
+8. Add the profile to the adjacency/solver data through the existing editor workflow.
+9. Test placement in several neighborhoods rather than only in isolation.
+
+Construction module changes that affect an opening, collider, or traversal are
+not visual variants. Mark them `RequiresTopologyResolution` and represent the
+result through an appropriate tile profile.
 
 ## Important model rule
 

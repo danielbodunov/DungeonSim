@@ -16,6 +16,40 @@ Recommended conventions:
 - keep decorative wall/back-wall variants separable from topology where possible;
 - avoid embedding a one-off gameplay mechanic directly into a tile prefab when it can be a placed prop/trap instead.
 
+### Construction surfaces
+
+Add `TileConstructionSurfaces` to the prefab root when a tile exposes modular
+construction. Each slot must have:
+
+- a stable, prefab-unique ID;
+- a semantic kind: floor, ceiling, cardinal wall, or trap-service region;
+- an anchor inside the prefab hierarchy;
+- an explicit topology impact;
+- zero or more controlled, authored module variants;
+- a trap-attachment mask when the slot supports a trap mechanism.
+
+Variants are prefab-owned GameObject roots, not arbitrary meshes supplied at
+runtime. `VisualOnly` variants may be selected directly. Mark walls/openings or
+any collider change that affects passage as `RequiresTopologyResolution`; the
+direct selection API rejects those swaps because `TileSocketProfile` and edge
+intent remain authoritative for traversal.
+
+`Narrow_Straight_I` is the representative migrated prefab. Its markers coexist
+with the legacy monolithic visual hierarchy, so migration does not require
+destructive mesh editing.
+
+Migration sequence:
+
+1. Add the component to the tile root without moving existing sockets/colliders.
+2. Create prefab-local anchors for floor, ceiling, cardinal walls, and any
+   trap-service region the tile supports.
+3. Assign stable IDs and trap masks. Do not infer identity from child order.
+4. Move only genuinely replaceable visual children under controlled module
+   roots; retaining a legacy monolithic visual is valid during migration.
+5. Mark topology-affecting modules as requiring profile resolution.
+6. Re-bake profiles only if logical openings, sockets, or traversal changed.
+7. Validate all rotated profiles and existing NPC routes.
+
 ## Tile profiles
 
 Location: `Assets/Resources/TileProfiles/`
@@ -41,7 +75,9 @@ A normal one-cell trap prefab should:
 - keep trap-local animation/effect components inside the prefab;
 - expose deterministic orientation through placement rather than depending on arbitrary scene rotation.
 
-The current design favors traps that reserve whole cells. Mechanism geometry can live in the trap cell and face a neighboring traversed/target cell.
+Traps reserve an external service cell and affect a neighboring traversed target
+cell. Compatible tile prefabs may expose construction-surface anchors for
+mechanism/support visuals; logical occupancy and triggering remain grid-owned.
 
 ## Traversal
 
