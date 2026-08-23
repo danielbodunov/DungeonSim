@@ -60,10 +60,13 @@ CURRENT TECHNICAL BASELINE
 - A deterministic valid target is selected automatically. `R` cycles only when
   more than one valid adjacent target exists; unsupported or blocked sides are
   never offered.
-- Preview is prospective and non-mutating. The current implementation visualizes
-  and reserves the entire unbuilt service cell but does not convert it to a
-  dedicated modular support tile; that construction work remains deferred to
-  t021.
+- Preview is prospective and non-mutating. The current implementation reserves
+  the entire unbuilt service cell. Tile prefabs may now expose controlled
+  construction-surface and trap-service anchors independently of topology;
+  finer service occupancy/conflict rules remain future work.
+- Visual-only floor/ceiling/wall modules may change without changing logical
+  connections. Any module that creates or closes traversal requires tile-profile
+  re-resolution rather than a direct visual swap.
 - One authoritative dungeon entrance can be placed on a compatible authored
   prop socket and is persisted independently from the host tile.
 - Player build intent supports Auto, Narrow, and Wide cells, plus explicit shared

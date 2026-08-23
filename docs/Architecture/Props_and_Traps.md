@@ -67,10 +67,12 @@ direction. Preview validation does not mutate topology or reservations. Both
 preview and committed instances use the same grid-owned candidate and pose
 resolution, keeping visual rotation and `CellTrap.HazardDirection` aligned.
 
-The current foundation reserves the whole existing unbuilt cell as service
-space; it does not resolve that cell into a dedicated trap-support tile. A
-prospective service-tile visual and modular conversion are deferred to t021
-because they require the planned tile-construction redesign.
+The current placement transaction still reserves the whole existing unbuilt
+cell as service space. t021 adds `TileConstructionSurfaces` to separate authored
+floor, ceiling, cardinal-wall, and trap-service anchors/modules from the tile's
+logical traversal profile. This allows trap-support visuals to target controlled
+prefab regions without editing a monolithic mesh. Shrinking service occupancy
+below one logical cell remains separate placement/conflict work.
 
 `SpikeWallTrap` is an example concrete implementation. Its prefab supports all
 four attachment surfaces and currently prefers Floor when more than one is
@@ -80,13 +82,18 @@ resolution to `NPCActionResolver`.
 
 ### Tile prefab/modularity implications
 
-The current cell-sized service-region model proves the ownership and validation
-contract without rebuilding tile meshes. It also exposes the next authoring
-need: concrete tiles will eventually need smaller, explicit construction
-volumes/sockets so a mechanism can occupy wall thickness, under-floor space, or
-ceiling space without reserving an entire neighboring logical cell. That work
-belongs with modular construction surfaces (t021) and compatibility/conflict
-validation (t022), not this foundation.
+`TileConstructionSurfaces` is an optional prefab-root contract with stable slot
+IDs, a semantic surface kind, a prefab-local anchor, controlled module variants,
+and trap-attachment compatibility. Visual-only variants can be activated through
+the contract. A slot marked `RequiresTopologyResolution` cannot be swapped by
+that API; openings and other traversal changes must instead re-resolve the
+authoritative `TileSocketProfile`. The representative `Narrow_Straight_I` tile
+contains floor, ceiling, four cardinal-wall, and trap-service slots while
+retaining its existing mesh, colliders, prop sockets, and baked profiles.
+
+The cell-sized service reservation remains the conservative conflict model.
+Smaller explicit construction volumes and conflicts belong to t022 rather than
+being inferred from marker transforms.
 
 This is the preferred pattern: the grid knows where the trap is; the trap knows its local behavior; the action resolver knows how the NPC outcome is resolved.
 
