@@ -2,7 +2,7 @@
 
 ## Tracking
 - **ID:** t021
-- **Status:** Awaiting Unity Validation
+- **Status:** Complete
 - **Milestone:** Strategic Construction
 - **Depends on:** t019 findings
 
@@ -63,7 +63,7 @@ Suggested branch: `feature/t021-modular-tile-surfaces`
 - `Assembly-CSharp` compiled with 0 warnings and 0 errors.
 - `Assembly-CSharp-Editor` compiled with 0 errors and one pre-existing unused
   `TileSocketBakerWindow.visualizeSamples` warning.
-- Manual Unity validation remains pending.
+- - Manual Unity validation completed successfully in Unity on 2026-08-23.
 
 ## Manual Unity Validation
 
