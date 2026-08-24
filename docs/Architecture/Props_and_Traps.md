@@ -48,10 +48,40 @@ The resolved `TrapAttachmentPlacement` keeps three identities separate:
 - `Surface`: determines the relationship and hazard direction from mechanism to
   corridor.
 
+t022 expands that result into three explicit cell collections:
+
+- `MechanismCells`: physical mechanism occupancy, including `ServiceCell`;
+- `InfrastructureCells`: additional reserved support/clearance cells;
+- `HazardCells`: affected corridor volume, including `TargetCell`, which does
+  not reserve external construction space.
+
+`TrapAttachmentDefinition` authors additional cells in attachment-local integer
+coordinates. Local X is lateral to the hazard direction and local Y points from
+the primary service cell toward the target. The grid rotates these offsets for
+Floor, Ceiling, LeftWall, and RightWall placements. Empty footprint arrays retain
+the one-service-cell/one-target-cell behavior of existing trap prefabs.
+
 The service cell must be an interior, unbuilt, non-fixed cell with no generated
 prop or other trap-service reservation. Building into reserved service space is
 rejected. The resolved surface is saved and scenario-captured so reconstruction
 does not choose a different orientation based on restore order.
+
+Every mechanism and infrastructure cell follows those service-space rules and
+is reserved as one atomic footprint. Hazard cells must be built corridor cells,
+but do not block traversal or reserve construction by themselves. A footprint
+may not overlap its own hazard volume. Existing trap footprints participate in
+live placement validation, and scenario/save validation accumulates the same
+reservations in restore order before any authoritative save mutation.
+
+Construction into a trap target or any reserved footprint cell requires explicit
+trap removal first. Local cell or connection re-resolution is also rejected when
+the resulting tile profile would no longer support the trap's saved attachment
+surface.
+
+The removal tool follows physical ownership: the player selects the trap's
+primary `ServiceCell`, which resolves back to the authoritative target-cell trap
+record. Clicking the affected corridor cell does not remove the external
+mechanism.
 
 During placement, the hovered cell is the prospective service cell. The grid
 examines its cardinal neighbors and returns only fully valid corridor targets.
@@ -66,6 +96,10 @@ identifies the selected target corridor, and a colored line shows the hazard
 direction. Preview validation does not mutate topology or reservations. Both
 preview and committed instances use the same grid-owned candidate and pose
 resolution, keeping visual rotation and `CellTrap.HazardDirection` aligned.
+Additional mechanism, infrastructure, and hazard cells receive cell indicators
+from the same resolved placement result. Trap grid indicators use the hovered
+cell indicator's Z plane. The hazard-direction line instead uses the target
+cell center's Z plane so it aligns with the affected corridor volume.
 
 The current placement transaction still reserves the whole existing unbuilt
 cell as service space. t021 adds `TileConstructionSurfaces` to separate authored

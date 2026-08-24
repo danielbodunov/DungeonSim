@@ -194,6 +194,9 @@ public class GameSaveManager : MonoBehaviour
                 $"{tileGrid.GridWidth}x{tileGrid.GridHeight}.");
         }
 
+        if (!TryValidateSavedTrapFootprints(save, out string trapFailure))
+            return ReportFailure(trapFailure);
+
         List<SavedTileCell> previousTiles = tileGrid.CaptureTileLayout();
         List<SavedConnectionEdge> previousConnections =
             tileGrid.CaptureConnectionIntents();
@@ -263,6 +266,63 @@ public class GameSaveManager : MonoBehaviour
             $"{gameplayLoop.AdventurerRoster.Count} adventurers; " +
             $"{gameplayLoop.Dread} Dread with {gameplayLoop.DreadSpendCount} " +
             "recorded spends.");
+    }
+
+    bool TryValidateSavedTrapFootprints(
+        DungeonSaveData save,
+        out string failure)
+    {
+        if (!tileGrid.TryValidateTileLayout(
+                save.tileCells,
+                save.connectionEdges,
+                out TileGridGenerator.PlacementValidationContext context,
+                out failure))
+        {
+            failure = $"The saved tile layout is invalid: {failure}";
+            return false;
+        }
+
+        if (save.traps == null)
+        {
+            failure = string.Empty;
+            return true;
+        }
+
+        for (int i = 0; i < save.traps.Count; i++)
+        {
+            SavedTrapCell savedTrap = save.traps[i];
+            if (savedTrap == null)
+            {
+                failure = $"Saved trap record {i + 1} is empty.";
+                return false;
+            }
+            GameObject prefab = FindObjectPrefab(savedTrap.objectId);
+            if (prefab == null && !string.IsNullOrWhiteSpace(savedTrap.prefabName))
+            {
+                prefab = Resources.Load<GameObject>(
+                    $"Traps/{savedTrap.prefabName}") ??
+                    Resources.Load<GameObject>(savedTrap.prefabName);
+            }
+            var targetCell = new Vector2Int(savedTrap.x, savedTrap.y);
+            if (!tileGrid.TryValidateTrapPlacement(
+                    context,
+                    targetCell,
+                    prefab,
+                    savedTrap.hasAttachmentSurface
+                        ? savedTrap.attachmentSurface
+                        : null,
+                    out TrapAttachmentPlacement attachment,
+                    out string placementFailure))
+            {
+                failure = $"Saved trap '{savedTrap.prefabName}' at " +
+                    $"({savedTrap.x},{savedTrap.y}) is invalid: " +
+                    placementFailure;
+                return false;
+            }
+            context.ReserveTrap(attachment);
+        }
+        failure = string.Empty;
+        return true;
     }
 
     SaveSlotInfo ReadSaveSlot(string path, string fallbackName = null)

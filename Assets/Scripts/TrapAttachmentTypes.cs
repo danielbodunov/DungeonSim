@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 public enum TrapAttachmentSurface
@@ -26,14 +27,37 @@ public readonly struct TrapAttachmentPlacement
     public TrapAttachmentSurface Surface { get; }
     public Vector2Int ServiceCell { get; }
     public Vector2Int TargetCell { get; }
+    public IReadOnlyList<Vector2Int> MechanismCells { get; }
+    public IReadOnlyList<Vector2Int> InfrastructureCells { get; }
+    public IReadOnlyList<Vector2Int> HazardCells { get; }
 
     public TrapAttachmentPlacement(
         TrapAttachmentSurface surface,
         Vector2Int serviceCell,
-        Vector2Int targetCell)
+        Vector2Int targetCell,
+        IReadOnlyList<Vector2Int> mechanismCells = null,
+        IReadOnlyList<Vector2Int> infrastructureCells = null,
+        IReadOnlyList<Vector2Int> hazardCells = null)
     {
         Surface = surface;
         ServiceCell = serviceCell;
         TargetCell = targetCell;
+        MechanismCells = mechanismCells ?? new[] { serviceCell };
+        InfrastructureCells = infrastructureCells ??
+            Array.Empty<Vector2Int>();
+        HazardCells = hazardCells ?? new[] { targetCell };
+    }
+
+    public IEnumerable<Vector2Int> ReservedCells
+    {
+        get
+        {
+            if (MechanismCells != null)
+                for (int i = 0; i < MechanismCells.Count; i++)
+                    yield return MechanismCells[i];
+            if (InfrastructureCells != null)
+                for (int i = 0; i < InfrastructureCells.Count; i++)
+                    yield return InfrastructureCells[i];
+        }
     }
 }
