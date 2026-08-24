@@ -447,7 +447,7 @@ public sealed class DungeonTestScenario : ScriptableObject
                     $"is invalid: {failure}";
                 return false;
             }
-            placementContext.ReserveTrap(cell, attachment.ServiceCell);
+            placementContext.ReserveTrap(attachment);
         }
 
         if (effectiveEntranceMode == DungeonScenarioEntranceMode.Manual)
