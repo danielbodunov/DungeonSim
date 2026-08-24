@@ -30,12 +30,14 @@ None.
 
 ## Planned — Strategic Construction
 
-- [t023 — Strategic Building Vertical Slice](t023-Strategic-Building-Vertical-Slice.md)
 - [t024 — Rotation-Safe Tile Textures](t024-Rotation-Safe-Tile-Textures.md)
+- [t025 — Trap Construction Presentation](t025-Trap-Construction-Presentation.md)
+- [t026 — Generated Build Obstacles](t026-Generated-Build-Obstacles.md)
 
 ## Completed / Existing Work
 
 - [t020 — Service-Cell Trap Placement & Automatic Orientation](t020-Rotatable-Trap-Placement.md)
+- [t023 — Strategic Building Vertical Slice](t023-Strategic-Building-Vertical-Slice.md)
 - [Initial building and adventurer vertical slices](2026-08-09-initial-vertical-slices.md)
 - [DEV001 — Generic Prop & Treasure Placement](DEV001-Generic-Prop-Treasure-Placement.md)
 - [DEV002 — Reusable Dungeon Test Scenarios](DEV002-Reusable-Dungeon-Test-Scenarios.md)
