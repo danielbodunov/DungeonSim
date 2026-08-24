@@ -2,7 +2,7 @@
 
 ## Tracking
 - **ID:** t024
-- **Status:** Planned
+- **Status:** Awaiting Unity Validation
 - **Milestone:** Strategic Construction
 - **Related:** t021 — Modular Tile Construction Surfaces
 
@@ -59,3 +59,38 @@ Prefer the least complex option that handles Dungeon Sim's actual four-rotation 
 
 ## Git
 Suggested branch: `feature/t024-rotation-safe-tile-textures`
+
+## Implementation Notes
+
+- Audited runtime and editor preview instantiation: both rotate the shared source
+  prefab clockwise around Z by `rotation * -90` degrees. Socket/profile data was
+  not changed.
+- Compared the proposed approaches. UV counter-rotation cannot handle a face
+  changing from wall to floor without additional role data; explicit per-face
+  metadata is more authoring overhead than the current tile set needs. The
+  prototype therefore derives surface role and projection from transformed
+  world normals/positions.
+- Added a URP Lit Shader Graph with four-role 2x2 pixel-atlas projection,
+  half-texel cell insets, standard realtime-light support, and independent
+  red-channel vertex AO. The former dungeon-light sampling is intentionally not
+  part of the environment material.
+- Prototyped the contract on the existing `Narrow_Corner_L` source prefab, whose
+  four profile assets already reference the same prefab for R0-R3.
+- Documented the atlas layout and Blender/FBX/Unity authoring contract in the
+  prefab reference and tile how-to.
+
+## Unity Validation
+
+1. Let Unity import `RotationSafeTileAtlas.png`, its material, and shader; confirm
+   there are no shader/compiler errors.
+2. Inspect the atlas import settings: Point filter, mipmaps disabled, compression
+   None, and Clamp wrap mode.
+3. Open a generation/test scene that can place `Narrow_Corner_L` profiles and
+   display R0, R1, R2, and R3 instances of that same source prefab.
+4. Confirm wall/back-wall details remain upright, floor and ceiling treatments
+   follow world gravity, and no seams bleed between atlas quadrants.
+5. Paint or temporarily edit red vertex color on representative geometry;
+   confirm Lit Ambient Occlusion rotates with the mesh while atlas orientation
+   does not change.
+6. Re-run tile socket/profile validation and an NPC traversal smoke test. Confirm
+   socket hashes, profile compatibility, adjacency, and traversal are unchanged.

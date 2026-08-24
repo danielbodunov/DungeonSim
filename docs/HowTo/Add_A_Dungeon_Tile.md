@@ -26,6 +26,23 @@ Runtime scripts usually should **not** need modification for a new tile that fit
 8. Add the profile to the adjacency/solver data through the existing editor workflow.
 9. Test placement in several neighborhoods rather than only in isolation.
 
+## Rotation-safe texture authoring
+
+For gravity-oriented pixel art, assign a material using
+`DungeonSim/Rotation Safe Tile Atlas` and author the 2x2 surface-role atlas
+defined in [Prefab and Asset Conventions](../Reference/Prefab_Conventions.md#rotation-safe-surface-textures).
+
+In Blender, keep face normals correct and paint structural/contact AO into the
+red vertex-color channel (`1` clear, `0` occluded). Do not rotate atlas regions
+to compensate for a particular profile. Export FBX with vertex colors and
+stable real-world tile scale. In Unity, enable vertex-color import and configure
+the atlas as Point, no mipmaps, uncompressed, and Clamp. Tune world tiling,
+metallic, and smoothness on the material; edit red vertex AO on the mesh.
+
+Preview the same source prefab through R0, R1, R2, and R3. Confirm that back-wall
+details stay upright, up/down-facing geometry selects floor/ceiling art, side
+walls select side art, and vertex AO remains attached to the geometry.
+
 Construction module changes that affect an opening, collider, or traversal are
 not visual variants. Mark them `RequiresTopologyResolution` and represent the
 result through an appropriate tile profile.

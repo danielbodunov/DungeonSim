@@ -64,6 +64,40 @@ A profile should correctly identify:
 - all four edge hashes/matches;
 - baked prop sockets.
 
+### Rotation-safe surface textures
+
+`TileSocketProfile.rotation` remains authoritative for geometry and topology.
+Runtime instances use clockwise Z rotations (`R0 = 0`, `R1 = -90`,
+`R2 = -180`, `R3 = -270` degrees). Do not duplicate a prefab merely to keep
+directional texture art upright.
+
+Tiles using `DungeonSim/Rotation Safe Tile Atlas` follow this 2x2 atlas contract:
+
+| Atlas quadrant | Surface role | Projection |
+| --- | --- | --- |
+| Upper-left | back wall | world X/Y |
+| Upper-right | floor | world X/Z |
+| Lower-left | ceiling | world X/Z |
+| Lower-right | side wall | world Z/Y |
+
+The shader classifies the role from the transformed world normal. This makes a
+face that changes role after profile rotation sample the correct quadrant, while
+world Y remains up for side and back walls. Base color, directional masonry,
+grime, chains, and trim belong in the atlas and remain world/gravity oriented.
+Geometry-specific wear, contact shadowing, and structural AO rotate with the
+mesh and must not be baked into directional base art.
+
+Reserve vertex-color **red** for structural AO: `1` is unoccluded and `0` is
+fully occluded. The Shader Graph feeds that channel into the Lit Ambient
+Occlusion block independently of the atlas. Green, blue, and alpha are currently
+unassigned. Unity's FBX importer must retain vertex colors.
+
+Atlas textures must use Point filtering, disabled mipmaps, no compression, and
+Clamp wrapping. Keep every quadrant the same size and avoid artwork crossing a
+quadrant boundary. The shader applies a half-texel inset to prevent sampling a
+neighboring cell. `Narrow_Corner_L` and `RotationSafeTileAtlas` are the t024
+representative prefab/material across profiles R0-R3.
+
 ## Traps
 
 Location: `Assets/Resources/Traps/`

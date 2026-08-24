@@ -11,6 +11,7 @@ None.
 - [t019 — External Trap Attachment Model](t019-External-Trap-Attachment-Model.md)
 - [t021 — Modular Tile Construction Surfaces](t021-Modular-Tile-Construction-Surfaces.md)
 - [t022 — Trap Space & Compatibility Validation](t022-Trap-Space-Compatibility-Validation.md)
+- [t024 — Rotation-Safe Tile Textures](t024-Rotation-Safe-Tile-Textures.md)
 
 ## Ready
 
@@ -30,7 +31,6 @@ None.
 
 ## Planned — Strategic Construction
 
-- [t024 — Rotation-Safe Tile Textures](t024-Rotation-Safe-Tile-Textures.md)
 - [t025 — Trap Construction Presentation](t025-Trap-Construction-Presentation.md)
 - [t026 — Generated Build Obstacles](t026-Generated-Build-Obstacles.md)
 
