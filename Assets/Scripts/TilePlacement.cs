@@ -46,10 +46,12 @@ public class TilePlacement : MonoBehaviour
     private GameObject trapTargetIndicator;
     private Renderer[] trapTargetIndicatorRenderers =
         System.Array.Empty<Renderer>();
+    private readonly List<GameObject> trapFootprintIndicators = new();
     private int selectedTrapCandidateIndex;
     private int trapCandidateCount;
     private TrapAttachmentPlacement selectedTrapCandidate;
     private bool hasSelectedTrapCandidate;
+    private string trapPlacementFailure = string.Empty;
     private Vector3Int? lastTrapPreviewCell;
     private Renderer[] cellIndicatorRenderers = System.Array.Empty<Renderer>();
     private MaterialPropertyBlock previewPropertyBlock;
@@ -76,6 +78,7 @@ public class TilePlacement : MonoBehaviour
     public bool HasSelectedTrapCandidate => hasSelectedTrapCandidate;
     public TrapAttachmentPlacement SelectedTrapCandidate =>
         selectedTrapCandidate;
+    public string TrapPlacementFailure => trapPlacementFailure;
     public int SelectedObjectId => selectedObjectIndex >= 0 &&
         database != null && selectedObjectIndex < database.objectsData.Count
             ? database.objectsData[selectedObjectIndex].ID
@@ -99,6 +102,18 @@ public class TilePlacement : MonoBehaviour
             ?? FindAnyObjectByType<GameplayLoopController>();
         StopPlacement();
         //CreateGroundTiles();
+    }
+
+    void OnDisable()
+    {
+        DestroyFloorPropPreview();
+        DestroyTrapPreview();
+        if (inputManager != null)
+        {
+            inputManager.OnClicked -= PlaceStructure;
+            inputManager.OnRightClicked -= PlaceGround;
+            inputManager.OnExit -= StopPlacement;
+        }
     }
 
     public void StartPlacement(int ID)
@@ -343,6 +358,7 @@ public class TilePlacement : MonoBehaviour
         selectedTrapCandidateIndex = 0;
         trapCandidateCount = 0;
         hasSelectedTrapCandidate = false;
+        trapPlacementFailure = string.Empty;
         lastTrapPreviewCell = null;
     }
 
@@ -454,6 +470,7 @@ public class TilePlacement : MonoBehaviour
             trapPreview.GetComponentsInChildren<Renderer>(true);
 
         GameObject lineObject = new("Trap Hazard Direction Preview");
+        lineObject.transform.SetParent(transform, false);
         lineObject.hideFlags = HideFlags.DontSave;
         trapHazardPreview = lineObject.AddComponent<LineRenderer>();
         trapHazardPreview.useWorldSpace = true;
@@ -472,7 +489,7 @@ public class TilePlacement : MonoBehaviour
 
         if (cellIndicator != null)
         {
-            trapTargetIndicator = Instantiate(cellIndicator);
+            trapTargetIndicator = Instantiate(cellIndicator, transform);
             trapTargetIndicator.name = "Trap Target Corridor Preview";
             trapTargetIndicator.hideFlags = HideFlags.DontSave;
             DisablePreviewGameplay(trapTargetIndicator);
@@ -533,7 +550,7 @@ public class TilePlacement : MonoBehaviour
             out Vector3 hazardTargetPosition,
             out selectedTrapCandidate,
             out trapCandidateCount,
-            out _);
+            out trapPlacementFailure);
         hasSelectedTrapCandidate = isValid;
         if (trapCandidateCount > 0)
             selectedTrapCandidateIndex = Mathf.Clamp(
@@ -547,8 +564,11 @@ public class TilePlacement : MonoBehaviour
         ApplyPreviewTint(cellIndicatorRenderers, tint);
         if (trapHazardPreview != null)
         {
-            trapHazardPreview.SetPosition(0, mechanismPosition);
-            trapHazardPreview.SetPosition(1, hazardTargetPosition);
+            float hazardPreviewZ = hazardTargetPosition.z;
+            trapHazardPreview.SetPosition(
+                0, WithZ(mechanismPosition, hazardPreviewZ));
+            trapHazardPreview.SetPosition(
+                1, WithZ(hazardTargetPosition, hazardPreviewZ));
             trapHazardPreview.startColor = tint;
             trapHazardPreview.endColor = tint;
             trapHazardPreview.enabled = isValid;
@@ -558,10 +578,79 @@ public class TilePlacement : MonoBehaviour
             trapTargetIndicator.SetActive(isValid);
             if (isValid)
             {
-                trapTargetIndicator.transform.position = hazardTargetPosition;
+                trapTargetIndicator.transform.position = WithZ(
+                    hazardTargetPosition,
+                    GetCellIndicatorZ(hazardTargetPosition.z));
                 ApplyPreviewTint(trapTargetIndicatorRenderers, tint);
             }
         }
+        UpdateTrapFootprintIndicators(isValid, selectedTrapCandidate, tint);
+    }
+
+    void UpdateTrapFootprintIndicators(
+        bool isValid,
+        TrapAttachmentPlacement attachment,
+        Color tint)
+    {
+        var previewCells = new List<Vector2Int>();
+        if (isValid)
+        {
+            AddPreviewCells(
+                previewCells, attachment.MechanismCells,
+                attachment.ServiceCell);
+            AddPreviewCells(
+                previewCells, attachment.InfrastructureCells,
+                attachment.ServiceCell);
+            AddPreviewCells(
+                previewCells, attachment.HazardCells,
+                attachment.TargetCell);
+        }
+
+        while (trapFootprintIndicators.Count < previewCells.Count)
+        {
+            GameObject indicator = Instantiate(cellIndicator, transform);
+            indicator.name = "Trap Footprint Preview";
+            indicator.hideFlags = HideFlags.DontSave;
+            DisablePreviewGameplay(indicator);
+            trapFootprintIndicators.Add(indicator);
+        }
+        for (int i = 0; i < trapFootprintIndicators.Count; i++)
+        {
+            GameObject indicator = trapFootprintIndicators[i];
+            bool active = i < previewCells.Count;
+            indicator.SetActive(active);
+            if (!active)
+                continue;
+            Vector2Int cell = previewCells[i];
+            Vector3 position = tileGridGenerator.GetCellWorldPosition(
+                cell.x, cell.y);
+            indicator.transform.position = WithZ(
+                position, GetCellIndicatorZ(position.z));
+            ApplyPreviewTint(
+                indicator.GetComponentsInChildren<Renderer>(true), tint);
+        }
+    }
+
+    float GetCellIndicatorZ(float fallback) => cellIndicator != null
+        ? cellIndicator.transform.position.z
+        : fallback;
+
+    static Vector3 WithZ(Vector3 position, float z)
+    {
+        position.z = z;
+        return position;
+    }
+
+    static void AddPreviewCells(
+        List<Vector2Int> destination,
+        IReadOnlyList<Vector2Int> source,
+        Vector2Int alreadyShown)
+    {
+        if (source == null)
+            return;
+        for (int i = 0; i < source.Count; i++)
+            if (source[i] != alreadyShown && !destination.Contains(source[i]))
+                destination.Add(source[i]);
     }
 
     void ApplyPreviewTint(Renderer[] renderers, Color tint)
@@ -595,7 +684,7 @@ public class TilePlacement : MonoBehaviour
         if (floorPropPreview != null)
         {
             floorPropPreview.SetActive(false);
-            Destroy(floorPropPreview);
+            DestroyPreviewObject(floorPropPreview);
         }
         floorPropPreview = null;
         floorPropPreviewRenderers = System.Array.Empty<Renderer>();
@@ -606,14 +695,18 @@ public class TilePlacement : MonoBehaviour
         if (trapPreview != null)
         {
             trapPreview.SetActive(false);
-            Destroy(trapPreview);
+            DestroyPreviewObject(trapPreview);
         }
         if (trapHazardPreview != null)
-            Destroy(trapHazardPreview.gameObject);
+            DestroyPreviewObject(trapHazardPreview.gameObject);
         if (trapHazardPreviewMaterial != null)
-            Destroy(trapHazardPreviewMaterial);
+            DestroyPreviewObject(trapHazardPreviewMaterial);
         if (trapTargetIndicator != null)
-            Destroy(trapTargetIndicator);
+            DestroyPreviewObject(trapTargetIndicator);
+        for (int i = 0; i < trapFootprintIndicators.Count; i++)
+            if (trapFootprintIndicators[i] != null)
+                DestroyPreviewObject(trapFootprintIndicators[i]);
+        trapFootprintIndicators.Clear();
         trapPreview = null;
         trapPreviewRenderers = System.Array.Empty<Renderer>();
         trapHazardPreview = null;
@@ -622,20 +715,20 @@ public class TilePlacement : MonoBehaviour
         trapTargetIndicatorRenderers = System.Array.Empty<Renderer>();
     }
 
-    // private void CreateGroundTiles()
-    // {
-    //     Debug.Log("Creating ground tiles...");
-    //     grid.CellToWorld(new Vector3Int(0, 0, 0));
-    //     for (int y = 0; y < 50; y++)        {
-    //         for (int x = 0; x >= -50; x--)
-    //         {
-    //             Vector3Int cellPosition = new Vector3Int(x, 0, y);
-    //             Vector3 worldPosition = grid.CellToWorld(cellPosition);
-    //             GameObject tile = Instantiate(database.objectsData[0].Prefab, worldPosition, Quaternion.identity);
-    //             tile.transform.SetParent(tiles.transform);
-    //         }
-    //     }
-    // }
+    static void DestroyPreviewObject(UnityEngine.Object previewObject)
+    {
+        if (previewObject == null)
+            return;
+#if UNITY_EDITOR
+        if (!Application.isPlaying)
+        {
+            DestroyImmediate(previewObject);
+            return;
+        }
+#endif
+        Destroy(previewObject);
+    }
+
 
 
 }

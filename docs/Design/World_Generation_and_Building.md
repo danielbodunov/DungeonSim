@@ -67,6 +67,12 @@ CURRENT TECHNICAL BASELINE
 - Visual-only floor/ceiling/wall modules may change without changing logical
   connections. Any module that creates or closes traversal requires tile-profile
   re-resolution rather than a direct visual swap.
+- Trap definitions distinguish mechanism occupancy, reserved support/
+  infrastructure, and non-reserving hazard volume. All service-footprint cells
+  validate atomically, while corridor traversal remains owned by the affected
+  target/hazard cells.
+- Construction requires explicit trap removal when it would occupy a reserved
+  footprint or invalidate the target tile's attachment compatibility.
 - One authoritative dungeon entrance can be placed on a compatible authored
   prop socket and is persisted independently from the host tile.
 - Player build intent supports Auto, Narrow, and Wide cells, plus explicit shared

@@ -34,6 +34,15 @@ state to the save. The committed target cell and resolved surface remain the
 authoritative pair; save/load and scenario restoration deterministically derive
 the same service cell, mechanism pose, and hazard direction from them.
 
+Trap footprint offsets are definition-owned rather than duplicated into every
+save record. Loading resolves mechanism, infrastructure, and hazard cells from
+the saved target/surface and the current trap definition. The full incoming trap
+set is validated against a prospective saved tile layout, accumulating footprint
+reservations before live layout or gameplay state is mutated. A changed prefab
+whose footprint no longer fits therefore rejects the load instead of restoring
+an overlapping or partially valid trap set. Dungeon scenarios use the same
+placement validation and reservation path.
+
 ## Save eligibility
 
 Saving is intentionally constrained to a safe gameplay state. Current logic requires the dungeon to be initialized and the game to be in the `Expansion` phase.

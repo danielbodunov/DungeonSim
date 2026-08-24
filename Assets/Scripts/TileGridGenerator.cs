@@ -35,7 +35,7 @@ public class TileGridGenerator : MonoBehaviour
         readonly TileGridGenerator owner;
         readonly ValidatedTileLayout layout;
         readonly HashSet<Vector2Int> reservedTraps = new();
-        readonly HashSet<Vector2Int> reservedTrapServiceSpaces = new();
+        readonly HashSet<Vector2Int> reservedTrapFootprintCells = new();
         readonly HashSet<Vector2Int> reservedFloorProps = new();
         Vector2Int? reservedEntrance;
 
@@ -69,7 +69,7 @@ public class TileGridGenerator : MonoBehaviour
         internal void ResetReservations()
         {
             reservedTraps.Clear();
-            reservedTrapServiceSpaces.Clear();
+            reservedTrapFootprintCells.Clear();
             reservedFloorProps.Clear();
             reservedEntrance = null;
         }
@@ -100,12 +100,11 @@ public class TileGridGenerator : MonoBehaviour
                 owner.placedEntranceCell == cell;
         }
 
-        internal void ReserveTrap(
-            Vector2Int cell,
-            Vector2Int serviceCell)
+        internal void ReserveTrap(TrapAttachmentPlacement attachment)
         {
-            reservedTraps.Add(cell);
-            reservedTrapServiceSpaces.Add(serviceCell);
+            reservedTraps.Add(attachment.TargetCell);
+            foreach (Vector2Int reservedCell in attachment.ReservedCells)
+                reservedTrapFootprintCells.Add(reservedCell);
         }
 
         internal bool IsTrapServiceSpaceAvailable(Vector2Int cell)
@@ -113,14 +112,14 @@ public class TileGridGenerator : MonoBehaviour
             if (owner == null || cell.x <= 0 || cell.y <= 0 ||
                 cell.x >= owner.width - 1 || cell.y >= owner.height - 1 ||
                 IsPlacedCell(cell.x, cell.y) ||
-                reservedTrapServiceSpaces.Contains(cell))
+                reservedTrapFootprintCells.Contains(cell))
                 return false;
             if (layout != null)
                 return true;
             if (owner.fixedGround != null && owner.fixedGround[cell.x, cell.y])
                 return false;
             foreach (CellTrap trap in owner.placedTraps.Values)
-                if (trap != null && trap.ServiceCell == cell)
+                if (trap != null && trap.ReservesCell(cell))
                     return false;
             return owner.propGenerator == null ||
                 !owner.propGenerator.IsCellOccupiedByGeneratedProp(cell);
@@ -1195,13 +1194,42 @@ public class TileGridGenerator : MonoBehaviour
                 continue;
             Vector2Int serviceCell = targetCell +
                 TrapAttachmentDefinition.GetServiceOffset(surface);
-            if (!context.IsTrapServiceSpaceAvailable(serviceCell))
-                continue;
-            attachment = new TrapAttachmentPlacement(
+            TrapAttachmentPlacement candidate = definition.ResolvePlacement(
                 surface, serviceCell, targetCell);
+            if (!TryValidateTrapFootprint(context, candidate))
+                continue;
+            attachment = candidate;
             return true;
         }
         return false;
+    }
+
+    static bool TryValidateTrapFootprint(
+        PlacementValidationContext context,
+        TrapAttachmentPlacement attachment)
+    {
+        var reserved = new HashSet<Vector2Int>();
+        foreach (Vector2Int cell in attachment.ReservedCells)
+        {
+            if (!reserved.Add(cell) ||
+                !context.IsTrapServiceSpaceAvailable(cell) ||
+                context.HasTrap(cell) || context.HasFloorProp(cell) ||
+                context.HasEntranceAt(cell) ||
+                context.IsGeneratedPropOccupied(cell))
+                return false;
+        }
+
+        if (attachment.HazardCells == null ||
+            attachment.HazardCells.Count == 0)
+            return false;
+        for (int i = 0; i < attachment.HazardCells.Count; i++)
+        {
+            Vector2Int hazardCell = attachment.HazardCells[i];
+            if (reserved.Contains(hazardCell) ||
+                !context.IsPlacedCell(hazardCell.x, hazardCell.y))
+                return false;
+        }
+        return true;
     }
 
     public bool TryValidateEntrancePlacement(
@@ -2037,6 +2065,13 @@ public class TileGridGenerator : MonoBehaviour
             return false;
         }
 
+        if (!AreTrapAttachmentsCompatibleWith(assignments, out string failure))
+        {
+            SetStoredConnectionIntent(from, to, previousIntent);
+            Debug.LogWarning(failure, this);
+            return false;
+        }
+
         foreach (KeyValuePair<Vector2Int, int> assignment in assignments)
         {
             Vector2Int position = assignment.Key;
@@ -2434,6 +2469,17 @@ public class TileGridGenerator : MonoBehaviour
             return false;
         }
 
+        var requestedCell = new Vector2Int(x, y);
+        if (TryGetTrapConstructionConflict(
+                requestedCell, out CellTrap blockingTrap))
+        {
+            Debug.LogWarning(
+                $"Cell ({x},{y}) is required by the trap affecting " +
+                $"{blockingTrap.Cell}. Remove that trap before replacing " +
+                "the dungeon cell.");
+            return false;
+        }
+
         List<int>[,] previousCells = CopyCells();
         ConnectionIntent[,] previousEastConnections =
             (ConnectionIntent[,])eastConnectionIntents.Clone();
@@ -2525,15 +2571,13 @@ public class TileGridGenerator : MonoBehaviour
         }
 
         var requestedCell = new Vector2Int(x, y);
-        foreach (CellTrap trap in placedTraps.Values)
+        if (TryGetTrapConstructionConflict(
+                requestedCell, out CellTrap blockingTrap))
         {
-            if (trap != null && trap.ServiceCell == requestedCell)
-            {
-                Debug.LogWarning(
-                    $"Cell ({x},{y}) is reserved as external service space " +
-                    $"for the trap affecting {trap.Cell}.");
-                return false;
-            }
+            Debug.LogWarning(
+                $"Cell ({x},{y}) is required by the trap affecting " +
+                $"{blockingTrap.Cell}. Remove that trap before construction.");
+            return false;
         }
 
         if (!TryResolveLocalPlacement(x, y, widthIntent))
@@ -2542,6 +2586,22 @@ public class TileGridGenerator : MonoBehaviour
             return false;
         }
         return true;
+    }
+
+    bool TryGetTrapConstructionConflict(
+        Vector2Int cell,
+        out CellTrap blockingTrap)
+    {
+        foreach (CellTrap trap in placedTraps.Values)
+        {
+            if (trap != null && (trap.Cell == cell || trap.ReservesCell(cell)))
+            {
+                blockingTrap = trap;
+                return true;
+            }
+        }
+        blockingTrap = null;
+        return false;
     }
 
     public int GetTrapPlacementCandidates(
@@ -2574,6 +2634,7 @@ public class TileGridGenerator : MonoBehaviour
             TrapAttachmentSurface.LeftWall,
             TrapAttachmentSurface.RightWall
         };
+        string lastCandidateFailure = string.Empty;
         for (int i = 0; i < order.Length; i++)
         {
             TrapAttachmentSurface surface = order[i];
@@ -2591,15 +2652,19 @@ public class TileGridGenerator : MonoBehaviour
                     trapPrefab,
                     surface,
                     out TrapAttachmentPlacement attachment,
-                    out _))
+                    out string candidateFailure))
                 results?.Add(attachment);
+            else if (!string.IsNullOrWhiteSpace(candidateFailure))
+                lastCandidateFailure = candidateFailure;
         }
 
         int count = results?.Count ?? 0;
         failure = count > 0
             ? string.Empty
-            : $"Service cell ({serviceCell.x},{serviceCell.y}) has no " +
-                "compatible adjacent corridor target.";
+            : !string.IsNullOrWhiteSpace(lastCandidateFailure)
+                ? lastCandidateFailure
+                : $"Service cell ({serviceCell.x},{serviceCell.y}) has no " +
+                    "compatible adjacent corridor target.";
         return count;
     }
 
@@ -2688,8 +2753,21 @@ public class TileGridGenerator : MonoBehaviour
 
     public bool RemoveTrapWorldPosition(Vector3 worldPosition)
     {
-        Vector2Int coordinates = GetGridCoordinates(worldPosition);
-        return RemoveTrapAtCell(coordinates);
+        return RemoveTrapServiceCell(GetGridCoordinates(worldPosition));
+    }
+
+    public bool RemoveTrapServiceCell(Vector2Int serviceCell)
+    {
+        Vector2Int? targetCell = null;
+        foreach (KeyValuePair<Vector2Int, CellTrap> pair in placedTraps)
+        {
+            if (pair.Value != null && pair.Value.ServiceCell == serviceCell)
+            {
+                targetCell = pair.Key;
+                break;
+            }
+        }
+        return targetCell.HasValue && RemoveTrapAtCell(targetCell.Value);
     }
 
     public bool PlaceTrapCell(
@@ -2864,6 +2942,14 @@ public class TileGridGenerator : MonoBehaviour
             return false;
         }
 
+        if (!AreTrapAttachmentsCompatibleWith(assignments, out _))
+        {
+            widthIntents[x, y] = previousWidthIntent;
+            eastConnectionIntents = previousEastConnections;
+            southConnectionIntents = previousSouthConnections;
+            return false;
+        }
+
         foreach (var assignment in assignments)
         {
             Vector2Int position = assignment.Key;
@@ -2888,6 +2974,33 @@ public class TileGridGenerator : MonoBehaviour
 
         placed[x, y] = true;
         NotifyLayoutChanged();
+        return true;
+    }
+
+    bool AreTrapAttachmentsCompatibleWith(
+        IReadOnlyDictionary<Vector2Int, int> assignments,
+        out string failure)
+    {
+        foreach (KeyValuePair<Vector2Int, CellTrap> pair in placedTraps)
+        {
+            CellTrap trap = pair.Value;
+            if (trap == null ||
+                !assignments.TryGetValue(pair.Key, out int tileIndex))
+                continue;
+            TileSocketProfile profile = tileIndex >= 0 &&
+                tileIndex < database.tiles.Count
+                    ? database.tiles[tileIndex]
+                    : null;
+            if (profile == null ||
+                !profile.SupportsTrapAttachment(trap.AttachmentSurface))
+            {
+                failure = $"Construction would invalidate the " +
+                    $"{trap.AttachmentSurface} attachment for the trap at " +
+                    $"{pair.Key}. Remove that trap before changing the tile.";
+                return false;
+            }
+        }
+        failure = string.Empty;
         return true;
     }
 

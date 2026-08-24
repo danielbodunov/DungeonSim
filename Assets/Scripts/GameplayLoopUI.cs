@@ -1052,7 +1052,10 @@ public class GameplayLoopUI : MonoBehaviour
             if (!placingTrap)
                 trapCandidateText.text = string.Empty;
             else if (!placement.HasSelectedTrapCandidate)
-                trapCandidateText.text = "No valid adjacent corridor";
+                trapCandidateText.text = string.IsNullOrWhiteSpace(
+                        placement.TrapPlacementFailure)
+                    ? "No valid adjacent corridor"
+                    : placement.TrapPlacementFailure;
             else
             {
                 TrapAttachmentPlacement candidate =
