@@ -110,7 +110,7 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: Ground_Layer_1
+      name: Ground_Dirt_Top
       rect:
         serializedVersion: 2
         x: 0
@@ -125,14 +125,14 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 12cd9f183dba34c41baeaaecc7cca804
-      internalID: -2126008937
+      spriteID: 466bd21ddcbed114da2cfec4ff1937f3
+      internalID: 1391765834
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Ceiling_Stud_Default
+      name: Ceiling_Tile_Default
       rect:
         serializedVersion: 2
         x: 32
@@ -147,14 +147,36 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 822a5413919dd5240bdc56e5c1b863e1
-      internalID: -1774093675
+      spriteID: 3d09e57a8714dae4fbc147e3817c4a6a
+      internalID: -677269027
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Ground_Layer_2
+      name: Ceiling_Support_Default
+      rect:
+        serializedVersion: 2
+        x: 64
+        y: 480
+        width: 32
+        height: 32
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 3c6baa5efd63c854db1c57b14a3a7ddb
+      internalID: 2050930290
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Ground_Dirt_Mid
       rect:
         serializedVersion: 2
         x: 0
@@ -169,8 +191,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 5331b37af35a7c84abb61943f499bc81
-      internalID: 463822291
+      spriteID: b9060363be028154090804b7f1456eb0
+      internalID: 1177143707
       vertices: []
       indices: 
       edges: []
@@ -191,8 +213,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: fe88e5b2d08562a47985e42ba4b879b6
-      internalID: -1298342777
+      spriteID: cafa27c130a1a5e46ad4461f354463cd
+      internalID: -692117242
       vertices: []
       indices: 
       edges: []
@@ -213,8 +235,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 68a50701aa730144d82538d5ece2bf28
-      internalID: -727764341
+      spriteID: 184ebd47834d86648b4a4d0808cc0543
+      internalID: 1250893371
       vertices: []
       indices: 
       edges: []
@@ -235,14 +257,14 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 53f4917a375be604baba607825b28a5c
-      internalID: 12375535
+      spriteID: b5c7fcf58fa7e2d45b9af8e3d5bca8e6
+      internalID: -1221893639
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Ground_Layer_3
+      name: Ground_Dirt_Fill
       rect:
         serializedVersion: 2
         x: 0
@@ -257,8 +279,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 3dab3e07c644ed94b854cfa0d3cc5a39
-      internalID: 1309302969
+      spriteID: 7710c6bb1d823d54eb82c59e57438bb1
+      internalID: 1847197608
       vertices: []
       indices: 
       edges: []
@@ -279,8 +301,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 03508e6c808ba5841b685d07714202ed
-      internalID: -518564606
+      spriteID: 338fb451d9f2d2b47b5524bc88f3a3b0
+      internalID: 1064928586
       vertices: []
       indices: 
       edges: []
@@ -301,14 +323,14 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: ccaeefb5cb8fb4a43b097ba1e670939c
-      internalID: -1780249767
+      spriteID: 04b119b4da0d36f4097afa288d7c5886
+      internalID: 1032600401
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Floor_Tile_Missing
+      name: Floor_Tile_Gone
       rect:
         serializedVersion: 2
         x: 96
@@ -323,29 +345,7 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 1663eee730c92454ba940caced768511
-      internalID: 9361991
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: DungeonAtlas_10
-      rect:
-        serializedVersion: 2
-        x: 64
-        y: 224
-        width: 32
-        height: 32
-      alignment: 0
-      pivot: {x: 0.5, y: 0.5}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: 0
-      bones: []
-      spriteID: 33dd942827e23634896fb4437e081a36
+      spriteID: 1cf6acd47e664864b870357fcde040fd
       internalID: 1466967170
       vertices: []
       indices: 
@@ -365,21 +365,21 @@ TextureImporter:
     spriteCustomMetadata:
       entries:
       - key: SpriteEditor.SliceSettings
-        value: '{"sliceOnImport":true,"gridCellCount":{"x":1.0,"y":1.0},"gridSpriteSize":{"x":32.0,"y":32.0},"gridSpriteOffset":{"x":0.0,"y":0.0},"gridSpritePadding":{"x":0.0,"y":0.0},"pivot":{"x":0.5,"y":0.5},"pivotPixels":{"x":0.0,"y":0.0},"autoSlicingMethod":0,"spriteAlignment":0,"pivotUnitMode":0,"slicingType":1,"keepEmptyRects":false,"isAlternate":false}'
+        value: '{"sliceOnImport":false,"gridCellCount":{"x":1.0,"y":1.0},"gridSpriteSize":{"x":32.0,"y":32.0},"gridSpriteOffset":{"x":0.0,"y":0.0},"gridSpritePadding":{"x":0.0,"y":0.0},"pivot":{"x":0.5,"y":0.5},"pivotPixels":{"x":0.0,"y":0.0},"autoSlicingMethod":0,"spriteAlignment":0,"pivotUnitMode":0,"slicingType":1,"keepEmptyRects":false,"isAlternate":false}'
       - key: SpriteEditor.SliceOnImport
-        value: True
+        value: False
     nameFileIdTable:
-      Ceiling_Stud_Default: -1774093675
-      DungeonAtlas_10: 1466967170
-      Floor_Tile_Cracked: -1780249767
-      Floor_Tile_Default: -518564606
-      Floor_Tile_Missing: 9361991
-      Ground_Layer_1: -2126008937
-      Ground_Layer_2: 463822291
-      Ground_Layer_3: 1309302969
-      Wall_Brick_Cracked: -1298342777
-      Wall_Brick_Default: -727764341
-      Wall_Brick_Hole: 12375535
+      Ceiling_Support_Default: 2050930290
+      Ceiling_Tile_Default: -677269027
+      Floor_Tile_Cracked: 1032600401
+      Floor_Tile_Default: 1064928586
+      Floor_Tile_Gone: 1466967170
+      Ground_Dirt_Fill: 1847197608
+      Ground_Dirt_Mid: 1177143707
+      Ground_Dirt_Top: 1391765834
+      Wall_Brick_Cracked: -692117242
+      Wall_Brick_Default: 1250893371
+      Wall_Brick_Hole: -1221893639
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

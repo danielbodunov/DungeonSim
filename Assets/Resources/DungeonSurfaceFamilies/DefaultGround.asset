@@ -1,0 +1,39 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8292f42bcfee40ddac4ff6ed1b8bbd03, type: 3}
+  m_Name: DefaultGround
+  m_EditorClassIdentifier: Assembly-CSharp::DungeonGroundSurfaceFamily
+  stableId: DefaultGround
+  bands:
+  - displayName: Top
+    minDepth: 0
+    maxDepth: 0
+    unbounded: 0
+    variants:
+    - sprite: {fileID: 1391765834, guid: 646f0377adff32342ae47c3c04261f16, type: 3}
+      weight: 1
+  - displayName: Mid
+    minDepth: 1
+    maxDepth: 2
+    unbounded: 0
+    variants:
+    - sprite: {fileID: 1177143707, guid: 646f0377adff32342ae47c3c04261f16, type: 3}
+      weight: 1
+  - displayName: Fill
+    minDepth: 3
+    maxDepth: 3
+    unbounded: 1
+    variants:
+    - sprite: {fileID: 1847197608, guid: 646f0377adff32342ae47c3c04261f16, type: 3}
+      weight: 1
+  lookupStartRow: 0
+  generatedLookupHash: 48270fbf40d4ec2f5057df2d7be8d437

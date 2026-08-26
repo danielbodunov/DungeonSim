@@ -71,14 +71,11 @@ Runtime instances use clockwise Z rotations (`R0 = 0`, `R1 = -90`,
 `R2 = -180`, `R3 = -270` degrees). Do not duplicate a prefab merely to keep
 directional texture art upright.
 
-Tiles using `DungeonSim/Rotation Safe Tile Atlas` follow this 2x2 atlas contract:
-
-| Atlas quadrant | Surface role | Projection |
-| --- | --- | --- |
-| Upper-left | back wall | world X/Y |
-| Upper-right | floor | world X/Z |
-| Lower-left | ceiling | world X/Z |
-| Lower-right | side wall | world Z/Y |
+Tiles using `RotationSafeTileAtlas` sample the sliced 32x32 sprites in
+`Assets/Materials/DungeonAtlas.png`. Sprite names and objects are authoring
+metadata only. `DungeonSurfaceFamily` assets explicitly assign Sprite variants
+to back-wall, floor, ceiling, and side-wall roles; artists never enter atlas
+coordinates manually.
 
 The shader classifies the role from the transformed world normal. This makes a
 face that changes role after profile rotation sample the correct quadrant, while
@@ -92,11 +89,75 @@ fully occluded. The Shader Graph feeds that channel into the Lit Ambient
 Occlusion block independently of the atlas. Green, blue, and alpha are currently
 unassigned. Unity's FBX importer must retain vertex colors.
 
-Atlas textures must use Point filtering, disabled mipmaps, no compression, and
-Clamp wrapping. Keep every quadrant the same size and avoid artwork crossing a
-quadrant boundary. The shader applies a half-texel inset to prevent sampling a
-neighboring cell. `Narrow_Corner_L` and `RotationSafeTileAtlas` are the t024
-representative prefab/material across profiles R0-R3.
+`Tools > Dungeon > Rebuild Surface Family Lookup` validates the family assets
+and derives normalized rectangles from `Sprite.rect`. The generated RGBAFloat
+lookup is 257 texels wide. Each family has eight rows: a rectangle row and a
+weighted-choice row for each of the four roles. Rectangle-row column zero stores
+variant count/total weight and columns 1-16 store `(x, y, width, height)`.
+The following row stores 256 pre-baked weighted-choice indices.
+Missing roles, foreign textures, non-32x32 sprites, and lists over 16 variants
+produce explicit generation errors.
+
+`DungeonSurfaceAppearance` maps the Primary, Secondary, Accent, and Special
+semantic slots to family lookup indices through a `MaterialPropertyBlock`, plus
+an explicit visual seed. Stable hashing of seed, projected surface cell, family,
+and current role selects weighted variants without frame dependence. Each role's
+variants use the same relative, non-negative weight rules as ground bands.
+UV2.x encodes the semantic slot as 0-3; absent UV2 data resolves to Primary.
+World normal—not UV2—continues to determine the current surface role.
+
+Mesh channel contract:
+
+- world position: rotation-safe projected coordinates;
+- world normal: dynamic surface role;
+- UV0: manual/non-world-projected fallback;
+- UV1: reserved for lightmaps;
+- UV2.x: Primary=0, Secondary=1, Accent=2, Special=3;
+- UV2.yzw: reserved;
+- vertex color R: structural AO; G/B/A: reserved.
+
+The shader maps sprite-local coordinates into the selected rect and offsets the
+range to the first/last texel centers using the actual atlas texel size. The
+atlas must use Point filtering, disabled mipmaps, no compression, and Clamp.
+`Narrow_Corner_L` is the representative family-aware prefab across R0-R3.
+
+### Configurable ground depth bands
+
+Ground stratification uses `DungeonGroundSurfaceFamily`, separate from the
+Primary/Secondary/Accent/Special surface-slot mapping. Each inspector-visible
+band has a display name, inclusive minimum and maximum discrete depth, an
+optional unbounded flag, and weighted sliced Sprite variants. Ranges must begin at zero,
+remain contiguous and non-overlapping, and end in exactly one unbounded band.
+Weights are relative non-negative values: `7/2/1` is equivalent to `70/20/10`,
+and zero disables an entry. If every weight is zero, generation warns and uses
+the first valid Sprite as a deterministic fallback.
+
+The default `DefaultGround` family currently maps the re-sliced atlas assets as:
+
+- Top, depth 0: `DungeonAtlas_0` (the former `Ground_Layer_1` region);
+- Mid, depths 1-2: `DungeonAtlas_2` (former `Ground_Layer_2`);
+- Fill, depth 3+: `DungeonAtlas_6` (former `Ground_Layer_3`).
+
+The lookup generator bakes a second RGBAFloat texture. Each ground family owns
+one depth-map row followed by two rows per band. Columns 0-255 of the
+depth row map discrete depth to band; column 256 contains the deep fallback.
+The first band row stores variant count/total weight in column zero and
+normalized Sprite.rect values in columns 1-16. The second stores 256 pre-baked
+weighted-choice indices. The shader hashes logical cell, depth, family row, and
+visual seed, reads a choice index, then reads its rect. It does not loop over the
+artist-authored weights per fragment.
+
+`DungeonGroundSurfaceAppearance` supplies the lookup start row, visual seed,
+ground-top world Y, logical cells per tile (default 3), and dungeon-tile world
+size (default 1) through a `MaterialPropertyBlock`. Their ratio is the logical
+ground-cell scale. `floor(projected * scale)` selects a cell while
+`frac(projected * scale)` supplies only its Sprite-local UV. Depth is floored
+from `(topY - surfaceWorldY) / cellWorldSize`. An optional
+reference Transform supports a region-owned top elevation; otherwise the
+explicit value is used. Different columns/regions can therefore use independent
+top references without material instances. When a generator already owns a
+discrete elevation, call `Configure(topWorldY, tileWorldSize, cellsPerTile, seed)` rather than
+encoding depth in mesh channels.
 
 ## Traps
 
