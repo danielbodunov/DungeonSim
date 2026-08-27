@@ -21,7 +21,7 @@ Material:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: RotationSafeTileAtlas
-  m_Shader: {fileID: -6465566751694194690, guid: a476cd76e4464a1097e0e7f5c724ca24, type: 3}
+  m_Shader: {fileID: 4800000, guid: b45c6fdb4b654480ab7b2f1ec4f2b678, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords: []
@@ -33,7 +33,7 @@ Material:
   stringTagMap: {}
   disabledShaderPasses:
   - MOTIONVECTORS
-  m_LockedProperties: 
+  m_LockedProperties: _LightSteps
   m_SavedProperties:
     serializedVersion: 3
     m_TexEnvs:
@@ -71,32 +71,33 @@ Material:
         m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
-    - _AOIntensity: 1
+    - _AOIntensity: 0
     - _AccentFamily: 0
     - _Cull: 2
     - _EnableWorldSpace: 1
-    - _GlobalLightIntensity: 1.5
     - _Glossiness: 0
     - _GroundCellScale: 3
     - _GroundCellWorldSize: 0.33333334
     - _GroundLookupStartRow: 0
     - _GroundTopY: 0
+    - _LightSteps: 2
     - _Metallic: 0
-    - _MinimumAmbient: 0
+    - _MinLight: 0
     - _NormalLightingStrength: 0.4
     - _OcclusionStrength: 1
     - _PrimaryFamily: 0
     - _QueueControl: 0
     - _QueueOffset: 0
-    - _SecondaryFamily: 0
+    - _SecondaryFamily: 0.06
     - _SpecialFamily: 0
     - _UseGroundLayers: 0
-    - _VisualSeed: 0
+    - _VisualSeed: 24.1
     - _WorldTiling: 3
     m_Colors:
     - _BaseColor: {r: 1, g: 1, b: 1, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 0}
     - _GlobalLightTint: {r: 1, g: 1, b: 1, a: 1}
     - _ShapeLightDirection: {r: -0.35, g: 0.65, b: 0.85, a: 0}
+    - _SurfaceLookupSize: {r: 257, g: 1, b: 0.00389105, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1
