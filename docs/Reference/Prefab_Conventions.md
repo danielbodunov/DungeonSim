@@ -121,6 +121,16 @@ range to the first/last texel centers using the actual atlas texel size. The
 atlas must use Point filtering, disabled mipmaps, no compression, and Clamp.
 `Narrow_Corner_L` is the representative family-aware prefab across R0-R3.
 
+The atlas represents authored full-light color. The URP Unlit output multiplies
+that color by global presentation brightness, vertex-color red AO, and a
+quantized main-light shadow multiplier. It samples shadow attenuation with
+`TransformWorldToShadowCoord` and `GetMainLight`, quantizes using
+`round(attenuation * (steps - 1)) / (steps - 1)`, and remaps the result from
+`_MinLight` to 1. Defaults are `_LightSteps = 4` and `_MinLight = 0.25`.
+No PBR, specular, GI color wash, reflection, or smooth normal-diffuse response
+participates. Additional-light accumulation and pixel-snapped shadow sampling
+are deferred.
+
 ### Configurable ground depth bands
 
 Ground stratification uses `DungeonGroundSurfaceFamily`, separate from the

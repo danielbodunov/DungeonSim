@@ -223,6 +223,15 @@ Exploring lighting:
 
 Transition behavior:
 
+- `DungeonVisualLightingController` owns baseline atlas presentation brightness
+  through the global `_GlobalLightIntensity` property. Current defaults are
+  Expansion `1.0`, Exploring `0.55`, unresolved/default `1.0`, and debug `1.0`.
+  Phase changes are observed through `GameplayLoopController.StateChanged` and
+  blended over `0.3` unscaled seconds. The scalar multiplies authored atlas
+  color independently from the shader's quantized realtime-shadow multiplier.
+- This scalar is visual/environment brightness, not physical light intensity.
+  Future local or 2.5D lighting must compose with this baseline instead of
+  replacing or duplicating its runtime authority.
 - `DungeonLightingManager` should expose an explicit presentation mode such as
   `ExpansionUniform` and `ExploringAtmospheric`.
 - `GameplayLoopController` should set the lighting mode whenever its phase changes.

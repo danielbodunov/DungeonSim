@@ -21,6 +21,38 @@ flowchart LR
 
 The manager supports legacy cell sampling and smoother sub-cell sampling presets. Dynamic sources refresh on an interval rather than forcing a full per-frame rebuild.
 
+`RotationSafeTileAtlas.shader` samples `_DungeonLightTexture` with the manager's
+grid-origin, grid-step, and grid-size globals. It adds the propagated ambient and
+local RGB contribution to its quantized main-light response, then applies the
+separate phase-controlled `_GlobalLightIntensity` presentation multiplier. The
+`_DungeonLightingInitialized` global prevents an uninitialized/default texture
+from lighting tiles before a manager has established its grid.
+
+The production `Placeholder_NPC` carries a dynamic `DungeonLightSource`, so its
+light field contribution follows traversal automatically and refreshes at the
+manager's configured dynamic interval.
+
+## Phase presentation modes
+
+`GameplayLoopController` selects the lighting presentation through
+`DungeonLightingManager.SetPresentationMode` whenever the dungeon phase changes:
+
+- `ExpansionUniform` uses uniform material illumination. It bypasses both the
+  quantized directional-light/shadow response and the propagated dungeon light
+  texture so construction remains clearly readable.
+- `ExploringAtmospheric` enables the quantized main directional light, its
+  realtime shadow attenuation, ambient dungeon darkness, and propagated dynamic
+  sources such as NPC lights.
+
+The manager blends `_DungeonLightingModeBlend` between these responses using
+unscaled time. The default transition duration is 0.3 seconds, so pausing the
+game does not strand the presentation between modes. Disabling or unloading the
+manager resets the global to the uniform expansion response.
+
+This blend is independent of `_GlobalLightIntensity`. The presentation mode
+chooses which lighting model is visible; `DungeonVisualLightingController`
+controls the separate phase-brightness treatment.
+
 ## Ownership rule
 
 Do not add light-state persistence to individual tile placements unless the light is itself authoritative gameplay content. The light field is derived from the current layout and active sources and should be rebuilt when those inputs change.

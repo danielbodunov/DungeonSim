@@ -37,7 +37,9 @@ red vertex-color channel (`1` clear, `0` occluded). Do not rotate atlas regions
 to compensate for a particular profile. Export FBX with vertex colors and
 stable real-world tile scale. In Unity, enable vertex-color import and configure
 the atlas as Point, no mipmaps, uncompressed, and Clamp. Tune world tiling,
-metallic, and smoothness on the material; edit red vertex AO on the mesh.
+`Light Steps`, and `Minimum Light Multiplier` on the shared material; edit red
+vertex AO on the mesh. The atlas is authored at full-light appearance and the
+Unlit shader only darkens it through multiplicative quantized lighting.
 
 Preview the same source prefab through R0, R1, R2, and R3. Confirm that back-wall
 details stay upright, up/down-facing geometry selects floor/ceiling art, side

@@ -70,10 +70,10 @@ Suggested branch: `feature/t024-rotation-safe-tile-textures`
   metadata is more authoring overhead than the current tile set needs. The
   prototype therefore derives surface role and projection from transformed
   world normals/positions.
-- Added a URP Lit Shader Graph with four-role pixel-atlas projection,
-  half-texel cell insets, standard realtime-light support, and independent
-  red-channel vertex AO. The former dungeon-light sampling is intentionally not
-  part of the environment material.
+- Added a URP Shader Graph with four-role pixel-atlas projection and half-texel
+  cell insets. The active target is now Unlit: authored atlas color is the
+  full-light appearance, while red-channel vertex AO and stylized lighting are
+  strictly multiplicative.
 - Prototyped the contract on the existing `Narrow_Corner_L` source prefab, whose
   four profile assets already reference the same prefab for R0-R3.
 - Documented the atlas layout and Blender/FBX/Unity authoring contract in the
@@ -98,10 +98,28 @@ Suggested branch: `feature/t024-rotation-safe-tile-textures`
   without dynamic per-fragment weight-array loops.
 - Ordinary Back Wall, Floor, Ceiling, and Side Wall family variants now use the
   same weighted Sprite entries and pre-baked deterministic choice rows.
+- `_GlobalLightIntensity` remains the true global presentation scalar consumed
+  by `DungeonVisualLightingController`
+  is its sole runtime writer and maps Expansion to `1.0`, Exploring to `0.55`,
+  unresolved/default to `1.0`, and optional debug override to `1.0`.
+- Phase targets blend over `0.3` unscaled seconds. Debug override is available
+  through `SetDebugOverride`/`SetDebugBrightness`; automatic debug switching is
+  deferred because no authoritative runtime debug-state event currently exists.
+- Replaced the unstable Shader Graph implementation with the handwritten URP
+  `RotationSafeTileAtlas.shader`. Its output is `AtlasRGB *
+  _GlobalLightIntensity * StylizedLightMultiplier * VertexColorR`; it has no
+  metallic, smoothness, specular, reflection, GI, emission, or normal-diffuse
+  path.
+- Main-light shadow attenuation comes from URP's
+  `GetMainLight(TransformWorldToShadowCoord(positionWS))`. With `_LightSteps = 4`,
+  the shader computes `round(attenuation * 3) / 3`, then remaps that through
+  `lerp(_MinLight, 1, quantized)`; `_MinLight` defaults to `0.25`.
+- Normal-based diffuse is intentionally omitted. Additional/point-light
+  accumulation and pixel-snapped shadow sampling remain possible follow-ups.
 
 ## Unity Validation
 
-1. Let Unity compile scripts and import `RotationSafeTileAtlas.shadergraph`;
+1. Let Unity compile scripts and import `RotationSafeTileAtlas.shader`;
    confirm there are no graph, shader, or C# errors.
 2. Run `Tools > Dungeon > Rebuild Surface Family Lookup`. Confirm it generates
    `Assets/Resources/DungeonSurfaceLookup.asset` without validation errors and
@@ -120,8 +138,8 @@ Suggested branch: `feature/t024-rotation-safe-tile-textures`
 8. Reassign one family variant to another sliced Sprite, rebuild, and confirm the
    sampled rect changes without manual coordinates or mesh UV changes.
 9. Paint or temporarily edit red vertex color on representative geometry;
-   confirm Lit Ambient Occlusion rotates with the mesh while atlas orientation
-   does not change.
+   confirm its multiplicative AO follows the mesh while atlas orientation does
+   not change.
 10. Re-run tile socket/profile validation and an NPC traversal smoke test. Confirm
    socket hashes, profile compatibility, adjacency, and traversal are unchanged.
 11. Inspect `DefaultGround`, then rebuild the lookup. Confirm depth 0 uses Top,
@@ -144,3 +162,13 @@ Suggested branch: `feature/t024-rotation-safe-tile-textures`
 18. Repeat weighted-variant validation on a regular `DungeonSurfaceFamily` role.
     Confirm the selected wall/floor/ceiling variants follow their relative
     weights per projected logical cell and remain stable across frames.
+19. Enter Play Mode in Expansion and confirm `_GlobalLightIntensity` resolves to
+    `1.0`. Open the dungeon and confirm it blends to `0.55`, then returns to
+    `1.0` when Expansion resumes, including when entering Play Mode in a known phase.
+20. Call `SetDebugOverride(true)` and confirm the debug target wins; disable it
+    and confirm the current phase target returns. Inspect representative tile
+    renderers throughout and confirm the shared material never becomes `(Instance)`.
+21. Move the main realtime light's shadow boundary across a representative tile.
+    Confirm the tile changes through `_LightSteps` discrete multipliers, a
+    shadow-casting NPC affects the tile, and near-black atlas recesses remain
+    proportionally darker than adjacent stone in every band.
