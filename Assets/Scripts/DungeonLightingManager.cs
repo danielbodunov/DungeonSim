@@ -10,6 +10,12 @@ using UnityEngine;
 [DisallowMultipleComponent]
 public class DungeonLightingManager : MonoBehaviour
 {
+    public enum PresentationMode
+    {
+        ExpansionUniform,
+        ExploringAtmospheric
+    }
+
     public enum LightQualityPreset
     {
         LegacyCell,
@@ -22,6 +28,10 @@ public class DungeonLightingManager : MonoBehaviour
     static readonly int GridStepId = Shader.PropertyToID("_DungeonGridStep");
     static readonly int GridSizeId = Shader.PropertyToID("_DungeonGridSize");
     static readonly int AmbientColorId = Shader.PropertyToID("_DungeonAmbientColor");
+    static readonly int LightingInitializedId =
+        Shader.PropertyToID("_DungeonLightingInitialized");
+    static readonly int PresentationBlendId =
+        Shader.PropertyToID("_DungeonLightingModeBlend");
 
     static readonly Vector2Int[] CardinalDirections =
     {
@@ -45,6 +55,11 @@ public class DungeonLightingManager : MonoBehaviour
     FilterMode textureFilter = FilterMode.Point;
     [SerializeField, Min(0.02f), Tooltip("Moving sources such as NPC torches refresh at this interval, not every frame.")]
     float dynamicUpdateInterval = 0.1f;
+
+    [Header("Presentation")]
+    [SerializeField] PresentationMode presentationMode =
+        PresentationMode.ExpansionUniform;
+    [SerializeField, Min(0f)] float presentationTransitionDuration = 0.3f;
 
     [Header("Debug")]
     [SerializeField] bool drawChunkBounds = true;
@@ -71,6 +86,10 @@ public class DungeonLightingManager : MonoBehaviour
     float dynamicTimer;
     bool initialized;
     bool rebuildRequested = true;
+    float currentPresentationBlend;
+    float presentationBlendStart;
+    float targetPresentationBlend;
+    float presentationTransitionElapsed;
 
     sealed class LightingChunk
     {
@@ -110,15 +129,26 @@ public class DungeonLightingManager : MonoBehaviour
         : GetSamplesPerCell(qualityPreset);
     public LightQualityPreset QualityPreset => qualityPreset;
     public Vector2Int ChunkCount => new(chunksX, chunksY);
+    public PresentationMode CurrentPresentationMode => presentationMode;
+    public float CurrentPresentationBlend => currentPresentationBlend;
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+    static void ResetPresentationGlobals()
+    {
+        Shader.SetGlobalFloat(PresentationBlendId, 0f);
+    }
 
     void Awake()
     {
         if (grid == null)
             grid = GetComponent<TileGridGenerator>();
+        ApplyPresentationMode(true);
     }
 
     void OnEnable()
     {
+        Shader.SetGlobalFloat(LightingInitializedId, 0f);
+        ApplyPresentationMode(true);
         if (grid == null)
             grid = GetComponent<TileGridGenerator>();
         if (grid != null)
@@ -134,6 +164,8 @@ public class DungeonLightingManager : MonoBehaviour
 
     void OnDisable()
     {
+        Shader.SetGlobalFloat(LightingInitializedId, 0f);
+        Shader.SetGlobalFloat(PresentationBlendId, 0f);
         if (grid != null)
             grid.LayoutChanged -= RequestFullRebuild;
         DungeonLightSource.SourcesChanged -= RequestFullRebuild;
@@ -146,12 +178,15 @@ public class DungeonLightingManager : MonoBehaviour
 
     void Update()
     {
+        UpdatePresentationBlend();
+
         if (initialized && ConfigurationRequiresReinitialization())
             ReleaseLightingData();
 
         if (!initialized && !TryInitialize())
             return;
 
+        Shader.SetGlobalFloat(LightingInitializedId, 1f);
         Shader.SetGlobalColor(AmbientColorId, ambientColor);
 
         if (rebuildRequested)
@@ -171,6 +206,12 @@ public class DungeonLightingManager : MonoBehaviour
     public void RequestFullRebuild()
     {
         rebuildRequested = true;
+    }
+
+    public void SetPresentationMode(PresentationMode mode, bool immediate = false)
+    {
+        presentationMode = mode;
+        ApplyPresentationMode(immediate);
     }
 
     [ContextMenu("Rebuild Dungeon Lighting")]
@@ -287,6 +328,7 @@ public class DungeonLightingManager : MonoBehaviour
         Shader.SetGlobalVector(GridStepId, new Vector4(step.x, step.y, 0f, 0f));
         Shader.SetGlobalVector(GridSizeId, new Vector4(grid.GridWidth, grid.GridHeight, 0f, 0f));
         Shader.SetGlobalColor(AmbientColorId, ambientColor);
+        Shader.SetGlobalFloat(LightingInitializedId, 1f);
 
         initialized = true;
         rebuildRequested = true;
@@ -613,6 +655,7 @@ public class DungeonLightingManager : MonoBehaviour
         }
 
         lightTexture = null;
+        Shader.SetGlobalFloat(LightingInitializedId, 0f);
         chunks = null;
         visitStamps = null;
         distances = null;
@@ -628,11 +671,60 @@ public class DungeonLightingManager : MonoBehaviour
     {
         chunkSize = Mathf.Clamp(chunkSize, 8, 128);
         dynamicUpdateInterval = Mathf.Max(0.02f, dynamicUpdateInterval);
+        presentationTransitionDuration = Mathf.Max(0f, presentationTransitionDuration);
         debugMaximumCells = Mathf.Max(16, debugMaximumCells);
         if (lightTexture != null)
             lightTexture.filterMode = GetActiveTextureFilter();
         if (isActiveAndEnabled)
+        {
             rebuildRequested = true;
+            if (Application.isPlaying)
+                ApplyPresentationMode(false);
+        }
+    }
+
+    void ApplyPresentationMode(bool immediate)
+    {
+        float resolved = presentationMode == PresentationMode.ExploringAtmospheric
+            ? 1f
+            : 0f;
+        if (immediate || presentationTransitionDuration <= 0f)
+        {
+            targetPresentationBlend = resolved;
+            presentationBlendStart = resolved;
+            presentationTransitionElapsed = presentationTransitionDuration;
+            ApplyPresentationBlend(resolved);
+            return;
+        }
+
+        if (Mathf.Approximately(targetPresentationBlend, resolved))
+            return;
+        presentationBlendStart = currentPresentationBlend;
+        targetPresentationBlend = resolved;
+        presentationTransitionElapsed = 0f;
+    }
+
+    void UpdatePresentationBlend()
+    {
+        if (Mathf.Approximately(currentPresentationBlend, targetPresentationBlend))
+            return;
+        if (presentationTransitionDuration <= 0f)
+        {
+            ApplyPresentationBlend(targetPresentationBlend);
+            return;
+        }
+
+        presentationTransitionElapsed += Time.unscaledDeltaTime;
+        float progress = Mathf.Clamp01(
+            presentationTransitionElapsed / presentationTransitionDuration);
+        ApplyPresentationBlend(Mathf.Lerp(
+            presentationBlendStart, targetPresentationBlend, progress));
+    }
+
+    void ApplyPresentationBlend(float value)
+    {
+        currentPresentationBlend = Mathf.Clamp01(value);
+        Shader.SetGlobalFloat(PresentationBlendId, currentPresentationBlend);
     }
 
     void OnDrawGizmosSelected()
