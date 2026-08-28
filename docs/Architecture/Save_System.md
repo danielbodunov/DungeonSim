@@ -43,6 +43,14 @@ whose footprint no longer fits therefore rejects the load instead of restoring
 an overlapping or partially valid trap set. Dungeon scenarios use the same
 placement validation and reservation path.
 
+Trap construction presentation is also derived state. Target-surface modules,
+service/infrastructure modules, hidden ordinary-ground renderers, and preview
+objects are not serialized. After a trap record passes compatibility validation,
+the normal placement path reconstructs those visuals from its saved target cell,
+resolved attachment surface, and current `TrapAttachmentDefinition`. Dungeon
+scenario restoration uses that same path. Removal restores presentation before
+the authoritative trap instance is destroyed.
+
 ## Save eligibility
 
 Saving is intentionally constrained to a safe gameplay state. Current logic requires the dungeon to be initialized and the game to be in the `Expansion` phase.

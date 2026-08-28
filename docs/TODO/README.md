@@ -30,11 +30,11 @@ None.
 
 ## Planned — Strategic Construction
 
-- [t025 — Trap Construction Presentation](t025-Trap-Construction-Presentation.md)
 - [t026 — Generated Build Obstacles](t026-Generated-Build-Obstacles.md)
 
 ## Completed / Existing Work
 
+- [t025 — Trap Construction Presentation](t025-Trap-Construction-Presentation.md)
 - [t020 — Service-Cell Trap Placement & Automatic Orientation](t020-Rotatable-Trap-Placement.md)
 - [t023 — Strategic Building Vertical Slice](t023-Strategic-Building-Vertical-Slice.md)
 - [t024 — Rotation-Safe Tile Textures](t024-Rotation-Safe-Tile-Textures.md)

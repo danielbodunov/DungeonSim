@@ -21,8 +21,31 @@ public sealed class TrapAttachmentDefinition : MonoBehaviour
     [SerializeField] Vector2Int[] additionalHazardCells =
         System.Array.Empty<Vector2Int>();
 
+    [Header("Construction Presentation")]
+    [SerializeField] string targetSurfaceVariantId = "TrapOpening";
+    [SerializeField] string restoredSurfaceVariantId = "Default";
+    [SerializeField] GameObject targetSurfacePresentationPrefab;
+    [SerializeField] GameObject mechanismCellPresentationPrefab;
+    [SerializeField] GameObject infrastructureCellPresentationPrefab;
+    [SerializeField] bool createFallbackPresentation = true;
+    [SerializeField] Color targetSurfaceColor = new(0.16f, 0.08f, 0.04f, 1f);
+    [SerializeField] Color mechanismCellColor = new(0.48f, 0.2f, 0.06f, 1f);
+    [SerializeField] Color infrastructureCellColor = new(0.2f, 0.28f, 0.34f, 1f);
+
     public TrapAttachmentSurfaceMask AllowedSurfaces => allowedSurfaces;
     public TrapAttachmentSurface PreferredSurface => preferredSurface;
+    public string TargetSurfaceVariantId => targetSurfaceVariantId;
+    public string RestoredSurfaceVariantId => restoredSurfaceVariantId;
+    public GameObject TargetSurfacePresentationPrefab =>
+        targetSurfacePresentationPrefab;
+    public GameObject MechanismCellPresentationPrefab =>
+        mechanismCellPresentationPrefab;
+    public GameObject InfrastructureCellPresentationPrefab =>
+        infrastructureCellPresentationPrefab;
+    public bool CreateFallbackPresentation => createFallbackPresentation;
+    public Color TargetSurfaceColor => targetSurfaceColor;
+    public Color MechanismCellColor => mechanismCellColor;
+    public Color InfrastructureCellColor => infrastructureCellColor;
 
     public TrapAttachmentPlacement ResolvePlacement(
         TrapAttachmentSurface surface,

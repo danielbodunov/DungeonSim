@@ -39,6 +39,10 @@ public class TilePlacement : MonoBehaviour
     private CellWidthIntent widthIntent = CellWidthIntent.Auto;
     private GameObject floorPropPreview;
     private GameObject trapPreview;
+    private GameObject trapConstructionPresentationPreview;
+    private Vector2Int? trapPresentationPreviewServiceCell;
+    private Vector2Int? trapPresentationPreviewTargetCell;
+    private TrapAttachmentSurface? trapPresentationPreviewSurface;
     private Renderer[] floorPropPreviewRenderers = System.Array.Empty<Renderer>();
     private Renderer[] trapPreviewRenderers = System.Array.Empty<Renderer>();
     private LineRenderer trapHazardPreview;
@@ -585,6 +589,50 @@ public class TilePlacement : MonoBehaviour
             }
         }
         UpdateTrapFootprintIndicators(isValid, selectedTrapCandidate, tint);
+        UpdateTrapConstructionPresentationPreview(
+            isValid, selectedObject.Prefab, selectedTrapCandidate);
+    }
+
+    void UpdateTrapConstructionPresentationPreview(
+        bool isValid,
+        GameObject trapPrefab,
+        TrapAttachmentPlacement attachment)
+    {
+        if (!isValid || trapPrefab == null)
+        {
+            DestroyTrapConstructionPresentationPreview();
+            return;
+        }
+
+        bool unchanged = trapConstructionPresentationPreview != null &&
+            trapPresentationPreviewServiceCell == attachment.ServiceCell &&
+            trapPresentationPreviewTargetCell == attachment.TargetCell &&
+            trapPresentationPreviewSurface == attachment.Surface;
+        if (unchanged)
+            return;
+
+        DestroyTrapConstructionPresentationPreview();
+        TrapAttachmentDefinition definition =
+            trapPrefab.GetComponent<TrapAttachmentDefinition>();
+        trapConstructionPresentationPreview =
+            TrapConstructionPresentation.CreatePreview(
+                tileGridGenerator, definition, attachment, transform);
+        trapPresentationPreviewServiceCell = attachment.ServiceCell;
+        trapPresentationPreviewTargetCell = attachment.TargetCell;
+        trapPresentationPreviewSurface = attachment.Surface;
+    }
+
+    void DestroyTrapConstructionPresentationPreview()
+    {
+        if (trapConstructionPresentationPreview != null)
+        {
+            trapConstructionPresentationPreview.SetActive(false);
+            DestroyPreviewObject(trapConstructionPresentationPreview);
+        }
+        trapConstructionPresentationPreview = null;
+        trapPresentationPreviewServiceCell = null;
+        trapPresentationPreviewTargetCell = null;
+        trapPresentationPreviewSurface = null;
     }
 
     void UpdateTrapFootprintIndicators(
@@ -692,6 +740,7 @@ public class TilePlacement : MonoBehaviour
 
     void DestroyTrapPreview()
     {
+        DestroyTrapConstructionPresentationPreview();
         if (trapPreview != null)
         {
             trapPreview.SetActive(false);

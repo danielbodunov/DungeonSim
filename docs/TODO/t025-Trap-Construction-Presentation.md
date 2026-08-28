@@ -2,7 +2,7 @@
 
 ## Tracking
 - **ID:** t025
-- **Status:** Planned
+- **Status:** Completed
 - **Milestone:** Strategic Construction
 - **Depends on:** t019–t022
 
@@ -96,13 +96,41 @@ Unbuilt Ground
 - Topology-changing construction transactions
 
 ## Post-Implementation Notes
-Document:
-- the trap presentation contract;
-- how t021 surfaces are selected/restored;
-- how service-cell ground presentation is overridden;
-- how overlapping/competing presentation authority is resolved;
-- what remains derived versus persisted;
-- any art/prefab requirements exposed for future traps.
+
+- `TrapConstructionPresentation` derives both preview and committed visuals
+  from `TrapAttachmentPlacement`; presentation does not own occupancy.
+- A trap definition declares optional target-surface, mechanism-cell, and
+  infrastructure-cell prefabs. Shared-material fallback modules keep SpikeWall
+  and multi-cell footprints testable before final art is authored.
+- Compatible t021 slots select the requested target variant only when the slot
+  is `VisualOnly`. The previously selected/default variant is restored on
+  removal; topology-sensitive slots are rejected by the variant API.
+- Committed service cells temporarily hide their ordinary ground renderers.
+  Existing placement reservations resolve overlap/competition before this
+  override, and removal/clear restores the renderers.
+- Save files and scenarios retain only authoritative trap placement state.
+  Their normal placement reconstruction rebuilds all transient visuals.
+- Production prefabs should be modular, cell-sized, use shared materials, avoid
+  traversal colliders, and align target modules to construction-surface anchors.
+
+## Unity Validation
+
+Validated in Unity on 2026-08-28.
+
+1. Enter Expansion and choose SpikeWall. Hover a valid service cell and confirm
+   target-surface and service-cell presentation appear before placement.
+2. Place the trap. Confirm the target treatment matches preview, ordinary ground
+   is displaced in the service cell, and the target corridor still traverses and
+   triggers normally.
+3. Configure temporary additional mechanism/infrastructure offsets and confirm
+   every reserved cell is visible without debug overlays.
+4. Remove the trap from its primary service cell. Confirm the target's prior
+   surface and all displaced ground presentations return.
+5. Place again, save during Expansion, alter/remove it, then load. Confirm the
+   same orientation, target treatment, and complete service footprint return.
+6. Capture/reset a `DungeonTestScenario` containing the trap and verify the same
+   reconstruction. Confirm no presentation preview objects remain after leaving
+   Play mode.
 
 ## Git
 Suggested branch: `feature/t025-trap-construction-presentation`
