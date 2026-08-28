@@ -32,9 +32,45 @@ immediately. The default dynamic update interval is 0.05 seconds (20 Hz).
 `RotationSafeTileAtlas.shader` samples `_DungeonLightTexture` with the manager's
 grid-origin, grid-step, and grid-size globals. Before sampling, it snaps the
 world-derived grid coordinate to `_DungeonLightingPixelsPerCell` blocks per
-dungeon cell; the default is 2. This grid-space snapping is stable under camera
-movement and tile rotation and is independent of the underlying LegacyCell,
-Smooth2x, or Smooth4x propagation resolution.
+dungeon cell; the default is 2 and the value has no enforced upper limit. Values
+2, 4, 8, 16, and 32 progress from coarse to high-detail pixel-light silhouettes.
+This grid-space snapping is stable under camera movement and tile rotation and
+is independent of the underlying LegacyCell, Smooth2x, or Smooth4x propagation
+resolution.
+
+## Stable propagated-field sampling
+
+Lighting sampling uses four explicitly separate coordinate stages:
+
+```text
+World position
+→ continuous dungeon-grid coordinate
+→ snapped visible-light block center
+→ exact propagated-field texel center
+→ previous/current temporal interpolation
+→ HDR presentation
+```
+
+`DungeonLightingManager` publishes the active propagation samples per cell (`1`,
+`2`, or `4`) independently from visible lighting pixels per cell. After snapping
+to the visible block center, the shader converts that logical position into the
+actual propagation texture dimensions. It identifies the four surrounding real
+propagation texels, reads them by integer texel index without sampler filtering,
+and reconstructs RGB with a deterministic bilinear interpolation. Previous and current temporal fields are
+reconstructed independently before their RGB values are blended.
+
+The original explicit point reconstruction removed filtering ambiguity but made
+visible density appear capped by the `1/2/4` propagation samples per cell.
+Deterministic manual bilinear reconstruction restores meaningful visual changes
+at densities such as 8, 16, and 32. It uses eight texture reads per fragment
+(four previous plus four current integer loads) and does not depend on texture Filter Mode for
+the visible-grid result.
+
+Visible density may substantially exceed propagation resolution: Smooth2x or
+Smooth4x can drive 16 or 32 visible blocks per cell without changing simulation
+resolution. The earlier hatching at high density is treated as a sampling issue,
+not mesh z-fighting; no geometry, Z offset, depth bias, render queue, dithering,
+or topology workaround is used.
 
 CPU chunk storage uses floating-point `Color` buffers, and the paired GPU fields
 use `RGBAHalf` when supported (`RGBAFloat` is the explicit HDR fallback). Source
@@ -48,9 +84,12 @@ non-negative Rec.709 luminance. HDR energy is compressed through
 `1 - exp(-energy * _LightExposure)` before quantization with `_LightSteps`. It
 remaps the quantized result through `_MinLight` to 1 and multiplies the authored
 atlas rather than adding light color to it. Local-only luminance above
-`_OverbrightThreshold` contributes the bounded multiplier
-`1 + (1 - exp(-excess)) * _OverbrightStrength`; ambient cannot produce this
-effect. The separate
+`_OverbrightThreshold` is shaped by
+`1 - exp(-excess * _OverbrightResponse)` and remapped from 1 to
+`_MaxOverbright`; ambient cannot produce this effect. The normalized hot amount
+also blends local hue from white through `_OverbrightColorInfluence`, producing
+a stronger source-colored core without spreading that treatment across the
+ordinary halo. The separate
 phase-controlled `_GlobalLightIntensity` presentation multiplier is applied
 afterward. The
 `_DungeonLightingInitialized` global prevents an uninitialized/default texture
@@ -61,8 +100,24 @@ brightness but not local hue. Local RGB is normalized by its maximum channel,
 falling back to white when no local light is present, and blended from white by
 the material's `_LightColorInfluence` (default 0.35). Overlapping colored sources
 remain accumulated in the propagated RGB field, so their combined field color
-produces the tint without a per-source shader loop. Tint and illumination remain
-multiplicative, preserving near-black atlas detail.
+produces the tint without a per-source shader loop. Normal illumination,
+restrained tint, and bounded overbright remain multiplicative.
+
+Strong local HDR illumination intentionally adds one additional presentation
+layer. Original sampled atlas luminance is mapped through
+`smoothstep(_HotWashBlackPoint, _HotWashFullPoint, atlasLuminance)`. That mask is
+multiplied by the local-only overbright response, normalized local hue,
+`_HotWashStrength`, mode blend, global presentation brightness, and vertex AO,
+then added to the multiplicatively lit result. Ambient cannot create this wash.
+Near-black atlas pixels receive little or no contribution, while midtones and
+brighter authored pixels can wash toward the source color. Highlight-protection
+controls were not added; the two-point luminance mask is the smallest initial
+contract pending visual validation.
+
+```text
+Final = Atlas × normal lighting × normal tint × multiplicative overbright
+        + local hot response × original-atlas luminance mask × hot color
+```
 
 ## Source controls and animation
 
@@ -160,13 +215,23 @@ a separate implementation.
   dungeon cell.
 - Dynamic update interval controls how often moving sources are propagated.
 - Visible lighting pixels per cell controls only the world-space block size used
-  for shader sampling.
+  for shader sampling. It has a minimum of 1 and no upper cap; 2/4/8/16/32 are
+  representative validation points.
+- Propagation samples per cell is derived from quality (`1/2/4`) and controls
+  light-field simulation/storage resolution, not visible pixel density.
 - `_LightSteps` controls the number of brightness bands.
 - `_LightExposure` maps HDR energy into the normal 0-1 illumination response.
-- `_OverbrightThreshold` and `_OverbrightStrength` control bounded local-only
-  illumination above authored full-light brightness.
+- `_OverbrightThreshold` controls where local HDR hot response begins.
+- `_OverbrightResponse` controls how quickly excess energy approaches the cap.
+- `_MaxOverbright` sets the brightest permitted local multiplier.
+- `_OverbrightColorInfluence` controls source-hue strength in proportion to the
+  actual hot response.
 - `_LightColorInfluence` controls restrained continuous local hue independently
   from quantized brightness.
+- `_HotWashStrength` controls additive high-energy lift/color amount.
+- `_HotWashBlackPoint` protects the darkest original atlas pixels.
+- `_HotWashFullPoint` sets the atlas luminance receiving the full wash.
+- `_HotWashColorInfluence` controls source-hue strength in the additive core.
 
 ## Ownership rule
 

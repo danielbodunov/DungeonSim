@@ -30,6 +30,8 @@ public class DungeonLightingManager : MonoBehaviour
         Shader.PropertyToID("_DungeonLightTextureBlend");
     static readonly int VisiblePixelsPerCellId =
         Shader.PropertyToID("_DungeonLightingPixelsPerCell");
+    static readonly int PropagationSamplesPerCellId =
+        Shader.PropertyToID("_DungeonLightingPropagationSamplesPerCell");
     static readonly int GridCellZeroId = Shader.PropertyToID("_DungeonGridCellZero");
     static readonly int GridStepId = Shader.PropertyToID("_DungeonGridStep");
     static readonly int GridSizeId = Shader.PropertyToID("_DungeonGridSize");
@@ -66,7 +68,7 @@ public class DungeonLightingManager : MonoBehaviour
     [SerializeField] PresentationMode presentationMode =
         PresentationMode.ExpansionUniform;
     [SerializeField, Min(0f)] float presentationTransitionDuration = 0.3f;
-    [SerializeField, Range(1, 8), Tooltip("Visible world-space lighting blocks per dungeon cell. This does not change propagation resolution.")]
+    [SerializeField, Min(1), Tooltip("Visible world-space lighting blocks per dungeon cell. This does not change propagation resolution.")]
     int visibleLightingPixelsPerCell = 2;
 
     [Header("Debug")]
@@ -153,6 +155,7 @@ public class DungeonLightingManager : MonoBehaviour
         Shader.SetGlobalFloat(PresentationBlendId, 0f);
         Shader.SetGlobalFloat(LightTextureBlendId, 1f);
         Shader.SetGlobalFloat(VisiblePixelsPerCellId, 2f);
+        Shader.SetGlobalFloat(PropagationSamplesPerCellId, 1f);
     }
 
     void Awake()
@@ -184,6 +187,7 @@ public class DungeonLightingManager : MonoBehaviour
         Shader.SetGlobalFloat(LightingInitializedId, 0f);
         Shader.SetGlobalFloat(PresentationBlendId, 0f);
         Shader.SetGlobalFloat(LightTextureBlendId, 1f);
+        Shader.SetGlobalFloat(PropagationSamplesPerCellId, 1f);
         if (grid != null)
             grid.LayoutChanged -= RequestFullRebuild;
         DungeonLightSource.SourcesChanged -= RequestFullRebuild;
@@ -209,6 +213,8 @@ public class DungeonLightingManager : MonoBehaviour
         Shader.SetGlobalColor(AmbientColorId, ambientColor);
         Shader.SetGlobalFloat(
             VisiblePixelsPerCellId, visibleLightingPixelsPerCell);
+        Shader.SetGlobalFloat(
+            PropagationSamplesPerCellId, activeSamplesPerCell);
 
         if (rebuildRequested)
         {
@@ -374,6 +380,7 @@ public class DungeonLightingManager : MonoBehaviour
         Shader.SetGlobalVector(GridSizeId, new Vector4(grid.GridWidth, grid.GridHeight, 0f, 0f));
         Shader.SetGlobalColor(AmbientColorId, ambientColor);
         Shader.SetGlobalFloat(VisiblePixelsPerCellId, visibleLightingPixelsPerCell);
+        Shader.SetGlobalFloat(PropagationSamplesPerCellId, activeSamplesPerCell);
         Shader.SetGlobalFloat(LightTextureBlendId, 1f);
         Shader.SetGlobalFloat(LightingInitializedId, 1f);
 
@@ -765,7 +772,7 @@ public class DungeonLightingManager : MonoBehaviour
         chunkSize = Mathf.Clamp(chunkSize, 8, 128);
         dynamicUpdateInterval = Mathf.Max(0.02f, dynamicUpdateInterval);
         presentationTransitionDuration = Mathf.Max(0f, presentationTransitionDuration);
-        visibleLightingPixelsPerCell = Mathf.Clamp(visibleLightingPixelsPerCell, 1, 8);
+        visibleLightingPixelsPerCell = Mathf.Max(1, visibleLightingPixelsPerCell);
         debugMaximumCells = Mathf.Max(16, debugMaximumCells);
         if (lightTexture != null)
             lightTexture.filterMode = GetActiveTextureFilter();

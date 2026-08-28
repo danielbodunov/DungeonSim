@@ -6,6 +6,11 @@
 - **Milestone:** Strategic Construction
 - **Related:** t021 — Modular Tile Construction Surfaces
 
+Follow-up lighting presentation work, including HDR hot-core response, colored
+overbright illumination, and advanced local-light tuning, is tracked separately
+under t027. t024 remains responsible for the rotation-safe texture contract and
+its original lighting foundation.
+
 ## Goal
 Define and implement a texture-authoring/rendering contract that lets one dungeon tile prefab be reused across its existing 90-degree `TileSocketProfile` rotations without visually rotating gravity- or world-oriented pixel textures into incorrect orientations.
 
