@@ -36,11 +36,21 @@ dungeon cell; the default is 2. This grid-space snapping is stable under camera
 movement and tile rotation and is independent of the underlying LegacyCell,
 Smooth2x, or Smooth4x propagation resolution.
 
+CPU chunk storage uses floating-point `Color` buffers, and the paired GPU fields
+use `RGBAHalf` when supported (`RGBAFloat` is the explicit HDR fallback). Source
+and overlapping-light values accumulate without a 0-1 ceiling. Platforms
+supporting neither HDR format fail lighting initialization rather than silently
+falling back to an 8-bit saturated field.
+
 The shader interpolates the previous/current local RGB fields, then combines
-that local result with `_DungeonAmbientColor`, converts the total to Rec.709 luminance,
-saturates it to the field's normalized 0-1 range, and quantizes that scalar using
-`_LightSteps`. It remaps the quantized result through `_MinLight` to 1 and
-multiplies the authored atlas rather than adding light color to it. The separate
+that local result with `_DungeonAmbientColor` and converts the total to
+non-negative Rec.709 luminance. HDR energy is compressed through
+`1 - exp(-energy * _LightExposure)` before quantization with `_LightSteps`. It
+remaps the quantized result through `_MinLight` to 1 and multiplies the authored
+atlas rather than adding light color to it. Local-only luminance above
+`_OverbrightThreshold` contributes the bounded multiplier
+`1 + (1 - exp(-excess)) * _OverbrightStrength`; ambient cannot produce this
+effect. The separate
 phase-controlled `_GlobalLightIntensity` presentation multiplier is applied
 afterward. The
 `_DungeonLightingInitialized` global prevents an uninitialized/default texture
@@ -53,6 +63,56 @@ the material's `_LightColorInfluence` (default 0.35). Overlapping colored source
 remain accumulated in the propagated RGB field, so their combined field color
 produces the tint without a per-source shader loop. Tint and illumination remain
 multiplicative, preserving near-black atlas detail.
+
+## Source controls and animation
+
+`DungeonLightSource` owns source behavior. Its effective contribution is
+`CurrentColor × CurrentIntensity × shaped falloff × core boost`.
+
+The base falloff is `pow(1 - saturate(distance / radius), falloffPower)`. Within
+the inner radius it is multiplied by
+`1 + saturate(1 - distance / innerRadius) * coreBoost`. This is continuous at the
+inner-radius boundary and reaches zero at the outer radius.
+
+Current defaults and safe ranges are:
+
+- intensity: `1`, non-negative and HDR-capable;
+- radius: `6` cells, minimum `0.25`;
+- falloff power: `2`, range `0.1-8`;
+- inner radius: `0`, clamped to `0-radius`;
+- core boost: `0`, range `0-8`;
+- intensity flicker: opt-in, amount `0.12` (`0-1`), speed `2` (`0.01-10`);
+- color animation: opt-in, amount `0.25` (`0-1`), speed `1` (`0.01-10`), an
+  authorable HDR gradient, and Noise or Loop mode.
+
+Noise animation uses deterministic Perlin samples derived from the source's
+integer seed. Intensity and color use different salted coordinates so they do
+not move in lockstep. Loop mode is the deliberate predictable gradient option.
+Animation uses unscaled presentation time, so cosmetic flicker continues during
+selective simulation pause. Animated sources are treated as dynamic; the manager
+samples their current state only at its normal dynamic refresh, and temporal
+texture interpolation smooths the visible result.
+
+Useful starting points (tuning examples, not hardcoded presets):
+
+- Torch: radius `4-6`, power `2-3`, inner radius `1-1.5`, core boost `2-4`,
+  warm HDR color, intensity `1.5-3`, noise flicker amount `0.08-0.18`, and a
+  restrained warm gradient.
+- Soft ambient source: radius `6-10`, power `0.5-1`, no core boost, low intensity,
+  and animation disabled.
+- Strong magical source: radius `5-8`, power `1-2`, inner radius `1-2`, core
+  boost `1-3`, intensity `2-4`, and an authored blue/violet/cyan gradient using
+  Noise or intentional Loop mode.
+
+## HDR memory
+
+For the current 15×15 grid, each `RGBAHalf` texture uses 8 bytes per sample
+instead of 4 for `RGBA32`. With paired temporal textures, approximate GPU
+storage is 3.6 KB at LegacyCell, 14.4 KB at Smooth2x, and 57.6 KB at Smooth4x
+(2× the previous paired-RGBA32 storage). The three CPU chunk arrays use 16-byte
+`Color` entries instead of 4-byte `Color32`: approximately 10.8 KB, 43.2 KB, and
+172.8 KB respectively (4× previous CPU storage). These figures exclude small
+texture/object and managed-array overhead.
 
 The production tile receiver is visually unlit and has no main directional-light
 or realtime main-light-shadow dependency. Normal data is used for rotation-safe
@@ -102,6 +162,9 @@ a separate implementation.
 - Visible lighting pixels per cell controls only the world-space block size used
   for shader sampling.
 - `_LightSteps` controls the number of brightness bands.
+- `_LightExposure` maps HDR energy into the normal 0-1 illumination response.
+- `_OverbrightThreshold` and `_OverbrightStrength` control bounded local-only
+  illumination above authored full-light brightness.
 - `_LightColorInfluence` controls restrained continuous local hue independently
   from quantized brightness.
 

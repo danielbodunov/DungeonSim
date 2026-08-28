@@ -1595,12 +1595,12 @@ MonoBehaviour:
   dungeonMaterialOverride: {fileID: 2100000, guid: 45d73c86291f4261a53402175e822cb3, type: 2}
   chunkSize: 32
   ambientColor: {r: 0, g: 0, b: 0, a: 1}
-  qualityPreset: 1
+  qualityPreset: 2
   textureFilter: 0
   dynamicUpdateInterval: 0.05
   presentationMode: 0
   presentationTransitionDuration: 0.3
-  visibleLightingPixelsPerCell: 2
+  visibleLightingPixelsPerCell: 8
   drawChunkBounds: 1
   drawLightCells: 0
   debugMinimumBrightness: 0.02

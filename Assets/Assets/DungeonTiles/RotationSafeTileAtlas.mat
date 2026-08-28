@@ -82,10 +82,13 @@ Material:
     - _GroundTopY: 0
     - _LightSteps: 4.1
     - _LightColorInfluence: 0.35
+    - _LightExposure: 1
     - _Metallic: 0
     - _MinLight: 0.015
     - _NormalLightingStrength: 0.4
     - _OcclusionStrength: 1
+    - _OverbrightStrength: 0.35
+    - _OverbrightThreshold: 1
     - _PrimaryFamily: 1
     - _QueueControl: 0
     - _QueueOffset: 0

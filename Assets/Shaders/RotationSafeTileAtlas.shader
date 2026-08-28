@@ -24,6 +24,9 @@ Shader "DungeonSim/Rotation Safe Tile Atlas"
 
         _LightSteps("Light Steps", Range(2, 16)) = 4
         _MinLight("Minimum Light", Range(0, 1)) = 0.25
+        _LightExposure("Light Exposure", Range(0.01, 4)) = 1
+        _OverbrightThreshold("Overbright Threshold", Range(0, 8)) = 1
+        _OverbrightStrength("Overbright Strength", Range(0, 2)) = 0.35
         _LightColorInfluence("Light Color Influence", Range(0, 1)) = 0.35
         _AOIntensity("Vertex AO Intensity", Range(0, 1)) = 1
         _GlobalLightTint("Global Light Tint", Color) = (1, 1, 1, 1)
@@ -122,6 +125,9 @@ Shader "DungeonSim/Rotation Safe Tile Atlas"
                 float _GroundCellScale;
                 float _LightSteps;
                 float _MinLight;
+                float _LightExposure;
+                float _OverbrightThreshold;
+                float _OverbrightStrength;
                 float _LightColorInfluence;
                 float _AOIntensity;
             CBUFFER_END
@@ -280,11 +286,14 @@ Shader "DungeonSim/Rotation Safe Tile Atlas"
 
                 half3 localLighting = SampleDungeonLocalLighting(input.positionWS);
                 half3 totalLighting = max(0, _DungeonAmbientColor.rgb) + localLighting;
-                float lightAmount = saturate(dot(
+                float lightEnergy = max(0, dot(
                     totalLighting,
                     half3(0.2126, 0.7152, 0.0722)));
+                float shapedLight = 1 - exp(
+                    -lightEnergy * max(0.01, _LightExposure));
                 float steps = max(2, round(_LightSteps));
-                float quantized = round(lightAmount * (steps - 1)) / (steps - 1);
+                float quantized = round(saturate(shapedLight) * (steps - 1)) /
+                    (steps - 1);
                 float localLightMultiplier = lerp(
                     saturate(_MinLight), 1, quantized);
                 float vertexAO = lerp(1, saturate(input.ao), saturate(_AOIntensity));
@@ -306,10 +315,19 @@ Shader "DungeonSim/Rotation Safe Tile Atlas"
                     localTint,
                     saturate(_LightColorInfluence) *
                         saturate(_DungeonLightingModeBlend));
+                float localEnergy = max(0, dot(
+                    localLighting,
+                    half3(0.2126, 0.7152, 0.0722)));
+                float excessEnergy = max(
+                    0, localEnergy - max(0, _OverbrightThreshold));
+                float overbright = 1 +
+                    (1 - exp(-excessEnergy)) * max(0, _OverbrightStrength);
+                float presentationOverbright = lerp(
+                    1, overbright, saturate(_DungeonLightingModeBlend));
 
                 half3 color = atlas.rgb * _BaseColor.rgb * _GlobalLightTint.rgb *
                     presentationLighting * stylizedTint *
-                    presentationBrightness * vertexAO;
+                    presentationOverbright * presentationBrightness * vertexAO;
                 return half4(color, atlas.a * _BaseColor.a);
             }
             ENDHLSL

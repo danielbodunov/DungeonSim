@@ -123,10 +123,12 @@ atlas must use Point filtering, disabled mipmaps, no compression, and Clamp.
 
 The atlas represents authored full-light color. The URP Unlit output multiplies
 that color by global presentation brightness, vertex-color red AO, and a
-quantized propagated dungeon-light multiplier. The shader derives Rec.709
-luminance from `_DungeonLightTexture + _DungeonAmbientColor`, quantizes using
-`round(lightAmount * (steps - 1)) / (steps - 1)`, and remaps the result from
-`_MinLight` to 1. Defaults are `_LightSteps = 4` and `_MinLight = 0.25`.
+quantized propagated dungeon-light multiplier. The shader derives non-negative
+Rec.709 luminance from HDR `_DungeonLightTexture + _DungeonAmbientColor`, applies
+the `_LightExposure` response, quantizes the shaped result, and remaps it from
+`_MinLight` to 1. Local-only excess energy may add bounded multiplicative
+overbright. Defaults are `_LightSteps = 4`, `_MinLight = 0.25`, exposure `1`,
+overbright threshold `1`, and overbright strength `0.35`.
 Previous/current propagated fields are interpolated over the dynamic refresh
 interval, and visible sampling snaps to the manager's world-grid lighting pixels
 per cell. Local RGB tint is normalized independently from ambient and applied
