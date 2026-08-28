@@ -53,11 +53,8 @@ Shader "DungeonSim/Rotation Safe Tile Atlas"
             #pragma vertex Vert
             #pragma fragment Frag
             #pragma multi_compile_instancing
-            #pragma multi_compile _ _MAIN_LIGHT_SHADOWS _MAIN_LIGHT_SHADOWS_CASCADE _MAIN_LIGHT_SHADOWS_SCREEN
-            #pragma multi_compile_fragment _ _SHADOWS_SOFT _SHADOWS_SOFT_LOW _SHADOWS_SOFT_MEDIUM _SHADOWS_SOFT_HIGH
 
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
-            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
 
             struct Attributes
             {
@@ -261,30 +258,25 @@ Shader "DungeonSim/Rotation Safe Tile Atlas"
                     : input.uv * max(_WorldTiling, 0.0001);
                 half4 atlas = SAMPLE_TEXTURE2D_LOD(_BaseMap, sampler_BaseMap, selectedUV, 0);
 
-                float4 shadowCoord = TransformWorldToShadowCoord(input.positionWS);
-                half3 mainLightDirection = normalize(_MainLightPosition.xyz);
-                half3 mainLightColor = _MainLightColor.rgb;
-                float shadowAttenuation = MainLightRealtimeShadow(shadowCoord);
-                float normalLighting = saturate(dot(normalize(input.normalWS), mainLightDirection));
-                float directAttenuation = saturate(normalLighting * shadowAttenuation);
+                half3 dungeonLighting = SampleDungeonLighting(input.positionWS);
+                float lightAmount = saturate(dot(
+                    dungeonLighting,
+                    half3(0.2126, 0.7152, 0.0722)));
                 float steps = max(2, round(_LightSteps));
-                float quantized = round(directAttenuation * (steps - 1)) / (steps - 1);
-                half3 minimumLight = saturate(_MinLight).xxx;
-                half3 realtimeLight = max(mainLightColor, minimumLight);
-                half3 stylizedLight = lerp(minimumLight, realtimeLight, quantized);
+                float quantized = round(lightAmount * (steps - 1)) / (steps - 1);
+                float localLightMultiplier = lerp(
+                    saturate(_MinLight), 1, quantized);
                 float vertexAO = lerp(1, saturate(input.ao), saturate(_AOIntensity));
                 float presentationBrightness = _DungeonGlobalLightInitialized > 0.5
                     ? max(0, _GlobalLightIntensity)
                     : 1;
-                half3 dungeonLighting = SampleDungeonLighting(input.positionWS);
-                half3 atmosphericLighting = stylizedLight + dungeonLighting;
-                half3 combinedLighting = lerp(
-                    half3(1, 1, 1),
-                    atmosphericLighting,
+                float presentationLighting = lerp(
+                    1,
+                    localLightMultiplier,
                     saturate(_DungeonLightingModeBlend));
 
                 half3 color = atlas.rgb * _BaseColor.rgb * _GlobalLightTint.rgb *
-                    combinedLighting * presentationBrightness * vertexAO;
+                    presentationLighting * presentationBrightness * vertexAO;
                 return half4(color, atlas.a * _BaseColor.a);
             }
             ENDHLSL

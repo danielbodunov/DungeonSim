@@ -80,9 +80,9 @@ Material:
     - _GroundCellWorldSize: 0.33333334
     - _GroundLookupStartRow: 0
     - _GroundTopY: 0
-    - _LightSteps: 2
+    - _LightSteps: 4.1
     - _Metallic: 0
-    - _MinLight: 0
+    - _MinLight: 0.015
     - _NormalLightingStrength: 0.4
     - _OcclusionStrength: 1
     - _PrimaryFamily: 1

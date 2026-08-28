@@ -107,15 +107,18 @@ Suggested branch: `feature/t024-rotation-safe-tile-textures`
   deferred because no authoritative runtime debug-state event currently exists.
 - Replaced the unstable Shader Graph implementation with the handwritten URP
   `RotationSafeTileAtlas.shader`. Its output is `AtlasRGB *
-  _GlobalLightIntensity * StylizedLightMultiplier * VertexColorR`; it has no
+  _GlobalLightIntensity * QuantizedDungeonLightMultiplier * VertexColorR`; it has no
   metallic, smoothness, specular, reflection, GI, emission, or normal-diffuse
   path.
-- Main-light shadow attenuation comes from URP's
-  `GetMainLight(TransformWorldToShadowCoord(positionWS))`. With `_LightSteps = 4`,
-  the shader computes `round(attenuation * 3) / 3`, then remaps that through
-  `lerp(_MinLight, 1, quantized)`; `_MinLight` defaults to `0.25`.
-- Normal-based diffuse is intentionally omitted. Additional/point-light
-  accumulation and pixel-snapped shadow sampling remain possible follow-ups.
+- The shader has no main-directional-light or main-light-shadow receiver path.
+  `_DungeonLightTexture + _DungeonAmbientColor` is converted to saturated Rec.709
+  luminance, quantized as `round(lightAmount * (steps - 1)) / (steps - 1)`, and
+  remapped through `lerp(_MinLight, 1, quantized)`; `_MinLight` defaults to
+  `0.25`. The result multiplies atlas RGB, preserving authored dark details.
+- Colored field values currently affect luminance only; restrained
+  multiplicative tint is a possible follow-up. NPC/local light-field sources do
+  not cast realtime Unity shadows. The `ShadowCaster` pass remains for future
+  compatibility; stylized point/spot-light shadows require a separate ticket.
   
 ## Validation Notes
 - Manual Unity validation was confirmed complete by the user on 2026-08-27
@@ -171,7 +174,8 @@ Suggested branch: `feature/t024-rotation-safe-tile-textures`
 20. Call `SetDebugOverride(true)` and confirm the debug target wins; disable it
     and confirm the current phase target returns. Inspect representative tile
     renderers throughout and confirm the shared material never becomes `(Instance)`.
-21. Move the main realtime light's shadow boundary across a representative tile.
-    Confirm the tile changes through `_LightSteps` discrete multipliers, a
-    shadow-casting NPC affects the tile, and near-black atlas recesses remain
-    proportionally darker than adjacent stone in every band.
+21. Disable or remove the scene directional light and confirm representative
+    tiles render identically. Move an NPC or configured `DungeonLightSource` and
+    confirm nearby tiles update through `_LightSteps` discrete brightness bands.
+    Confirm near-black atlas recesses remain proportionally darker than adjacent
+    stone in every band and that local sources do not produce realtime shadows.

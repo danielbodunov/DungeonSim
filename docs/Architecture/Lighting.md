@@ -22,11 +22,20 @@ flowchart LR
 The manager supports legacy cell sampling and smoother sub-cell sampling presets. Dynamic sources refresh on an interval rather than forcing a full per-frame rebuild.
 
 `RotationSafeTileAtlas.shader` samples `_DungeonLightTexture` with the manager's
-grid-origin, grid-step, and grid-size globals. It adds the propagated ambient and
-local RGB contribution to its quantized main-light response, then applies the
-separate phase-controlled `_GlobalLightIntensity` presentation multiplier. The
+grid-origin, grid-step, and grid-size globals. The shader combines the sampled
+field with `_DungeonAmbientColor`, converts the result to Rec.709 luminance,
+saturates it to the field's normalized 0-1 range, and quantizes that scalar using
+`_LightSteps`. It remaps the quantized result through `_MinLight` to 1 and
+multiplies the authored atlas rather than adding light color to it. The separate
+phase-controlled `_GlobalLightIntensity` presentation multiplier is applied
+afterward. The
 `_DungeonLightingInitialized` global prevents an uninitialized/default texture
 from lighting tiles before a manager has established its grid.
+
+The production tile receiver is visually unlit and has no main directional-light
+or realtime main-light-shadow dependency. Normal data is used for rotation-safe
+surface-role selection only, not diffuse lighting. Dungeon Sim therefore does
+not rely on a sun/directional light for normal dungeon rendering.
 
 The production `Placeholder_NPC` carries a dynamic `DungeonLightSource`, so its
 light field contribution follows traversal automatically and refreshes at the
@@ -38,11 +47,10 @@ manager's configured dynamic interval.
 `DungeonLightingManager.SetPresentationMode` whenever the dungeon phase changes:
 
 - `ExpansionUniform` uses uniform material illumination. It bypasses both the
-  quantized directional-light/shadow response and the propagated dungeon light
-  texture so construction remains clearly readable.
-- `ExploringAtmospheric` enables the quantized main directional light, its
-  realtime shadow attenuation, ambient dungeon darkness, and propagated dynamic
-  sources such as NPC lights.
+  quantized dungeon light response and the propagated dungeon light texture so
+  construction remains clearly readable.
+- `ExploringAtmospheric` enables ambient dungeon darkness and quantized
+  propagated static/dynamic sources such as NPC lights.
 
 The manager blends `_DungeonLightingModeBlend` between these responses using
 unscaled time. The default transition duration is 0.3 seconds, so pausing the
@@ -55,9 +63,14 @@ controls the separate phase-brightness treatment.
 
 The runtime debug lighting override controls both layers. Enabling it uses the
 configured debug brightness and forces the uniform presentation response,
-bypassing directional quantization, realtime shadows, and propagated dungeon
-cell/NPC lighting. Disabling it blends back to the response for the current
-gameplay phase.
+bypassing quantized propagated dungeon cell/NPC lighting. Disabling it blends
+back to the response for the current gameplay phase.
+
+Current `DungeonLightSource` illumination is transported through the propagated
+light field; it does not use Unity point/spot lights and does not cast realtime
+Unity shadows. The shader retains its `ShadowCaster` pass for future
+compatibility, but realtime stylized point/spot-light shadow reception requires
+a separate implementation.
 
 ## Ownership rule
 
