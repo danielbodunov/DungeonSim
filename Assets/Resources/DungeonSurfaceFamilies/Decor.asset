@@ -14,9 +14,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::DungeonSurfaceFamily
   stableId: DungeonStone
   lookupIndex: 2
-  generatedLookupHash: 93e97601f17b0c8535590291be1ae194
+  generatedLookupHash: 6be5ef7b7cb6d8f54d472b72833ceba9
   backWallVariants:
-  - sprite: {fileID: 2050930290, guid: 646f0377adff32342ae47c3c04261f16, type: 3}
+  - sprite: {fileID: -677269027, guid: 646f0377adff32342ae47c3c04261f16, type: 3}
     weight: 1
   floorVariants:
   - sprite: {fileID: -692117242, guid: 646f0377adff32342ae47c3c04261f16, type: 3}

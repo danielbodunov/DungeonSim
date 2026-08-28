@@ -10,24 +10,20 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: d8dcddab3f0a4a27a45fdcba162a2418, type: 3}
-  m_Name: DungeonStone
+  m_Name: Decor_Dirt
   m_EditorClassIdentifier: Assembly-CSharp::DungeonSurfaceFamily
   stableId: DungeonStone
-  lookupIndex: 4
-  generatedLookupHash: 6273905374d277cb66782c3ea2c7795a
+  lookupIndex: 3
+  generatedLookupHash: 2e32875057e2eb067b501e756492ccd2
   backWallVariants:
-  - sprite: {fileID: 1032600401, guid: 646f0377adff32342ae47c3c04261f16, type: 3}
-    weight: 1
-  - sprite: {fileID: 1032600401, guid: 646f0377adff32342ae47c3c04261f16, type: 3}
-    weight: 1
-  - sprite: {fileID: 1032600401, guid: 646f0377adff32342ae47c3c04261f16, type: 3}
+  - sprite: {fileID: 1847197608, guid: 646f0377adff32342ae47c3c04261f16, type: 3}
     weight: 1
   floorVariants:
   - sprite: {fileID: -692117242, guid: 646f0377adff32342ae47c3c04261f16, type: 3}
     weight: 1
-  - sprite: {fileID: -692117242, guid: 646f0377adff32342ae47c3c04261f16, type: 3}
+  - sprite: {fileID: 1847197608, guid: 646f0377adff32342ae47c3c04261f16, type: 3}
     weight: 1
-  - sprite: {fileID: -692117242, guid: 646f0377adff32342ae47c3c04261f16, type: 3}
+  - sprite: {fileID: 1847197608, guid: 646f0377adff32342ae47c3c04261f16, type: 3}
     weight: 1
   ceilingVariants:
   - sprite: {fileID: -677269027, guid: 646f0377adff32342ae47c3c04261f16, type: 3}
@@ -35,7 +31,7 @@ MonoBehaviour:
   sideWallVariants:
   - sprite: {fileID: -692117242, guid: 646f0377adff32342ae47c3c04261f16, type: 3}
     weight: 1
-  - sprite: {fileID: -692117242, guid: 646f0377adff32342ae47c3c04261f16, type: 3}
+  - sprite: {fileID: 1847197608, guid: 646f0377adff32342ae47c3c04261f16, type: 3}
     weight: 1
   - sprite: {fileID: -692117242, guid: 646f0377adff32342ae47c3c04261f16, type: 3}
     weight: 1

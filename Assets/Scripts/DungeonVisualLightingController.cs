@@ -121,6 +121,9 @@ public sealed class DungeonVisualLightingController : MonoBehaviour
         if (debugOverride == enabled)
             return;
         debugOverride = enabled;
+        DungeonLightingManager lightingManager =
+            FindAnyObjectByType<DungeonLightingManager>();
+        lightingManager?.SetDebugOverride(enabled);
         ApplyResolvedBrightness(false);
     }
 

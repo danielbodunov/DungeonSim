@@ -135,7 +135,7 @@ TextureImporter:
       name: Ceiling_Tile_Default
       rect:
         serializedVersion: 2
-        x: 32
+        x: 64
         y: 480
         width: 32
         height: 32
@@ -157,7 +157,7 @@ TextureImporter:
       name: Ceiling_Support_Default
       rect:
         serializedVersion: 2
-        x: 64
+        x: 96
         y: 480
         width: 32
         height: 32
@@ -201,7 +201,7 @@ TextureImporter:
       name: Wall_Brick_Cracked
       rect:
         serializedVersion: 2
-        x: 32
+        x: 64
         y: 448
         width: 32
         height: 32
@@ -223,7 +223,7 @@ TextureImporter:
       name: Wall_Brick_Default
       rect:
         serializedVersion: 2
-        x: 64
+        x: 96
         y: 448
         width: 32
         height: 32
@@ -245,7 +245,7 @@ TextureImporter:
       name: Wall_Brick_Hole
       rect:
         serializedVersion: 2
-        x: 96
+        x: 128
         y: 448
         width: 32
         height: 32
@@ -289,7 +289,7 @@ TextureImporter:
       name: Floor_Tile_Default
       rect:
         serializedVersion: 2
-        x: 32
+        x: 64
         y: 416
         width: 32
         height: 32
@@ -311,7 +311,7 @@ TextureImporter:
       name: Floor_Tile_Cracked
       rect:
         serializedVersion: 2
-        x: 64
+        x: 96
         y: 416
         width: 32
         height: 32
@@ -333,7 +333,7 @@ TextureImporter:
       name: Floor_Tile_Gone
       rect:
         serializedVersion: 2
-        x: 96
+        x: 128
         y: 416
         width: 32
         height: 32
@@ -347,6 +347,72 @@ TextureImporter:
       bones: []
       spriteID: 1cf6acd47e664864b870357fcde040fd
       internalID: 1466967170
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Ground_Dirt_Top_B
+      rect:
+        serializedVersion: 2
+        x: 32
+        y: 480
+        width: 32
+        height: 32
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 3fad2b56f2fd23d4c8cfb0ea363a409f
+      internalID: 131582823
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Ground_Dirt_Mid_B
+      rect:
+        serializedVersion: 2
+        x: 32
+        y: 448
+        width: 32
+        height: 32
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 1616e386fc51ac742af3051c3c9507f4
+      internalID: 324108411
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Ground_Dirt_Fill_B
+      rect:
+        serializedVersion: 2
+        x: 32
+        y: 416
+        width: 32
+        height: 32
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 9036d2b5d1a202147b8eb5aa0afa4058
+      internalID: -1410577837
       vertices: []
       indices: 
       edges: []
@@ -375,8 +441,11 @@ TextureImporter:
       Floor_Tile_Default: 1064928586
       Floor_Tile_Gone: 1466967170
       Ground_Dirt_Fill: 1847197608
+      Ground_Dirt_Fill_B: -1410577837
       Ground_Dirt_Mid: 1177143707
+      Ground_Dirt_Mid_B: 324108411
       Ground_Dirt_Top: 1391765834
+      Ground_Dirt_Top_B: 131582823
       Wall_Brick_Cracked: -692117242
       Wall_Brick_Default: 1250893371
       Wall_Brick_Hole: -1221893639

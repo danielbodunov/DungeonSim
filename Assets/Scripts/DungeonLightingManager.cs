@@ -90,6 +90,7 @@ public class DungeonLightingManager : MonoBehaviour
     float presentationBlendStart;
     float targetPresentationBlend;
     float presentationTransitionElapsed;
+    bool debugPresentationOverride;
 
     sealed class LightingChunk
     {
@@ -131,6 +132,7 @@ public class DungeonLightingManager : MonoBehaviour
     public Vector2Int ChunkCount => new(chunksX, chunksY);
     public PresentationMode CurrentPresentationMode => presentationMode;
     public float CurrentPresentationBlend => currentPresentationBlend;
+    public bool DebugPresentationOverride => debugPresentationOverride;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
     static void ResetPresentationGlobals()
@@ -211,6 +213,14 @@ public class DungeonLightingManager : MonoBehaviour
     public void SetPresentationMode(PresentationMode mode, bool immediate = false)
     {
         presentationMode = mode;
+        ApplyPresentationMode(immediate);
+    }
+
+    public void SetDebugOverride(bool enabled, bool immediate = false)
+    {
+        if (debugPresentationOverride == enabled)
+            return;
+        debugPresentationOverride = enabled;
         ApplyPresentationMode(immediate);
     }
 
@@ -685,7 +695,8 @@ public class DungeonLightingManager : MonoBehaviour
 
     void ApplyPresentationMode(bool immediate)
     {
-        float resolved = presentationMode == PresentationMode.ExploringAtmospheric
+        float resolved = !debugPresentationOverride &&
+            presentationMode == PresentationMode.ExploringAtmospheric
             ? 1f
             : 0f;
         if (immediate || presentationTransitionDuration <= 0f)

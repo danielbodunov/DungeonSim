@@ -20,13 +20,17 @@ MonoBehaviour:
     unbounded: 0
     variants:
     - sprite: {fileID: 1391765834, guid: 646f0377adff32342ae47c3c04261f16, type: 3}
-      weight: 1
+      weight: 18
+    - sprite: {fileID: 131582823, guid: 646f0377adff32342ae47c3c04261f16, type: 3}
+      weight: 2
   - displayName: Mid
     minDepth: 1
     maxDepth: 2
     unbounded: 0
     variants:
     - sprite: {fileID: 1177143707, guid: 646f0377adff32342ae47c3c04261f16, type: 3}
+      weight: 1
+    - sprite: {fileID: 324108411, guid: 646f0377adff32342ae47c3c04261f16, type: 3}
       weight: 1
   - displayName: Fill
     minDepth: 3
@@ -35,5 +39,7 @@ MonoBehaviour:
     variants:
     - sprite: {fileID: 1847197608, guid: 646f0377adff32342ae47c3c04261f16, type: 3}
       weight: 1
+    - sprite: {fileID: -1410577837, guid: 646f0377adff32342ae47c3c04261f16, type: 3}
+      weight: 1
   lookupStartRow: 0
-  generatedLookupHash: 48270fbf40d4ec2f5057df2d7be8d437
+  generatedLookupHash: 3f4ede435b34f71f6a2f1c00c1ed6c30

@@ -309,7 +309,7 @@ Transform:
   m_GameObject: {fileID: 3976248346894385865}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -0, y: 0, z: 0}
+  m_LocalPosition: {x: -0, y: -0.005, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -529,9 +529,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::DungeonSurfaceAppearance
   primaryFamily: {fileID: 11400000, guid: 25da7474cae648868a774a23fed13af6, type: 2}
   secondaryFamily: {fileID: 11400000, guid: 512e0460bfc6f104588c648cfcd6002e, type: 2}
-  accentFamily: {fileID: 11400000, guid: 33a836ba2dfa5974ead164bef8d6dd14, type: 2}
-  specialFamily: {fileID: 11400000, guid: 583993568e9342dbb556dbbc8787c540, type: 2}
-  visualSeed: 24
+  accentFamily: {fileID: 11400000, guid: 25da7474cae648868a774a23fed13af6, type: 2}
+  specialFamily: {fileID: 11400000, guid: 33a836ba2dfa5974ead164bef8d6dd14, type: 2}
+  visualSeed: 0
 --- !u!1 &7093898780317870778
 GameObject:
   m_ObjectHideFlags: 0

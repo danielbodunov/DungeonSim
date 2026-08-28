@@ -2,7 +2,7 @@
 
 ## Tracking
 - **ID:** t024
-- **Status:** Awaiting Unity Validation
+- **Status:** Complete
 - **Milestone:** Strategic Construction
 - **Related:** t021 — Modular Tile Construction Surfaces
 
@@ -116,6 +116,9 @@ Suggested branch: `feature/t024-rotation-safe-tile-textures`
   `lerp(_MinLight, 1, quantized)`; `_MinLight` defaults to `0.25`.
 - Normal-based diffuse is intentionally omitted. Additional/point-light
   accumulation and pixel-snapped shadow sampling remain possible follow-ups.
+  
+## Validation Notes
+- Manual Unity validation was confirmed complete by the user on 2026-08-27
 
 ## Unity Validation
 

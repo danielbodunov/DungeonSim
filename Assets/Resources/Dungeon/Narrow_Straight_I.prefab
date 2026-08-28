@@ -705,6 +705,7 @@ GameObject:
   m_Component:
   - component: {fileID: 3300719324590072405}
   - component: {fileID: 921000000000000001}
+  - component: {fileID: 5266622124109829011}
   m_Layer: 0
   m_Name: Narrow_Straight_I
   m_TagString: Untagged
@@ -793,6 +794,23 @@ MonoBehaviour:
     moduleImpact: 0
     trapAttachmentSurfaces: 15
     variants: []
+--- !u!114 &5266622124109829011
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8466038456287927488}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: af5bd09ee47f40ddb36f3af5e0b01024, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DungeonSurfaceAppearance
+  primaryFamily: {fileID: 11400000, guid: 25da7474cae648868a774a23fed13af6, type: 2}
+  secondaryFamily: {fileID: 11400000, guid: 512e0460bfc6f104588c648cfcd6002e, type: 2}
+  accentFamily: {fileID: 11400000, guid: 25da7474cae648868a774a23fed13af6, type: 2}
+  specialFamily: {fileID: 11400000, guid: 25da7474cae648868a774a23fed13af6, type: 2}
+  visualSeed: 0
 --- !u!1 &8524245737199815948
 GameObject:
   m_ObjectHideFlags: 0

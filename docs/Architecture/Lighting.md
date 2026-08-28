@@ -53,6 +53,12 @@ This blend is independent of `_GlobalLightIntensity`. The presentation mode
 chooses which lighting model is visible; `DungeonVisualLightingController`
 controls the separate phase-brightness treatment.
 
+The runtime debug lighting override controls both layers. Enabling it uses the
+configured debug brightness and forces the uniform presentation response,
+bypassing directional quantization, realtime shadows, and propagated dungeon
+cell/NPC lighting. Disabling it blends back to the response for the current
+gameplay phase.
+
 ## Ownership rule
 
 Do not add light-state persistence to individual tile placements unless the light is itself authoritative gameplay content. The light field is derived from the current layout and active sources and should be rebuilt when those inputs change.
