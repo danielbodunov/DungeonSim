@@ -1600,6 +1600,7 @@ MonoBehaviour:
   dynamicUpdateInterval: 0.05
   presentationMode: 0
   presentationTransitionDuration: 0.3
+  visibleLightingPixelsPerCell: 2
   drawChunkBounds: 1
   drawLightCells: 0
   debugMinimumBrightness: 0.02

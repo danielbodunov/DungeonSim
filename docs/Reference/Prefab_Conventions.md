@@ -127,6 +127,10 @@ quantized propagated dungeon-light multiplier. The shader derives Rec.709
 luminance from `_DungeonLightTexture + _DungeonAmbientColor`, quantizes using
 `round(lightAmount * (steps - 1)) / (steps - 1)`, and remaps the result from
 `_MinLight` to 1. Defaults are `_LightSteps = 4` and `_MinLight = 0.25`.
+Previous/current propagated fields are interpolated over the dynamic refresh
+interval, and visible sampling snaps to the manager's world-grid lighting pixels
+per cell. Local RGB tint is normalized independently from ambient and applied
+multiplicatively through `_LightColorInfluence`, default 0.35.
 No PBR, specular, GI color wash, reflection, or smooth normal-diffuse response
 participates. Directional-light reception is not part of normal dungeon
 rendering. Realtime local-light shadows are deferred.

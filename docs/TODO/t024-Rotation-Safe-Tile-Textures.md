@@ -115,8 +115,14 @@ Suggested branch: `feature/t024-rotation-safe-tile-textures`
   luminance, quantized as `round(lightAmount * (steps - 1)) / (steps - 1)`, and
   remapped through `lerp(_MinLight, 1, quantized)`; `_MinLight` defaults to
   `0.25`. The result multiplies atlas RGB, preserving authored dark details.
-- Colored field values currently affect luminance only; restrained
-  multiplicative tint is a possible follow-up. NPC/local light-field sources do
+- Dynamic local lighting uses shared previous/current propagated textures and a
+  frame-rate interpolation global. Propagation defaults to 0.05-second updates;
+  shader presentation blends between those targets using unscaled time.
+- Visible light samples snap in dungeon-grid world space, independently of
+  propagation resolution, with a default of 2 lighting pixels per cell.
+- Ambient affects quantized luminance but is excluded from local hue. Accumulated
+  local RGB is normalized by its maximum channel and applied multiplicatively
+  through `_LightColorInfluence`, default 0.35. NPC/local light-field sources do
   not cast realtime Unity shadows. The `ShadowCaster` pass remains for future
   compatibility; stylized point/spot-light shadows require a separate ticket.
   

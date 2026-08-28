@@ -81,6 +81,7 @@ Material:
     - _GroundLookupStartRow: 0
     - _GroundTopY: 0
     - _LightSteps: 4.1
+    - _LightColorInfluence: 0.35
     - _Metallic: 0
     - _MinLight: 0.015
     - _NormalLightingStrength: 0.4

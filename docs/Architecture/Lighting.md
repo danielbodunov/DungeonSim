@@ -15,15 +15,29 @@
 flowchart LR
     TileGridGenerator -->|LayoutChanged| DungeonLightingManager
     DungeonLightSource -->|SourcesChanged| DungeonLightingManager
-    DungeonLightingManager -->|chunked propagation| LightTexture[Dungeon light texture]
+    DungeonLightingManager -->|chunked propagation| CurrentTexture[Current dungeon light texture]
+    CurrentTexture -->|previous/current interpolation| Materials[Dungeon materials]
     DungeonLightingManager -->|shader globals| Materials[Dungeon materials]
 ```
 
 The manager supports legacy cell sampling and smoother sub-cell sampling presets. Dynamic sources refresh on an interval rather than forcing a full per-frame rebuild.
 
+Dynamic presentation uses two shared textures. Before a dynamic propagation
+upload, the current target texture is copied to the previous texture. The new
+field is uploaded to the current texture, and `_DungeonLightTextureBlend`
+advances from 0 to 1 every rendered frame using unscaled time over the configured
+dynamic update interval. Full/static rebuilds synchronize both textures
+immediately. The default dynamic update interval is 0.05 seconds (20 Hz).
+
 `RotationSafeTileAtlas.shader` samples `_DungeonLightTexture` with the manager's
-grid-origin, grid-step, and grid-size globals. The shader combines the sampled
-field with `_DungeonAmbientColor`, converts the result to Rec.709 luminance,
+grid-origin, grid-step, and grid-size globals. Before sampling, it snaps the
+world-derived grid coordinate to `_DungeonLightingPixelsPerCell` blocks per
+dungeon cell; the default is 2. This grid-space snapping is stable under camera
+movement and tile rotation and is independent of the underlying LegacyCell,
+Smooth2x, or Smooth4x propagation resolution.
+
+The shader interpolates the previous/current local RGB fields, then combines
+that local result with `_DungeonAmbientColor`, converts the total to Rec.709 luminance,
 saturates it to the field's normalized 0-1 range, and quantizes that scalar using
 `_LightSteps`. It remaps the quantized result through `_MinLight` to 1 and
 multiplies the authored atlas rather than adding light color to it. The separate
@@ -31,6 +45,14 @@ phase-controlled `_GlobalLightIntensity` presentation multiplier is applied
 afterward. The
 `_DungeonLightingInitialized` global prevents an uninitialized/default texture
 from lighting tiles before a manager has established its grid.
+
+Ambient and local color have separate responsibilities. Ambient contributes to
+brightness but not local hue. Local RGB is normalized by its maximum channel,
+falling back to white when no local light is present, and blended from white by
+the material's `_LightColorInfluence` (default 0.35). Overlapping colored sources
+remain accumulated in the propagated RGB field, so their combined field color
+produces the tint without a per-source shader loop. Tint and illumination remain
+multiplicative, preserving near-black atlas detail.
 
 The production tile receiver is visually unlit and has no main directional-light
 or realtime main-light-shadow dependency. Normal data is used for rotation-safe
@@ -71,6 +93,17 @@ light field; it does not use Unity point/spot lights and does not cast realtime
 Unity shadows. The shader retains its `ShadowCaster` pass for future
 compatibility, but realtime stylized point/spot-light shadow reception requires
 a separate implementation.
+
+## Independent tuning controls
+
+- Propagation resolution (`LightQualityPreset`) controls samples calculated per
+  dungeon cell.
+- Dynamic update interval controls how often moving sources are propagated.
+- Visible lighting pixels per cell controls only the world-space block size used
+  for shader sampling.
+- `_LightSteps` controls the number of brightness bands.
+- `_LightColorInfluence` controls restrained continuous local hue independently
+  from quantized brightness.
 
 ## Ownership rule
 
