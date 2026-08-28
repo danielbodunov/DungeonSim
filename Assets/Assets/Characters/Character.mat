@@ -8,7 +8,7 @@ Material:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: Character
-  m_Shader: {fileID: 4800000, guid: 933532a4fcc9baf4fa0491de14d08ed7, type: 3}
+  m_Shader: {fileID: 4800000, guid: b45c6fdb4b654480ab7b2f1ec4f2b678, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords: []
@@ -17,8 +17,7 @@ Material:
   m_EnableInstancingVariants: 0
   m_DoubleSidedGI: 0
   m_CustomRenderQueue: -1
-  stringTagMap:
-    RenderType: Opaque
+  stringTagMap: {}
   disabledShaderPasses:
   - MOTIONVECTORS
   m_LockedProperties: 
@@ -49,6 +48,10 @@ Material:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
+    - _GroundSurfaceLookup:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
     - _MainTex:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
@@ -69,6 +72,10 @@ Material:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
+    - _SurfaceLookup:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
     - unity_Lightmaps:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
@@ -83,6 +90,8 @@ Material:
         m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
+    - _AOIntensity: 1
+    - _AccentFamily: 0
     - _AddPrecomputedVelocity: 0
     - _AlphaClip: 0
     - _AlphaToMask: 0
@@ -97,29 +106,54 @@ Material:
     - _DetailNormalMapScale: 1
     - _DstBlend: 0
     - _DstBlendAlpha: 0
+    - _EnableWorldSpace: 1
     - _EnvironmentReflections: 1
     - _GlossMapScale: 0
     - _Glossiness: 0
     - _GlossyReflections: 0
+    - _GroundCellScale: 3
+    - _GroundCellWorldSize: 0.33333334
+    - _GroundLookupStartRow: 0
+    - _GroundTopY: 0
+    - _HotWashBlackPoint: 0.05
+    - _HotWashColorInfluence: 0.9
+    - _HotWashFullPoint: 0.3
+    - _HotWashStrength: 0.75
+    - _LightColorInfluence: 0.35
+    - _LightExposure: 1
+    - _LightSteps: 4
+    - _MaxOverbright: 1.75
     - _Metallic: 0
+    - _MinLight: 0.25
     - _OcclusionStrength: 1
+    - _OverbrightColorInfluence: 0.8
+    - _OverbrightResponse: 1.25
+    - _OverbrightThreshold: 0.9
     - _Parallax: 0.005
+    - _PrimaryFamily: 0
     - _QueueOffset: 0
     - _ReceiveShadows: 1
+    - _SecondaryFamily: 0
     - _Smoothness: 0.5
     - _SmoothnessTextureChannel: 0
+    - _SpecialFamily: 0
     - _SpecularHighlights: 1
     - _SrcBlend: 1
     - _SrcBlendAlpha: 1
     - _Surface: 0
+    - _UseGroundLayers: 0
+    - _VisualSeed: 0
     - _WorkflowMode: 1
+    - _WorldTiling: 3
     - _XRMotionVectorsPass: 1
     - _ZWrite: 1
     m_Colors:
     - _BaseColor: {r: 0, g: 1, b: 0.030556679, a: 1}
     - _Color: {r: 0, g: 1, b: 0.030556679, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
+    - _GlobalLightTint: {r: 1, g: 1, b: 1, a: 1}
     - _SpecColor: {r: 0.19999996, g: 0.19999996, b: 0.19999996, a: 1}
+    - _SurfaceLookupSize: {r: 257, g: 1, b: 0.00389105, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1
 --- !u!114 &4865114229012304265
