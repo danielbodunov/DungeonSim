@@ -63,6 +63,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5204521948024392598}
+  - component: {fileID: 6174855359740649818}
   m_Layer: 0
   m_Name: Narrow_Junction_X
   m_TagString: Untagged
@@ -88,6 +89,23 @@ Transform:
   - {fileID: 2666789358078287337}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &6174855359740649818
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 379014342053146673}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: af5bd09ee47f40ddb36f3af5e0b01024, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DungeonSurfaceAppearance
+  primaryFamily: {fileID: 11400000, guid: 25da7474cae648868a774a23fed13af6, type: 2}
+  secondaryFamily: {fileID: 11400000, guid: 512e0460bfc6f104588c648cfcd6002e, type: 2}
+  accentFamily: {fileID: 11400000, guid: 25da7474cae648868a774a23fed13af6, type: 2}
+  specialFamily: {fileID: 11400000, guid: 33a836ba2dfa5974ead164bef8d6dd14, type: 2}
+  visualSeed: 0
 --- !u!1 &2611116002285504585
 GameObject:
   m_ObjectHideFlags: 0
@@ -381,7 +399,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: b6dda0f6d2202e64082961509dce011e, type: 2}
+  - {fileID: 2100000, guid: 45d73c86291f4261a53402175e822cb3, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0

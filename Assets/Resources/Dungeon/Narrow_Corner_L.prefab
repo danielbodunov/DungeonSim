@@ -638,10 +638,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DungeonSurfaceAppearance
   primaryFamily: {fileID: 11400000, guid: 25da7474cae648868a774a23fed13af6, type: 2}
-  secondaryFamily: {fileID: 11400000, guid: 25da7474cae648868a774a23fed13af6, type: 2}
+  secondaryFamily: {fileID: 11400000, guid: 512e0460bfc6f104588c648cfcd6002e, type: 2}
   accentFamily: {fileID: 11400000, guid: 25da7474cae648868a774a23fed13af6, type: 2}
-  specialFamily: {fileID: 11400000, guid: 583993568e9342dbb556dbbc8787c540, type: 2}
-  visualSeed: 24
+  specialFamily: {fileID: 11400000, guid: 33a836ba2dfa5974ead164bef8d6dd14, type: 2}
+  visualSeed: 0
 --- !u!1 &6520634181927731750
 GameObject:
   m_ObjectHideFlags: 0

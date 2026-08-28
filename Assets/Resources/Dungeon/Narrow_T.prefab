@@ -1018,6 +1018,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2846772807884948364}
+  - component: {fileID: 8296946866740549429}
   m_Layer: 0
   m_Name: Narrow_T
   m_TagString: Untagged
@@ -1043,6 +1044,23 @@ Transform:
   - {fileID: 2512719025776388528}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &8296946866740549429
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8046324015360620835}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: af5bd09ee47f40ddb36f3af5e0b01024, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DungeonSurfaceAppearance
+  primaryFamily: {fileID: 11400000, guid: 25da7474cae648868a774a23fed13af6, type: 2}
+  secondaryFamily: {fileID: 11400000, guid: 512e0460bfc6f104588c648cfcd6002e, type: 2}
+  accentFamily: {fileID: 11400000, guid: 25da7474cae648868a774a23fed13af6, type: 2}
+  specialFamily: {fileID: 11400000, guid: 33a836ba2dfa5974ead164bef8d6dd14, type: 2}
+  visualSeed: 0
 --- !u!1 &8263504029907573630
 GameObject:
   m_ObjectHideFlags: 0
