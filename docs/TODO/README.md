@@ -11,7 +11,6 @@ None.
 - [t019 — External Trap Attachment Model](t019-External-Trap-Attachment-Model.md)
 - [t021 — Modular Tile Construction Surfaces](t021-Modular-Tile-Construction-Surfaces.md)
 - [t022 — Trap Space & Compatibility Validation](t022-Trap-Space-Compatibility-Validation.md)
-- [t024 — Rotation-Safe Tile Textures](t024-Rotation-Safe-Tile-Textures.md)
 
 ## Ready
 
@@ -38,6 +37,8 @@ None.
 
 - [t020 — Service-Cell Trap Placement & Automatic Orientation](t020-Rotatable-Trap-Placement.md)
 - [t023 — Strategic Building Vertical Slice](t023-Strategic-Building-Vertical-Slice.md)
+- [t024 — Rotation-Safe Tile Textures](t024-Rotation-Safe-Tile-Textures.md)
+- [t027 — Stylized HDR Light Response](t027-Stylized-HDR-Light-Response.md)
 - [Initial building and adventurer vertical slices](2026-08-09-initial-vertical-slices.md)
 - [DEV001 — Generic Prop & Treasure Placement](DEV001-Generic-Prop-Treasure-Placement.md)
 - [DEV002 — Reusable Dungeon Test Scenarios](DEV002-Reusable-Dungeon-Test-Scenarios.md)

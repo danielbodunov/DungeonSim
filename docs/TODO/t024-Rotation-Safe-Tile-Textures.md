@@ -6,6 +6,11 @@
 - **Milestone:** Strategic Construction
 - **Related:** t021 — Modular Tile Construction Surfaces
 
+Follow-up lighting presentation work, including HDR hot-core response, colored
+overbright illumination, and advanced local-light tuning, is tracked separately
+under t027. t024 remains responsible for the rotation-safe texture contract and
+its original lighting foundation.
+
 ## Goal
 Define and implement a texture-authoring/rendering contract that lets one dungeon tile prefab be reused across its existing 90-degree `TileSocketProfile` rotations without visually rotating gravity- or world-oriented pixel textures into incorrect orientations.
 
@@ -111,14 +116,24 @@ Suggested branch: `feature/t024-rotation-safe-tile-textures`
   metallic, smoothness, specular, reflection, GI, emission, or normal-diffuse
   path.
 - The shader has no main-directional-light or main-light-shadow receiver path.
-  `_DungeonLightTexture + _DungeonAmbientColor` is converted to saturated Rec.709
-  luminance, quantized as `round(lightAmount * (steps - 1)) / (steps - 1)`, and
-  remapped through `lerp(_MinLight, 1, quantized)`; `_MinLight` defaults to
-  `0.25`. The result multiplies atlas RGB, preserving authored dark details.
-- Colored field values currently affect luminance only; restrained
-  multiplicative tint is a possible follow-up. NPC/local light-field sources do
+  HDR `_DungeonLightTexture + _DungeonAmbientColor` is converted to non-negative
+  Rec.709 luminance and shaped through `1 - exp(-energy * _LightExposure)` before
+  quantization and `_MinLight` remapping. Local-only excess energy can add a
+  bounded multiplicative overbright response, preserving authored dark details.
+- Dynamic local lighting uses shared previous/current propagated textures and a
+  frame-rate interpolation global. Propagation defaults to 0.05-second updates;
+  shader presentation blends between those targets using unscaled time.
+- Visible light samples snap in dungeon-grid world space, independently of
+  propagation resolution, with a default of 2 lighting pixels per cell.
+- Ambient affects quantized luminance but is excluded from local hue. Accumulated
+  local RGB is normalized by its maximum channel and applied multiplicatively
+  through `_LightColorInfluence`, default 0.35. NPC/local light-field sources do
   not cast realtime Unity shadows. The `ShadowCaster` pass remains for future
   compatibility; stylized point/spot-light shadows require a separate ticket.
+- Propagation uses floating-point CPU buffers and paired `RGBAHalf` textures
+  (`RGBAFloat` fallback), preserving source and overlap energy above 1. Sources
+  support falloff power, inner radius/core boost, deterministic noise intensity
+  flicker, and Noise/Loop gradient color animation sampled at dynamic refreshes.
   
 ## Validation Notes
 - Manual Unity validation was confirmed complete by the user on 2026-08-27

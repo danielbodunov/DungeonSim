@@ -4,8 +4,8 @@ using UnityEngine;
 
 /// <summary>
 /// Builds a low-resolution, world-space dungeon light field. Lighting data is
-/// stored and refreshed in chunks, then uploaded to one texture for inexpensive
-/// sampling by dungeon materials.
+/// stored and refreshed in chunks, then uploaded to shared previous/current
+/// textures for inexpensive, temporally interpolated dungeon-material sampling.
 /// </summary>
 [DisallowMultipleComponent]
 public class DungeonLightingManager : MonoBehaviour
@@ -24,6 +24,14 @@ public class DungeonLightingManager : MonoBehaviour
     }
 
     static readonly int LightTextureId = Shader.PropertyToID("_DungeonLightTexture");
+    static readonly int PreviousLightTextureId =
+        Shader.PropertyToID("_DungeonPreviousLightTexture");
+    static readonly int LightTextureBlendId =
+        Shader.PropertyToID("_DungeonLightTextureBlend");
+    static readonly int VisiblePixelsPerCellId =
+        Shader.PropertyToID("_DungeonLightingPixelsPerCell");
+    static readonly int PropagationSamplesPerCellId =
+        Shader.PropertyToID("_DungeonLightingPropagationSamplesPerCell");
     static readonly int GridCellZeroId = Shader.PropertyToID("_DungeonGridCellZero");
     static readonly int GridStepId = Shader.PropertyToID("_DungeonGridStep");
     static readonly int GridSizeId = Shader.PropertyToID("_DungeonGridSize");
@@ -54,12 +62,14 @@ public class DungeonLightingManager : MonoBehaviour
     [SerializeField, Tooltip("Texture filtering used by Legacy Cell mode. Smooth modes always use bilinear filtering.")]
     FilterMode textureFilter = FilterMode.Point;
     [SerializeField, Min(0.02f), Tooltip("Moving sources such as NPC torches refresh at this interval, not every frame.")]
-    float dynamicUpdateInterval = 0.1f;
+    float dynamicUpdateInterval = 0.05f;
 
     [Header("Presentation")]
     [SerializeField] PresentationMode presentationMode =
         PresentationMode.ExpansionUniform;
     [SerializeField, Min(0f)] float presentationTransitionDuration = 0.3f;
+    [SerializeField, Min(1), Tooltip("Visible world-space lighting blocks per dungeon cell. This does not change propagation resolution.")]
+    int visibleLightingPixelsPerCell = 2;
 
     [Header("Debug")]
     [SerializeField] bool drawChunkBounds = true;
@@ -74,6 +84,7 @@ public class DungeonLightingManager : MonoBehaviour
 
     LightingChunk[] chunks;
     Texture2D lightTexture;
+    Texture2D previousLightTexture;
     int activeChunkSize;
     int activeSamplesPerCell;
     LightQualityPreset activeQualityPreset;
@@ -86,27 +97,29 @@ public class DungeonLightingManager : MonoBehaviour
     float dynamicTimer;
     bool initialized;
     bool rebuildRequested = true;
+    bool unsupportedHdrFormatLogged;
     float currentPresentationBlend;
     float presentationBlendStart;
     float targetPresentationBlend;
     float presentationTransitionElapsed;
+    float lightTextureBlend = 1f;
     bool debugPresentationOverride;
 
     sealed class LightingChunk
     {
         public readonly RectInt Bounds;
-        public readonly Color32[] StaticLight;
-        public readonly Color32[] DynamicLight;
-        public readonly Color32[] UploadBuffer;
+        public readonly Color[] StaticLight;
+        public readonly Color[] DynamicLight;
+        public readonly Color[] UploadBuffer;
 
         public LightingChunk(RectInt bounds, int samplesPerCell)
         {
             Bounds = bounds;
             int length = bounds.width * bounds.height *
                 samplesPerCell * samplesPerCell;
-            StaticLight = new Color32[length];
-            DynamicLight = new Color32[length];
-            UploadBuffer = new Color32[length];
+            StaticLight = new Color[length];
+            DynamicLight = new Color[length];
+            UploadBuffer = new Color[length];
         }
 
         public int GetLocalSampleIndex(
@@ -124,6 +137,7 @@ public class DungeonLightingManager : MonoBehaviour
     }
 
     public Texture2D LightTexture => lightTexture;
+    public Texture2D PreviousLightTexture => previousLightTexture;
     public int ChunkSize => initialized ? activeChunkSize : chunkSize;
     public int SamplesPerCell => initialized
         ? activeSamplesPerCell
@@ -133,11 +147,15 @@ public class DungeonLightingManager : MonoBehaviour
     public PresentationMode CurrentPresentationMode => presentationMode;
     public float CurrentPresentationBlend => currentPresentationBlend;
     public bool DebugPresentationOverride => debugPresentationOverride;
+    public int VisibleLightingPixelsPerCell => visibleLightingPixelsPerCell;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
     static void ResetPresentationGlobals()
     {
         Shader.SetGlobalFloat(PresentationBlendId, 0f);
+        Shader.SetGlobalFloat(LightTextureBlendId, 1f);
+        Shader.SetGlobalFloat(VisiblePixelsPerCellId, 2f);
+        Shader.SetGlobalFloat(PropagationSamplesPerCellId, 1f);
     }
 
     void Awake()
@@ -168,6 +186,8 @@ public class DungeonLightingManager : MonoBehaviour
     {
         Shader.SetGlobalFloat(LightingInitializedId, 0f);
         Shader.SetGlobalFloat(PresentationBlendId, 0f);
+        Shader.SetGlobalFloat(LightTextureBlendId, 1f);
+        Shader.SetGlobalFloat(PropagationSamplesPerCellId, 1f);
         if (grid != null)
             grid.LayoutChanged -= RequestFullRebuild;
         DungeonLightSource.SourcesChanged -= RequestFullRebuild;
@@ -181,6 +201,7 @@ public class DungeonLightingManager : MonoBehaviour
     void Update()
     {
         UpdatePresentationBlend();
+        UpdateLightTextureBlend();
 
         if (initialized && ConfigurationRequiresReinitialization())
             ReleaseLightingData();
@@ -190,6 +211,10 @@ public class DungeonLightingManager : MonoBehaviour
 
         Shader.SetGlobalFloat(LightingInitializedId, 1f);
         Shader.SetGlobalColor(AmbientColorId, ambientColor);
+        Shader.SetGlobalFloat(
+            VisiblePixelsPerCellId, visibleLightingPixelsPerCell);
+        Shader.SetGlobalFloat(
+            PropagationSamplesPerCellId, activeSamplesPerCell);
 
         if (rebuildRequested)
         {
@@ -200,7 +225,7 @@ public class DungeonLightingManager : MonoBehaviour
         dynamicTimer += Time.unscaledDeltaTime;
         if (dynamicTimer >= dynamicUpdateInterval)
         {
-            dynamicTimer = 0f;
+            dynamicTimer = Mathf.Max(0f, dynamicTimer - dynamicUpdateInterval);
             RefreshDynamicLighting();
         }
     }
@@ -251,6 +276,7 @@ public class DungeonLightingManager : MonoBehaviour
 
         previousDynamicChunks.UnionWith(newlyTouchedChunks);
         UploadAllChunks();
+        SynchronizeLightTextures();
         rebuildRequested = false;
         dynamicTimer = 0f;
     }
@@ -267,8 +293,7 @@ public class DungeonLightingManager : MonoBehaviour
         {
             int localIndex = chunk.GetLocalSampleIndex(
                 x, y, sampleX, sampleY, activeSamplesPerCell);
-            total += AddColors(
-                chunk.StaticLight[localIndex], chunk.DynamicLight[localIndex]);
+            total += chunk.StaticLight[localIndex] + chunk.DynamicLight[localIndex];
         }
 
         return total / (activeSamplesPerCell * activeSamplesPerCell);
@@ -279,6 +304,9 @@ public class DungeonLightingManager : MonoBehaviour
         if (initialized)
             return true;
         if (grid == null || !grid.IsInitialized || grid.GridWidth <= 0 || grid.GridHeight <= 0)
+            return false;
+        TextureFormat lightTextureFormat = ResolveHdrTextureFormat();
+        if (lightTextureFormat == TextureFormat.RGBA32)
             return false;
 
         activeChunkSize = Mathf.Max(8, chunkSize);
@@ -321,7 +349,7 @@ public class DungeonLightingManager : MonoBehaviour
         lightTexture = new Texture2D(
             grid.GridWidth * activeSamplesPerCell,
             grid.GridHeight * activeSamplesPerCell,
-            TextureFormat.RGBA32,
+            lightTextureFormat,
             false,
             true)
         {
@@ -330,14 +358,30 @@ public class DungeonLightingManager : MonoBehaviour
             filterMode = GetActiveTextureFilter(),
             wrapMode = TextureWrapMode.Clamp
         };
+        previousLightTexture = new Texture2D(
+            grid.GridWidth * activeSamplesPerCell,
+            grid.GridHeight * activeSamplesPerCell,
+            lightTextureFormat,
+            false,
+            true)
+        {
+            name = $"Previous Dungeon Light Grid {grid.GridWidth}x{grid.GridHeight} " +
+                $"({activeSamplesPerCell}x samples)",
+            filterMode = GetActiveTextureFilter(),
+            wrapMode = TextureWrapMode.Clamp
+        };
 
         Vector3 firstCell = grid.GetCellWorldPosition(0, 0);
         Vector2 step = grid.GridGenerationDirection;
         Shader.SetGlobalTexture(LightTextureId, lightTexture);
+        Shader.SetGlobalTexture(PreviousLightTextureId, previousLightTexture);
         Shader.SetGlobalVector(GridCellZeroId, new Vector4(firstCell.x, firstCell.y, 0f, 0f));
         Shader.SetGlobalVector(GridStepId, new Vector4(step.x, step.y, 0f, 0f));
         Shader.SetGlobalVector(GridSizeId, new Vector4(grid.GridWidth, grid.GridHeight, 0f, 0f));
         Shader.SetGlobalColor(AmbientColorId, ambientColor);
+        Shader.SetGlobalFloat(VisiblePixelsPerCellId, visibleLightingPixelsPerCell);
+        Shader.SetGlobalFloat(PropagationSamplesPerCellId, activeSamplesPerCell);
+        Shader.SetGlobalFloat(LightTextureBlendId, 1f);
         Shader.SetGlobalFloat(LightingInitializedId, 1f);
 
         initialized = true;
@@ -369,7 +413,10 @@ public class DungeonLightingManager : MonoBehaviour
                 Propagate(source, true, newlyTouchedChunks);
 
         chunksToRefresh.UnionWith(newlyTouchedChunks);
+        Graphics.CopyTexture(lightTexture, previousLightTexture);
         UploadChunks(chunksToRefresh);
+        lightTextureBlend = 0f;
+        Shader.SetGlobalFloat(LightTextureBlendId, lightTextureBlend);
 
         previousDynamicChunks.Clear();
         previousDynamicChunks.UnionWith(newlyTouchedChunks);
@@ -387,6 +434,9 @@ public class DungeonLightingManager : MonoBehaviour
         }
 
         int maxDistance = Mathf.CeilToInt(source.RadiusInCells);
+        float sampleTime = Time.unscaledTime;
+        Color currentColor = source.GetCurrentColor(sampleTime);
+        float currentIntensity = source.GetCurrentIntensity(sampleTime);
         int stamp = NextVisitStamp();
         int startIndex = GetCellIndex(start.x, start.y);
         Vector2 sourceGridPosition = WorldToContinuousGrid(source.transform.position);
@@ -409,6 +459,8 @@ public class DungeonLightingManager : MonoBehaviour
                 y,
                 distance,
                 sourceGridPosition,
+                currentColor,
+                currentIntensity,
                 dynamicLayer,
                 touchedChunks);
 
@@ -445,6 +497,8 @@ public class DungeonLightingManager : MonoBehaviour
         int y,
         int graphDistance,
         Vector2 sourceGridPosition,
+        Color currentColor,
+        float currentIntensity,
         bool dynamicLayer,
         HashSet<int> touchedChunks)
     {
@@ -453,8 +507,8 @@ public class DungeonLightingManager : MonoBehaviour
 
         if (activeQualityPreset == LightQualityPreset.LegacyCell)
         {
-            float falloff = CalculateFalloff(graphDistance, source.RadiusInCells);
-            Color contribution = source.LightColor * (source.Intensity * falloff);
+            float falloff = CalculateFalloff(graphDistance, source);
+            Color contribution = currentColor * (currentIntensity * falloff);
             contribution.a = 1f;
             AddSample(chunk, x, y, 0, 0, contribution, dynamicLayer);
             touchedChunks?.Add(chunkIndex);
@@ -477,9 +531,8 @@ public class DungeonLightingManager : MonoBehaviour
             // long route around a closed wall.
             float effectiveDistance = Mathf.Max(
                 worldDistance, topologyMinimumDistance);
-            float falloff = CalculateFalloff(
-                effectiveDistance, source.RadiusInCells);
-            Color contribution = source.LightColor * (source.Intensity * falloff);
+            float falloff = CalculateFalloff(effectiveDistance, source);
+            Color contribution = currentColor * (currentIntensity * falloff);
             contribution.a = 1f;
             AddSample(
                 chunk,
@@ -513,40 +566,27 @@ public class DungeonLightingManager : MonoBehaviour
                 chunk.StaticLight[localIndex], contribution);
     }
 
-    static Color32 AddColor(Color32 current, Color contribution)
-    {
-        return new Color32(
-            (byte)Mathf.Min(255, current.r +
-                Mathf.RoundToInt(Mathf.Clamp01(contribution.r) * 255f)),
-            (byte)Mathf.Min(255, current.g +
-                Mathf.RoundToInt(Mathf.Clamp01(contribution.g) * 255f)),
-            (byte)Mathf.Min(255, current.b +
-                Mathf.RoundToInt(Mathf.Clamp01(contribution.b) * 255f)),
-            255);
-    }
-
-    static Color AddColors(Color32 first, Color32 second)
+    static Color AddColor(Color current, Color contribution)
     {
         return new Color(
-            Mathf.Min(255, first.r + second.r) / 255f,
-            Mathf.Min(255, first.g + second.g) / 255f,
-            Mathf.Min(255, first.b + second.b) / 255f,
+            Mathf.Max(0f, current.r + contribution.r),
+            Mathf.Max(0f, current.g + contribution.g),
+            Mathf.Max(0f, current.b + contribution.b),
             1f);
     }
 
-    static Color32 AddColors32(Color32 first, Color32 second)
+    static Color AddColors(Color first, Color second)
     {
-        return new Color32(
-            (byte)Mathf.Min(255, first.r + second.r),
-            (byte)Mathf.Min(255, first.g + second.g),
-            (byte)Mathf.Min(255, first.b + second.b),
-            255);
+        return new Color(
+            Mathf.Max(0f, first.r + second.r),
+            Mathf.Max(0f, first.g + second.g),
+            Mathf.Max(0f, first.b + second.b),
+            1f);
     }
 
-    static float CalculateFalloff(float distance, float radiusInCells)
+    static float CalculateFalloff(float distance, DungeonLightSource source)
     {
-        float falloff = Mathf.Clamp01(1f - distance / (radiusInCells + 1f));
-        return falloff * falloff;
+        return source.EvaluateSpatialFalloff(distance);
     }
 
     Vector2 WorldToContinuousGrid(Vector3 worldPosition)
@@ -591,11 +631,11 @@ public class DungeonLightingManager : MonoBehaviour
             LightingChunk chunk = chunks[chunkIndex];
             for (int i = 0; i < chunk.UploadBuffer.Length; i++)
             {
-                chunk.UploadBuffer[i] = AddColors32(
+                chunk.UploadBuffer[i] = AddColors(
                     chunk.StaticLight[i], chunk.DynamicLight[i]);
             }
 
-            lightTexture.SetPixels32(
+            lightTexture.SetPixels(
                 chunk.Bounds.xMin * activeSamplesPerCell,
                 chunk.Bounds.yMin * activeSamplesPerCell,
                 chunk.Bounds.width * activeSamplesPerCell,
@@ -604,6 +644,28 @@ public class DungeonLightingManager : MonoBehaviour
         }
 
         lightTexture.Apply(false, false);
+    }
+
+    void SynchronizeLightTextures()
+    {
+        if (lightTexture == null || previousLightTexture == null)
+            return;
+
+        Graphics.CopyTexture(lightTexture, previousLightTexture);
+        lightTextureBlend = 1f;
+        Shader.SetGlobalFloat(LightTextureBlendId, lightTextureBlend);
+    }
+
+    void UpdateLightTextureBlend()
+    {
+        if (lightTextureBlend >= 1f)
+            return;
+
+        lightTextureBlend = dynamicUpdateInterval <= 0f
+            ? 1f
+            : Mathf.Clamp01(
+                lightTextureBlend + Time.unscaledDeltaTime / dynamicUpdateInterval);
+        Shader.SetGlobalFloat(LightTextureBlendId, lightTextureBlend);
     }
 
     int NextVisitStamp()
@@ -648,6 +710,24 @@ public class DungeonLightingManager : MonoBehaviour
             : FilterMode.Bilinear;
     }
 
+    TextureFormat ResolveHdrTextureFormat()
+    {
+        if (SystemInfo.SupportsTextureFormat(TextureFormat.RGBAHalf))
+            return TextureFormat.RGBAHalf;
+        if (SystemInfo.SupportsTextureFormat(TextureFormat.RGBAFloat))
+            return TextureFormat.RGBAFloat;
+
+        if (!unsupportedHdrFormatLogged)
+        {
+            Debug.LogError(
+                "Dungeon lighting requires RGBAHalf or RGBAFloat texture support " +
+                "to preserve HDR propagated values.",
+                this);
+            unsupportedHdrFormatLogged = true;
+        }
+        return TextureFormat.RGBA32;
+    }
+
     bool ConfigurationRequiresReinitialization()
     {
         return activeChunkSize != Mathf.Max(8, chunkSize) ||
@@ -664,8 +744,18 @@ public class DungeonLightingManager : MonoBehaviour
                 DestroyImmediate(lightTexture);
         }
 
+        if (previousLightTexture != null)
+        {
+            if (Application.isPlaying)
+                Destroy(previousLightTexture);
+            else
+                DestroyImmediate(previousLightTexture);
+        }
+
         lightTexture = null;
+        previousLightTexture = null;
         Shader.SetGlobalFloat(LightingInitializedId, 0f);
+        Shader.SetGlobalFloat(LightTextureBlendId, 1f);
         chunks = null;
         visitStamps = null;
         distances = null;
@@ -682,9 +772,12 @@ public class DungeonLightingManager : MonoBehaviour
         chunkSize = Mathf.Clamp(chunkSize, 8, 128);
         dynamicUpdateInterval = Mathf.Max(0.02f, dynamicUpdateInterval);
         presentationTransitionDuration = Mathf.Max(0f, presentationTransitionDuration);
+        visibleLightingPixelsPerCell = Mathf.Max(1, visibleLightingPixelsPerCell);
         debugMaximumCells = Mathf.Max(16, debugMaximumCells);
         if (lightTexture != null)
             lightTexture.filterMode = GetActiveTextureFilter();
+        if (previousLightTexture != null)
+            previousLightTexture.filterMode = GetActiveTextureFilter();
         if (isActiveAndEnabled)
         {
             rebuildRequested = true;

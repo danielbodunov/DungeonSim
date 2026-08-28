@@ -123,10 +123,23 @@ atlas must use Point filtering, disabled mipmaps, no compression, and Clamp.
 
 The atlas represents authored full-light color. The URP Unlit output multiplies
 that color by global presentation brightness, vertex-color red AO, and a
-quantized propagated dungeon-light multiplier. The shader derives Rec.709
-luminance from `_DungeonLightTexture + _DungeonAmbientColor`, quantizes using
-`round(lightAmount * (steps - 1)) / (steps - 1)`, and remaps the result from
-`_MinLight` to 1. Defaults are `_LightSteps = 4` and `_MinLight = 0.25`.
+quantized propagated dungeon-light multiplier. The shader derives non-negative
+Rec.709 luminance from HDR `_DungeonLightTexture + _DungeonAmbientColor`, applies
+the `_LightExposure` response, quantizes the shaped result, and remaps it from
+`_MinLight` to 1. Local-only excess energy may add bounded multiplicative
+overbright. Defaults are `_LightSteps = 4`, `_MinLight = 0.25`, exposure `1`,
+overbright threshold `0.9`, overbright response `1.25`, maximum overbright `1.75`,
+normal color influence `0.35`, and hot-core color influence `0.8`. Strong local
+HDR energy may additionally apply an atlas-luminance-masked additive wash; its
+black/full points protect authored dark pixels before source-colored lift is
+added. Vertex AO and global presentation brightness also constrain that wash.
+Previous/current propagated fields are interpolated over the dynamic refresh
+interval, and visible sampling snaps to the manager's world-grid lighting pixels
+per cell. The snapped location resolves to an exact propagation texel center
+using separate active samples-per-cell metadata, so high visible densities such
+as 16 or 32 remain independent from Smooth2x/Smooth4x field resolution. Local RGB
+tint is normalized independently from ambient and applied
+multiplicatively through `_LightColorInfluence`, default 0.35.
 No PBR, specular, GI color wash, reflection, or smooth normal-diffuse response
 participates. Directional-light reception is not part of normal dungeon
 rendering. Realtime local-light shadows are deferred.

@@ -80,11 +80,21 @@ Material:
     - _GroundCellWorldSize: 0.33333334
     - _GroundLookupStartRow: 0
     - _GroundTopY: 0
-    - _LightSteps: 4.1
+    - _HotWashBlackPoint: 0.039
+    - _HotWashColorInfluence: 0.5
+    - _HotWashFullPoint: 0.118
+    - _HotWashStrength: 3
+    - _LightColorInfluence: 0.66
+    - _LightExposure: 1
+    - _LightSteps: 6
+    - _MaxOverbright: 3
     - _Metallic: 0
-    - _MinLight: 0.015
+    - _MinLight: 0
     - _NormalLightingStrength: 0.4
     - _OcclusionStrength: 1
+    - _OverbrightColorInfluence: 1
+    - _OverbrightResponse: 3
+    - _OverbrightThreshold: 4
     - _PrimaryFamily: 1
     - _QueueControl: 0
     - _QueueOffset: 0

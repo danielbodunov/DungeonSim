@@ -24,6 +24,16 @@ Shader "DungeonSim/Rotation Safe Tile Atlas"
 
         _LightSteps("Light Steps", Range(2, 16)) = 4
         _MinLight("Minimum Light", Range(0, 1)) = 0.25
+        _LightExposure("Light Exposure", Range(0.01, 4)) = 1
+        _OverbrightThreshold("Overbright Threshold", Range(0, 4)) = 0.9
+        _OverbrightResponse("Overbright Response", Range(0.1, 4)) = 1.25
+        _MaxOverbright("Maximum Overbright", Range(1, 4)) = 1.75
+        _LightColorInfluence("Light Color Influence", Range(0, 1)) = 0.35
+        _OverbrightColorInfluence("Overbright Color Influence", Range(0, 1)) = 0.8
+        _HotWashStrength("Hot Wash Strength", Range(0, 3)) = 0.75
+        _HotWashBlackPoint("Hot Wash Black Point", Range(0, 1)) = 0.05
+        _HotWashFullPoint("Hot Wash Full Point", Range(0, 1)) = 0.3
+        _HotWashColorInfluence("Hot Wash Color Influence", Range(0, 1)) = 0.9
         _AOIntensity("Vertex AO Intensity", Range(0, 1)) = 1
         _GlobalLightTint("Global Light Tint", Color) = (1, 1, 1, 1)
         [Enum(UnityEngine.Rendering.CullMode)] _Cull("Cull", Float) = 2
@@ -86,6 +96,8 @@ Shader "DungeonSim/Rotation Safe Tile Atlas"
             SAMPLER(sampler_GroundSurfaceLookup);
             TEXTURE2D(_DungeonLightTexture);
             SAMPLER(sampler_DungeonLightTexture);
+            TEXTURE2D(_DungeonPreviousLightTexture);
+            SAMPLER(sampler_DungeonPreviousLightTexture);
 
             float4 _BaseMap_TexelSize;
             float4 _SurfaceLookup_TexelSize;
@@ -94,6 +106,9 @@ Shader "DungeonSim/Rotation Safe Tile Atlas"
             float _DungeonGlobalLightInitialized;
             float _DungeonLightingInitialized;
             float _DungeonLightingModeBlend;
+            float _DungeonLightTextureBlend;
+            float _DungeonLightingPixelsPerCell;
+            float _DungeonLightingPropagationSamplesPerCell;
             float4 _DungeonGridCellZero;
             float4 _DungeonGridStep;
             float4 _DungeonGridSize;
@@ -117,6 +132,16 @@ Shader "DungeonSim/Rotation Safe Tile Atlas"
                 float _GroundCellScale;
                 float _LightSteps;
                 float _MinLight;
+                float _LightExposure;
+                float _OverbrightThreshold;
+                float _OverbrightResponse;
+                float _MaxOverbright;
+                float _LightColorInfluence;
+                float _OverbrightColorInfluence;
+                float _HotWashStrength;
+                float _HotWashBlackPoint;
+                float _HotWashFullPoint;
+                float _HotWashColorInfluence;
                 float _AOIntensity;
             CBUFFER_END
 
@@ -221,7 +246,7 @@ Shader "DungeonSim/Rotation Safe Tile Atlas"
                     _SurfaceLookup, sampler_SurfaceLookup, rectUV, 0);
             }
 
-            half3 SampleDungeonLighting(float3 positionWS)
+            half3 SampleDungeonLocalLighting(float3 positionWS)
             {
                 if (_DungeonLightingInitialized < 0.5)
                     return 0;
@@ -231,17 +256,68 @@ Shader "DungeonSim/Rotation Safe Tile Atlas"
                     abs(_DungeonGridStep.y) < 0.0001 ? 1 : _DungeonGridStep.y);
                 float2 gridCoordinate =
                     (positionWS.xy - _DungeonGridCellZero.xy) / safeStep;
+                float pixelsPerCell = max(
+                    1, round(_DungeonLightingPixelsPerCell));
+                gridCoordinate =
+                    (floor((gridCoordinate + 0.5) * pixelsPerCell) + 0.5) /
+                    pixelsPerCell - 0.5;
                 float2 lightUV =
                     (gridCoordinate + 0.5) / max(_DungeonGridSize.xy, 1);
                 bool insideGrid = all(lightUV >= 0) && all(lightUV <= 1);
-                half3 localLight = insideGrid
-                    ? SAMPLE_TEXTURE2D_LOD(
-                        _DungeonLightTexture,
-                        sampler_DungeonLightTexture,
-                        saturate(lightUV),
-                        0).rgb
-                    : 0;
-                return max(0, _DungeonAmbientColor.rgb) + localLight;
+                if (!insideGrid)
+                    return 0;
+
+                float propagationSamplesPerCell = max(
+                    1, round(_DungeonLightingPropagationSamplesPerCell));
+                float2 propagationSize = max(
+                    _DungeonGridSize.xy * propagationSamplesPerCell,
+                    1);
+                float2 sampleCoordinate =
+                    (gridCoordinate + 0.5) * propagationSamplesPerCell - 0.5;
+                float2 sampleBase = floor(sampleCoordinate);
+                float2 sampleFraction = frac(sampleCoordinate);
+                float2 sampleA = clamp(
+                    sampleBase, 0, propagationSize - 1);
+                float2 sampleB = clamp(
+                    sampleBase + float2(1, 0), 0, propagationSize - 1);
+                float2 sampleC = clamp(
+                    sampleBase + float2(0, 1), 0, propagationSize - 1);
+                float2 sampleD = clamp(
+                    sampleBase + float2(1, 1), 0, propagationSize - 1);
+                int2 texelA = int2(sampleA);
+                int2 texelB = int2(sampleB);
+                int2 texelC = int2(sampleC);
+                int2 texelD = int2(sampleD);
+
+                half3 previousA = LOAD_TEXTURE2D_LOD(
+                    _DungeonPreviousLightTexture, texelA, 0).rgb;
+                half3 previousB = LOAD_TEXTURE2D_LOD(
+                    _DungeonPreviousLightTexture, texelB, 0).rgb;
+                half3 previousC = LOAD_TEXTURE2D_LOD(
+                    _DungeonPreviousLightTexture, texelC, 0).rgb;
+                half3 previousD = LOAD_TEXTURE2D_LOD(
+                    _DungeonPreviousLightTexture, texelD, 0).rgb;
+                half3 previousLight = lerp(
+                    lerp(previousA, previousB, sampleFraction.x),
+                    lerp(previousC, previousD, sampleFraction.x),
+                    sampleFraction.y);
+
+                half3 currentA = LOAD_TEXTURE2D_LOD(
+                    _DungeonLightTexture, texelA, 0).rgb;
+                half3 currentB = LOAD_TEXTURE2D_LOD(
+                    _DungeonLightTexture, texelB, 0).rgb;
+                half3 currentC = LOAD_TEXTURE2D_LOD(
+                    _DungeonLightTexture, texelC, 0).rgb;
+                half3 currentD = LOAD_TEXTURE2D_LOD(
+                    _DungeonLightTexture, texelD, 0).rgb;
+                half3 currentLight = lerp(
+                    lerp(currentA, currentB, sampleFraction.x),
+                    lerp(currentC, currentD, sampleFraction.x),
+                    sampleFraction.y);
+                return lerp(
+                    previousLight,
+                    currentLight,
+                    saturate(_DungeonLightTextureBlend));
             }
 
             half4 Frag(Varyings input) : SV_Target
@@ -258,12 +334,16 @@ Shader "DungeonSim/Rotation Safe Tile Atlas"
                     : input.uv * max(_WorldTiling, 0.0001);
                 half4 atlas = SAMPLE_TEXTURE2D_LOD(_BaseMap, sampler_BaseMap, selectedUV, 0);
 
-                half3 dungeonLighting = SampleDungeonLighting(input.positionWS);
-                float lightAmount = saturate(dot(
-                    dungeonLighting,
+                half3 localLighting = SampleDungeonLocalLighting(input.positionWS);
+                half3 totalLighting = max(0, _DungeonAmbientColor.rgb) + localLighting;
+                float lightEnergy = max(0, dot(
+                    totalLighting,
                     half3(0.2126, 0.7152, 0.0722)));
+                float shapedLight = 1 - exp(
+                    -lightEnergy * max(0.01, _LightExposure));
                 float steps = max(2, round(_LightSteps));
-                float quantized = round(lightAmount * (steps - 1)) / (steps - 1);
+                float quantized = round(saturate(shapedLight) * (steps - 1)) /
+                    (steps - 1);
                 float localLightMultiplier = lerp(
                     saturate(_MinLight), 1, quantized);
                 float vertexAO = lerp(1, saturate(input.ao), saturate(_AOIntensity));
@@ -274,10 +354,60 @@ Shader "DungeonSim/Rotation Safe Tile Atlas"
                     1,
                     localLightMultiplier,
                     saturate(_DungeonLightingModeBlend));
+                half maximumLocalChannel = max(
+                    localLighting.r,
+                    max(localLighting.g, localLighting.b));
+                half3 localTint = maximumLocalChannel > 0.0001
+                    ? localLighting / maximumLocalChannel
+                    : half3(1, 1, 1);
+                half3 stylizedTint = lerp(
+                    half3(1, 1, 1),
+                    localTint,
+                    saturate(_LightColorInfluence) *
+                        saturate(_DungeonLightingModeBlend));
+                float localEnergy = max(0, dot(
+                    localLighting,
+                    half3(0.2126, 0.7152, 0.0722)));
+                float excessEnergy = max(
+                    0, localEnergy - max(0, _OverbrightThreshold));
+                float overbrightT = 1 - exp(
+                    -excessEnergy * max(0.1, _OverbrightResponse));
+                float maximumOverbright = max(1, _MaxOverbright);
+                float overbright = lerp(1, maximumOverbright, overbrightT);
+                float hotAmount = saturate(
+                    (overbright - 1) /
+                    max(maximumOverbright - 1, 0.0001));
+                half3 multiplicativeHotTint = lerp(
+                    half3(1, 1, 1),
+                    localTint,
+                    saturate(_OverbrightColorInfluence) * hotAmount *
+                        saturate(_DungeonLightingModeBlend));
+                float presentationOverbright = lerp(
+                    1, overbright, saturate(_DungeonLightingModeBlend));
 
-                half3 color = atlas.rgb * _BaseColor.rgb * _GlobalLightTint.rgb *
-                    presentationLighting * presentationBrightness * vertexAO;
-                return half4(color, atlas.a * _BaseColor.a);
+                half3 baseLitColor =
+                    atlas.rgb * _BaseColor.rgb * _GlobalLightTint.rgb *
+                    presentationLighting * stylizedTint * multiplicativeHotTint *
+                    presentationOverbright * presentationBrightness * vertexAO;
+                float atlasLuminance = max(0, dot(
+                    atlas.rgb,
+                    half3(0.2126, 0.7152, 0.0722)));
+                float blackPoint = saturate(_HotWashBlackPoint);
+                float fullPoint = max(
+                    blackPoint + 0.0001,
+                    saturate(_HotWashFullPoint));
+                float washMask = smoothstep(
+                    blackPoint, fullPoint, atlasLuminance);
+                half3 hotColor = lerp(
+                    half3(1, 1, 1),
+                    localTint,
+                    saturate(_HotWashColorInfluence));
+                half3 hotWash = hotColor * overbrightT * washMask *
+                    max(0, _HotWashStrength) *
+                    saturate(_DungeonLightingModeBlend) *
+                    presentationBrightness * vertexAO;
+
+                return half4(baseLitColor + hotWash, atlas.a * _BaseColor.a);
             }
             ENDHLSL
         }
