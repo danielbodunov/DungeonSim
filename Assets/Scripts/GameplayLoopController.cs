@@ -241,6 +241,7 @@ public class GameplayLoopController : MonoBehaviour
     TilePlacement tilePlacement;
     TileGridGenerator tileGrid;
     NPCTraversal npcTraversal;
+    DungeonLightingManager dungeonLightingManager;
     float selectedSpeed = 1f;
     float spawnTimer;
     int visitorsScheduled;
@@ -382,6 +383,7 @@ public class GameplayLoopController : MonoBehaviour
         tilePlacement = FindAnyObjectByType<TilePlacement>();
         tileGrid = FindAnyObjectByType<TileGridGenerator>();
         npcTraversal = FindAnyObjectByType<NPCTraversal>();
+        dungeonLightingManager = FindAnyObjectByType<DungeonLightingManager>();
         if (npcTraversal != null)
         {
             npcTraversal.AdventurerDefeated += OnAdventurerDefeated;
@@ -391,6 +393,8 @@ public class GameplayLoopController : MonoBehaviour
             gameObject.AddComponent<GameSaveManager>();
         if (GetComponent<NPCActionFeedbackUI>() == null)
             gameObject.AddComponent<NPCActionFeedbackUI>();
+        if (FindAnyObjectByType<DungeonVisualLightingController>() == null)
+            gameObject.AddComponent<DungeonVisualLightingController>();
     }
 
     void Start()
@@ -493,6 +497,8 @@ public class GameplayLoopController : MonoBehaviour
     public void SetExpansion()
     {
         Phase = DungeonPhase.Expansion;
+        ResolveDungeonLightingManager()?.SetPresentationMode(
+            DungeonLightingManager.PresentationMode.ExpansionUniform);
         ExplorationTimeRemaining = 0f;
         visitorsScheduled = 0;
         tilePlacement?.SetBuildingEnabled(true);
@@ -506,6 +512,8 @@ public class GameplayLoopController : MonoBehaviour
     {
         bool isNewOpening = Phase != DungeonPhase.Exploring;
         Phase = DungeonPhase.Exploring;
+        ResolveDungeonLightingManager()?.SetPresentationMode(
+            DungeonLightingManager.PresentationMode.ExploringAtmospheric);
         if (isNewOpening)
             dungeonOpenCount++;
         ExplorationTimeRemaining = explorationDuration;
@@ -519,6 +527,13 @@ public class GameplayLoopController : MonoBehaviour
         SpawnNextAdventurer();
         spawnTimer = adventurerSpawnInterval;
         StateChanged?.Invoke();
+    }
+
+    DungeonLightingManager ResolveDungeonLightingManager()
+    {
+        if (dungeonLightingManager == null)
+            dungeonLightingManager = FindAnyObjectByType<DungeonLightingManager>();
+        return dungeonLightingManager;
     }
 
     public void ClearAdventurers()

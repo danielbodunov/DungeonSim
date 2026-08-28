@@ -30,6 +30,8 @@ public class GameplayLoopUI : MonoBehaviour
     TMP_Text phaseDetails;
     TMP_Text explorationDetails;
     TMP_Text pauseButtonText;
+    TMP_Text lightingOverrideButtonText;
+    Image lightingOverrideButtonImage;
     TMP_Text saveStatusText;
     Button loadLastSaveButton;
     GameObject saveMenuOverlay;
@@ -181,7 +183,7 @@ public class GameplayLoopUI : MonoBehaviour
     {
         RectTransform panel = CreatePanel(
             "Debug", parent, Vector2.zero, Vector2.zero, Vector2.zero,
-            new Vector2(210f, 388f), new Vector2(18f, 18f), Panel);
+            new Vector2(210f, 436f), new Vector2(18f, 18f), Panel);
         CreateLabel(panel, "DEBUG", 22, new Vector2(14f, -12f), new Vector2(182f, 30f));
 
         CreateButton(panel, "Set Day", new Vector2(14f, -52f), new Vector2(86f, 36f),
@@ -204,15 +206,51 @@ public class GameplayLoopUI : MonoBehaviour
         CreateButton(panel, "Clear NPCs", new Vector2(14f, -226f), new Vector2(182f, 38f),
             () => loop.ClearAdventurers());
 
-        CreateLabel(panel, "SAVE GAME", 13, new Vector2(14f, -274f), new Vector2(182f, 24f));
+        Button lightingOverride = CreateButton(
+            panel,
+            "Lighting Override: Off",
+            new Vector2(14f, -274f),
+            new Vector2(182f, 38f),
+            ToggleLightingDebugOverride);
+        lightingOverrideButtonText = lightingOverride.GetComponentInChildren<TMP_Text>();
+        lightingOverrideButtonImage = lightingOverride.GetComponent<Image>();
+
+        CreateLabel(panel, "SAVE GAME", 13, new Vector2(14f, -322f), new Vector2(182f, 24f));
         loadLastSaveButton = CreateButton(
-            panel, "Load Last Save", new Vector2(14f, -304f), new Vector2(182f, 36f),
+            panel, "Load Last Save", new Vector2(14f, -352f), new Vector2(182f, 36f),
             () => saveManager?.LoadLastSave());
         saveStatusText = CreateText(
             "Save Status", panel, string.Empty, 11, FontStyles.Normal,
             TextAlignmentOptions.TopLeft, Ink);
         SetRect(saveStatusText.rectTransform, new Vector2(0f, 1f), new Vector2(0f, 1f),
-            new Vector2(14f, -382f), new Vector2(196f, -346f));
+            new Vector2(14f, -430f), new Vector2(196f, -394f));
+    }
+
+    void ToggleLightingDebugOverride()
+    {
+        DungeonVisualLightingController lighting =
+            DungeonVisualLightingController.Instance ??
+            FindAnyObjectByType<DungeonVisualLightingController>();
+        if (lighting == null)
+            return;
+
+        lighting.SetDebugOverride(!lighting.DebugOverride);
+        RefreshLightingDebugOverride();
+    }
+
+    void RefreshLightingDebugOverride()
+    {
+        if (lightingOverrideButtonText == null || lightingOverrideButtonImage == null)
+            return;
+
+        DungeonVisualLightingController lighting =
+            DungeonVisualLightingController.Instance ??
+            FindAnyObjectByType<DungeonVisualLightingController>();
+        bool enabled = lighting != null && lighting.DebugOverride;
+        lightingOverrideButtonText.text = enabled
+            ? "Lighting Override: On"
+            : "Lighting Override: Off";
+        lightingOverrideButtonImage.color = enabled ? Accent : ButtonColor;
     }
 
     void BuildExpansionPalette(RectTransform parent)
@@ -994,6 +1032,7 @@ public class GameplayLoopUI : MonoBehaviour
         if (loop == null || phaseDetails == null)
             return;
 
+        RefreshLightingDebugOverride();
         RefreshPaletteSelection();
         RefreshRecoveryPanel();
         if (dreadActionText != null)

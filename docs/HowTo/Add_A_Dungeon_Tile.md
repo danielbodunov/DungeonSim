@@ -26,6 +26,43 @@ Runtime scripts usually should **not** need modification for a new tile that fit
 8. Add the profile to the adjacency/solver data through the existing editor workflow.
 9. Test placement in several neighborhoods rather than only in isolation.
 
+## Rotation-safe texture authoring
+
+For gravity-oriented pixel art, assign the shared `RotationSafeTileAtlas`
+material and follow the family/sprite contract in
+[Prefab and Asset Conventions](../Reference/Prefab_Conventions.md#rotation-safe-surface-textures).
+
+In Blender, keep face normals correct and paint structural/contact AO into the
+red vertex-color channel (`1` clear, `0` occluded). Do not rotate atlas regions
+to compensate for a particular profile. Export FBX with vertex colors and
+stable real-world tile scale. In Unity, enable vertex-color import and configure
+the atlas as Point, no mipmaps, uncompressed, and Clamp. Tune world tiling,
+`Light Steps`, and `Minimum Light Multiplier` on the shared material; edit red
+vertex AO on the mesh. The atlas is authored at full-light appearance and the
+Unlit shader only darkens it through multiplicative quantized lighting.
+
+Preview the same source prefab through R0, R1, R2, and R3. Confirm that back-wall
+details stay upright, up/down-facing geometry selects floor/ceiling art, side
+walls select side art, and vertex AO remains attached to the geometry.
+
+Production surface art comes from sliced Sprites in `DungeonAtlas.png`. Create
+or edit a `DungeonSurfaceFamily`, assign Sprite variants for every role, then run
+`Tools > Dungeon > Rebuild Surface Family Lookup`. Use UV2.x only for semantic
+Primary/Secondary/Accent/Special slots; do not encode sprite coordinates or
+world-facing roles in the mesh. Each role variant has a relative weight; zero
+disables an entry and weights need not sum to 100. A mesh without UV2 safely
+uses Primary.
+
+For layered ground, create a `DungeonGroundSurfaceFamily` instead. Configure
+contiguous depth bands and an unbounded final fallback, assign sliced Sprite
+variants, rebuild the lookup, and add `DungeonGroundSurfaceAppearance` to the
+ground prefab. Each variant has a relative weight; leave it at 1 for a
+single-Sprite band. Set its top-world-Y (or reference Transform), `Logical Cells
+Per Tile` (3 for current geometry), and authored tile world size at the
+region/generator level. Rebuild after changing bands, Sprites, or weights; the
+Inspector warns when lookup data is stale. Do not encode Top/Mid/Fill through
+UV2 slots.
+
 Construction module changes that affect an opening, collider, or traversal are
 not visual variants. Mark them `RequiresTopologyResolution` and represent the
 result through an appropriate tile profile.

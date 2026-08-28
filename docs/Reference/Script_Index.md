@@ -150,6 +150,11 @@ This is a developer-facing catalog of `Assets/Scripts`. It is organized by respo
 
 ## Lighting
 
+### `DungeonVisualLightingController`
+**Role:** Single runtime authority for the rotation-safe atlas shader's global baseline visual brightness.
+**Reads:** authoritative `GameplayLoopController.Phase` through `StateChanged`.
+**Writes:** global shader float `_GlobalLightIntensity`; it does not create or mutate material instances.
+
 ### `DungeonLightingManager`
 **Role:** Chunked world-space dungeon light field.  
 **Reads:** grid topology and active light sources.  

@@ -9,6 +9,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 6262640064813781720}
+  - component: {fileID: 175052975836350860}
   m_Layer: 0
   m_Name: Ground_Full_X
   m_TagString: Untagged
@@ -33,6 +34,24 @@ Transform:
   - {fileID: 6001398659785497994}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &175052975836350860
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 175052975836350859}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e40e5a37968f4f4b8f905ccb86ebc44d, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::DungeonGroundSurfaceAppearance
+  family: {fileID: 11400000, guid: 9b5825433dce409ca83d561304c4dba4, type: 2}
+  groundTopReference: {fileID: 0}
+  groundTopY: 0
+  logicalCellsPerTile: 3
+  dungeonTileWorldSize: 1
+  visualSeed: 24
 --- !u!1 &2078008252924825260
 GameObject:
   m_ObjectHideFlags: 0
@@ -99,7 +118,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: b6dda0f6d2202e64082961509dce011e, type: 2}
+  - {fileID: 2100000, guid: 45d73c86291f4261a53402175e822cb3, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
