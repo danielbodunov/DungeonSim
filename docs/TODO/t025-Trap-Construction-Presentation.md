@@ -2,7 +2,7 @@
 
 ## Tracking
 - **ID:** t025
-- **Status:** Planned
+- **Status:** Completed
 - **Milestone:** Strategic Construction
 - **Depends on:** t019–t022
 
@@ -96,13 +96,67 @@ Unbuilt Ground
 - Topology-changing construction transactions
 
 ## Post-Implementation Notes
-Document:
-- the trap presentation contract;
-- how t021 surfaces are selected/restored;
-- how service-cell ground presentation is overridden;
-- how overlapping/competing presentation authority is resolved;
-- what remains derived versus persisted;
-- any art/prefab requirements exposed for future traps.
+
+- `TrapConstructionPresentation` derives both preview and committed visuals
+  from `TrapAttachmentPlacement`; presentation does not own occupancy.
+- A trap definition declares optional target-surface, mechanism-cell, and
+  infrastructure-cell prefabs. Shared-material fallback modules keep SpikeWall
+  and multi-cell footprints testable before final art is authored.
+- Compatible t021 slots select the requested target variant only when the slot
+  is `VisualOnly`. The previously selected/default variant is restored on
+  removal; topology-sensitive slots are rejected by the variant API.
+- Preview and commit resolve the same authored target variant. Preview clones
+  its module without selecting it on the live tile and transiently suppresses
+  only the currently active module's renderers. Each renderer's exact prior
+  enabled state is restored immediately when preview changes or ends.
+- Committed service cells temporarily hide their ordinary ground renderers.
+  Existing placement reservations resolve overlap/competition before this
+  override, and removal/clear restores the renderers.
+- Save files and scenarios retain only authoritative trap placement state.
+  Their normal placement reconstruction rebuilds all transient visuals.
+- Production prefabs should be modular, cell-sized, use shared materials, avoid
+  traversal colliders, and align target modules to construction-surface anchors.
+
+## Unity Validation
+
+Validated in Unity on 2026-08-28.
+
+The original presentation foundation passed this validation. The subsequent
+authored-variant preview/commit parity correction requires the follow-up checks
+below before the ticket returns to Completed.
+
+1. Enter Expansion and choose SpikeWall. Hover a valid service cell and confirm
+   target-surface and service-cell presentation appear before placement.
+2. Place the trap. Confirm the target treatment matches preview, ordinary ground
+   is displaced in the service cell, and the target corridor still traverses and
+   triggers normally.
+3. Configure temporary additional mechanism/infrastructure offsets and confirm
+   every reserved cell is visible without debug overlays.
+4. Remove the trap from its primary service cell. Confirm the target's prior
+   surface and all displaced ground presentations return.
+5. Place again, save during Expansion, alter/remove it, then load. Confirm the
+   same orientation, target treatment, and complete service footprint return.
+6. Capture/reset a `DungeonTestScenario` containing the trap and verify the same
+   reconstruction. Confirm no presentation preview objects remain after leaving
+   Play mode.
+
+### Authored-Variant Parity Follow-Up
+
+Validated in Unity on 2026-08-29.
+
+1. On a tile with a `VisualOnly` `TrapOpening` variant, hover SpikeWall from each
+   supported orientation. Confirm preview shows a clone of that authored module,
+   including its offset, rotation, scale, mesh, and materials.
+2. While hovering, confirm the live Default module remains active and the live
+   TrapOpening module remains inactive.
+3. Place the trap and confirm the live TrapOpening module matches preview with
+   no fallback target cube, duplicate module, or visual pop.
+4. Confirm mechanism/infrastructure preview and committed presentation are
+   unchanged by this correction.
+5. Remove the trap and confirm the prior variant and service-cell ground return.
+   Leave Play mode and confirm no cloned preview module remains.
+6. Repeat with a missing variant and confirm the explicit prefab/fallback path
+   still works. Confirm a `RequiresTopologyResolution` surface cannot be changed.
 
 ## Git
 Suggested branch: `feature/t025-trap-construction-presentation`

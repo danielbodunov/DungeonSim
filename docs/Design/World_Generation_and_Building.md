@@ -73,6 +73,10 @@ CURRENT TECHNICAL BASELINE
   target/hazard cells.
 - Construction requires explicit trap removal when it would occupy a reserved
   footprint or invalidate the target tile's attachment compatibility.
+- Trap construction presentation is derived from the authoritative attachment
+  footprint. It previews and commits a target-surface treatment plus visible
+  mechanism/infrastructure occupancy, while preserving target-corridor topology
+  and keeping service cells non-traversable.
 - One authoritative dungeon entrance can be placed on a compatible authored
   prop socket and is persisted independently from the host tile.
 - Player build intent supports Auto, Narrow, and Wide cells, plus explicit shared

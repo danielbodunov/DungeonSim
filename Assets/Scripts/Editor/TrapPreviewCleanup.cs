@@ -9,7 +9,8 @@ public static class TrapPreviewCleanup
     {
         "Trap Target Corridor Preview",
         "Trap Footprint Preview",
-        "Trap Hazard Direction Preview"
+        "Trap Hazard Direction Preview",
+        "Trap Construction Presentation Preview"
     };
 
     static TrapPreviewCleanup()

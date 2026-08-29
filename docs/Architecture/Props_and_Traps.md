@@ -101,6 +101,49 @@ from the same resolved placement result. Trap grid indicators use the hovered
 cell indicator's Z plane. The hazard-direction line instead uses the target
 cell center's Z plane so it aligns with the affected corridor volume.
 
+### Trap construction presentation
+
+`TrapConstructionPresentation` is derived from the resolved
+`TrapAttachmentPlacement`; it is not placement authority. A trap definition may
+provide a target-surface module prefab, a mechanism-cell module prefab, and an
+infrastructure-cell module prefab. The SpikeWall uses this generic contract.
+When neither an authored surface variant nor a presentation prefab is available,
+the validation implementation creates a shared-material fallback module so the
+complete footprint remains readable.
+
+The prospective presentation is built for preview under a `DontSave` root. It
+does not change live tile modules, ground renderers, topology, or reservations.
+Committed placement uses the same positions and authored presentation inputs.
+Mechanism and infrastructure cells hide their ordinary generated ground
+renderers while the trap owns them, but remain logically unbuilt and
+non-traversable. Authoritative reservation rules resolve competing ownership
+before presentation is created.
+
+If the target tile exposes a compatible `TileConstructionSurfaces` slot marked
+`VisualOnly`, preview retrieves the requested variant without changing live
+active states. Renderers under the currently selected module are suppressed
+transiently, with their individual enabled states recorded and restored as soon
+as preview changes or ends. Preview then clones only the requested module under
+the transient preview root. Its authored world transform, scale, meshes, and
+materials are preserved while colliders, rigidbodies, and behaviours are made
+non-interactive. Commit selects
+the same live variant and records the previously active variant for removal. A
+usable authored variant suppresses the target prefab/fallback, preventing a
+duplicate target treatment. Missing variants fall back to the explicit target
+prefab and then the generated fallback module. A slot marked
+`RequiresTopologyResolution` is never selected through this path, so target
+presentation cannot silently change connections or traversal.
+
+Removing or clearing a trap restores the recorded target variant and re-enables
+the ground renderers hidden by that trap. Save/load and scenario reset rebuild
+the presentation through normal trap placement; no presentation GameObjects are
+saved.
+
+Production trap art should provide modular presentation prefabs sized to the
+logical cell and use shared materials. Target modules align to the construction-
+surface anchor. Mechanism and infrastructure modules use cell centers and must
+not add traversal colliders or modify `TileSocketProfile`.
+
 The current placement transaction still reserves the whole existing unbuilt
 cell as service space. t021 adds `TileConstructionSurfaces` to separate authored
 floor, ceiling, cardinal-wall, and trap-service anchors/modules from the tile's

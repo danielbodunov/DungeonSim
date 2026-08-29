@@ -50,21 +50,67 @@ public sealed class TileConstructionSurfaceSlot
     public bool SupportsTrapAttachment(TrapAttachmentSurface surface) =>
         (trapAttachmentSurfaces & TrapAttachmentDefinition.ToMask(surface)) != 0;
 
+    public string GetSelectedVariantId()
+    {
+        if (variants == null)
+            return string.Empty;
+        for (int i = 0; i < variants.Count; i++)
+        {
+            TileConstructionModuleVariant variant = variants[i];
+            if (variant?.ModuleRoot != null && variant.ModuleRoot.activeSelf)
+                return variant.Id;
+        }
+        return string.Empty;
+    }
+
+    public bool TryGetVariant(
+        string variantId,
+        out TileConstructionModuleVariant variant)
+    {
+        if (variants != null)
+        {
+            for (int i = 0; i < variants.Count; i++)
+            {
+                TileConstructionModuleVariant candidate = variants[i];
+                if (candidate != null && string.Equals(
+                        candidate.Id, variantId, StringComparison.Ordinal))
+                {
+                    variant = candidate;
+                    return true;
+                }
+            }
+        }
+        variant = null;
+        return false;
+    }
+
     internal bool TrySelectVariant(string variantId)
     {
-        if (moduleImpact != TileConstructionModuleImpact.VisualOnly)
+        if (moduleImpact != TileConstructionModuleImpact.VisualOnly ||
+            variants == null)
             return false;
         bool found = false;
         for (int i = 0; i < variants.Count; i++)
         {
             TileConstructionModuleVariant variant = variants[i];
-            bool selected = variant != null &&
-                string.Equals(variant.Id, variantId, StringComparison.Ordinal);
-            if (variant?.ModuleRoot != null)
-                variant.ModuleRoot.SetActive(selected);
-            found |= selected;
+            if (variant?.ModuleRoot != null && string.Equals(
+                    variant.Id, variantId, StringComparison.Ordinal))
+            {
+                found = true;
+                break;
+            }
         }
-        return found;
+        if (!found)
+            return false;
+
+        for (int i = 0; i < variants.Count; i++)
+        {
+            TileConstructionModuleVariant variant = variants[i];
+            if (variant?.ModuleRoot != null)
+                variant.ModuleRoot.SetActive(string.Equals(
+                    variant.Id, variantId, StringComparison.Ordinal));
+        }
+        return true;
     }
 }
 
@@ -100,6 +146,17 @@ public sealed class TileConstructionSurfaces : MonoBehaviour
     public bool TrySelectVariant(string surfaceId, string variantId) =>
         TryGetSurface(surfaceId, out TileConstructionSurfaceSlot surface) &&
         surface.TrySelectVariant(variantId);
+
+    public bool TryGetVariant(
+        string surfaceId,
+        string variantId,
+        out TileConstructionModuleVariant variant)
+    {
+        if (TryGetSurface(surfaceId, out TileConstructionSurfaceSlot surface))
+            return surface.TryGetVariant(variantId, out variant);
+        variant = null;
+        return false;
+    }
 
     public bool TryGetTrapSurface(
         TrapAttachmentSurface attachmentSurface,

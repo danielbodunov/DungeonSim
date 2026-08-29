@@ -102,6 +102,21 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::TrapAttachmentDefinition
   allowedSurfaces: -1
   preferredSurface: 0
+  additionalMechanismCells:
+  - {x: 0, y: -1}
+  infrastructureCells:
+  - {x: 1, y: 0}
+  - {x: -1, y: 0}
+  additionalHazardCells: []
+  targetSurfaceVariantId: TrapOpening
+  restoredSurfaceVariantId: Default
+  targetSurfacePresentationPrefab: {fileID: 0}
+  mechanismCellPresentationPrefab: {fileID: 4891495026522122084, guid: 9e755a647ad74ea449be145cd6e7e496, type: 3}
+  infrastructureCellPresentationPrefab: {fileID: 0}
+  createFallbackPresentation: 1
+  targetSurfaceColor: {r: 0.16, g: 0.08, b: 0.04, a: 1}
+  mechanismCellColor: {r: 0.48, g: 0.2, b: 0.06, a: 1}
+  infrastructureCellColor: {r: 0.2, g: 0.28, b: 0.34, a: 1}
 --- !u!1001 &8569978173173472846
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -116,7 +131,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: d9dec37cbf515f54eae2c96ec062c7ee, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 1.1
+      value: 0.884
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: d9dec37cbf515f54eae2c96ec062c7ee, type: 3}
       propertyPath: m_LocalPosition.z
@@ -150,6 +165,14 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: -7511558181221131132, guid: d9dec37cbf515f54eae2c96ec062c7ee, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: 45d73c86291f4261a53402175e822cb3, type: 2}
+    - target: {fileID: 352017197298166820, guid: d9dec37cbf515f54eae2c96ec062c7ee, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: 45d73c86291f4261a53402175e822cb3, type: 2}
     - target: {fileID: 919132149155446097, guid: d9dec37cbf515f54eae2c96ec062c7ee, type: 3}
       propertyPath: m_Name
       value: SpikeWall_01

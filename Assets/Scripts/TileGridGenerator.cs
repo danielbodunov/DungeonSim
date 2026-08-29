@@ -2822,6 +2822,10 @@ public class TileGridGenerator : MonoBehaviour
         }
 
         trap.Initialize(this, attachment);
+        TrapAttachmentDefinition definition =
+            instance.GetComponent<TrapAttachmentDefinition>();
+        TrapConstructionPresentation.ApplyCommitted(
+            this, trap, definition, attachment);
         placedTraps.Add(cell, trap);
         placedTrapObjectIds[cell] = objectId;
         placedTrapPrefabNames[cell] = trapPrefab.name;
@@ -2868,6 +2872,7 @@ public class TileGridGenerator : MonoBehaviour
         {
             if (trap == null)
                 continue;
+            trap.GetComponent<TrapConstructionPresentation>()?.Restore();
             trap.gameObject.SetActive(false);
             Destroy(trap.gameObject);
         }
@@ -2903,8 +2908,20 @@ public class TileGridGenerator : MonoBehaviour
         placedTrapObjectIds.Remove(cell);
         placedTrapPrefabNames.Remove(cell);
         if (trap != null)
+        {
+            trap.GetComponent<TrapConstructionPresentation>()?.Restore();
             Destroy(trap.gameObject);
+        }
         return true;
+    }
+
+    public GameObject GetCellPresentationObject(Vector2Int cell)
+    {
+        if (instantiated == null || cell.x < 0 || cell.y < 0 ||
+            cell.x >= instantiated.GetLength(0) ||
+            cell.y >= instantiated.GetLength(1))
+            return null;
+        return instantiated[cell.x, cell.y];
     }
 
     bool TryResolveLocalPlacement(
