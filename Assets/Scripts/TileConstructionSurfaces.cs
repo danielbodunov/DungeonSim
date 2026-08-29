@@ -52,6 +52,8 @@ public sealed class TileConstructionSurfaceSlot
 
     public string GetSelectedVariantId()
     {
+        if (variants == null)
+            return string.Empty;
         for (int i = 0; i < variants.Count; i++)
         {
             TileConstructionModuleVariant variant = variants[i];
@@ -59,6 +61,27 @@ public sealed class TileConstructionSurfaceSlot
                 return variant.Id;
         }
         return string.Empty;
+    }
+
+    public bool TryGetVariant(
+        string variantId,
+        out TileConstructionModuleVariant variant)
+    {
+        if (variants != null)
+        {
+            for (int i = 0; i < variants.Count; i++)
+            {
+                TileConstructionModuleVariant candidate = variants[i];
+                if (candidate != null && string.Equals(
+                        candidate.Id, variantId, StringComparison.Ordinal))
+                {
+                    variant = candidate;
+                    return true;
+                }
+            }
+        }
+        variant = null;
+        return false;
     }
 
     internal bool TrySelectVariant(string variantId)
@@ -123,6 +146,17 @@ public sealed class TileConstructionSurfaces : MonoBehaviour
     public bool TrySelectVariant(string surfaceId, string variantId) =>
         TryGetSurface(surfaceId, out TileConstructionSurfaceSlot surface) &&
         surface.TrySelectVariant(variantId);
+
+    public bool TryGetVariant(
+        string surfaceId,
+        string variantId,
+        out TileConstructionModuleVariant variant)
+    {
+        if (TryGetSurface(surfaceId, out TileConstructionSurfaceSlot surface))
+            return surface.TryGetVariant(variantId, out variant);
+        variant = null;
+        return false;
+    }
 
     public bool TryGetTrapSurface(
         TrapAttachmentSurface attachmentSurface,

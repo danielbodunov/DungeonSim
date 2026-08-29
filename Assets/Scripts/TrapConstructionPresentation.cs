@@ -8,8 +8,21 @@ using UnityEngine;
 [DisallowMultipleComponent]
 public sealed class TrapConstructionPresentation : MonoBehaviour
 {
+    readonly struct RendererEnabledState
+    {
+        public readonly Renderer Renderer;
+        public readonly bool WasEnabled;
+
+        public RendererEnabledState(Renderer renderer)
+        {
+            Renderer = renderer;
+            WasEnabled = renderer.enabled;
+        }
+    }
+
     static readonly Dictionary<Color32, Material> fallbackMaterials = new();
     readonly List<Renderer> hiddenGroundRenderers = new();
+    readonly List<RendererEnabledState> suppressedSurfaceRenderers = new();
     readonly List<GameObject> presentationObjects = new();
     TileConstructionSurfaces targetSurfaces;
     string targetSurfaceId;
@@ -54,6 +67,13 @@ public sealed class TrapConstructionPresentation : MonoBehaviour
         restored = true;
         if (targetSurfaces != null && !string.IsNullOrWhiteSpace(targetSurfaceId))
             targetSurfaces.TrySelectVariant(targetSurfaceId, restoredVariantId);
+        for (int i = 0; i < suppressedSurfaceRenderers.Count; i++)
+        {
+            RendererEnabledState state = suppressedSurfaceRenderers[i];
+            if (state.Renderer != null)
+                state.Renderer.enabled = state.WasEnabled;
+        }
+        suppressedSurfaceRenderers.Clear();
         for (int i = 0; i < hiddenGroundRenderers.Count; i++)
             if (hiddenGroundRenderers[i] != null)
                 hiddenGroundRenderers[i].enabled = true;
@@ -70,6 +90,7 @@ public sealed class TrapConstructionPresentation : MonoBehaviour
         Transform previewParent)
     {
         Transform targetAnchor = null;
+        TileConstructionModuleVariant targetVariant = null;
         GameObject targetTile = grid.GetCellPresentationObject(attachment.TargetCell);
         if (targetTile != null)
         {
@@ -78,33 +99,52 @@ public sealed class TrapConstructionPresentation : MonoBehaviour
                     attachment.Surface, out TileConstructionSurfaceSlot surface))
             {
                 targetAnchor = surface.Anchor;
-                string priorVariantId = surface.GetSelectedVariantId();
-                if (committed &&
-                    surface.ModuleImpact == TileConstructionModuleImpact.VisualOnly &&
-                    targetSurfaces.TrySelectVariant(
-                        surface.Id, definition.TargetSurfaceVariantId))
+                bool hasUsableVariant =
+                    surface.ModuleImpact ==
+                        TileConstructionModuleImpact.VisualOnly &&
+                    targetSurfaces.TryGetVariant(
+                        surface.Id,
+                        definition.TargetSurfaceVariantId,
+                        out targetVariant) &&
+                    targetVariant.ModuleRoot != null;
+                if (hasUsableVariant && !committed)
                 {
-                    targetSurfaceId = surface.Id;
-                    restoredVariantId = priorVariantId;
-                    if (string.IsNullOrWhiteSpace(restoredVariantId))
-                        restoredVariantId = definition.RestoredSurfaceVariantId;
+                    string selectedVariantId = surface.GetSelectedVariantId();
+                    if (!string.IsNullOrWhiteSpace(selectedVariantId) &&
+                        targetSurfaces.TryGetVariant(
+                            surface.Id,
+                            selectedVariantId,
+                            out TileConstructionModuleVariant selectedVariant) &&
+                        selectedVariant.ModuleRoot != null &&
+                        selectedVariant.ModuleRoot != targetVariant.ModuleRoot)
+                    {
+                        SuppressSurfaceRenderers(selectedVariant.ModuleRoot);
+                    }
+                }
+                if (hasUsableVariant && committed)
+                {
+                    string priorVariantId = surface.GetSelectedVariantId();
+                    if (targetSurfaces.TrySelectVariant(
+                            surface.Id, definition.TargetSurfaceVariantId))
+                    {
+                        targetSurfaceId = surface.Id;
+                        restoredVariantId = priorVariantId;
+                        if (string.IsNullOrWhiteSpace(restoredVariantId))
+                            restoredVariantId =
+                                definition.RestoredSurfaceVariantId;
+                    }
                 }
             }
         }
 
-        Vector3 targetPosition = targetAnchor != null
-            ? targetAnchor.position
-            : grid.GetCellWorldPosition(
-                attachment.TargetCell.x, attachment.TargetCell.y);
-        CreatePresentationObject(
-            definition.TargetSurfacePresentationPrefab,
-            targetPosition,
-            targetAnchor != null ? targetAnchor.rotation : Quaternion.identity,
-            new Vector3(0.58f, 0.58f, 0.06f),
-            definition.TargetSurfaceColor,
-            "Trap Target Surface",
-            previewParent,
-            definition.CreateFallbackPresentation);
+        bool usesCommittedVariant = committed &&
+            !string.IsNullOrWhiteSpace(targetSurfaceId);
+        bool usesPreviewVariant = !committed && targetVariant?.ModuleRoot != null;
+        if (usesPreviewVariant)
+            CreateVariantPreview(targetVariant.ModuleRoot, previewParent);
+        else if (!usesCommittedVariant)
+            CreateFallbackTargetPresentation(
+                grid, definition, attachment, targetAnchor, previewParent);
 
         CreateCellPresentations(
             grid, attachment.MechanismCells,
@@ -118,6 +158,81 @@ public sealed class TrapConstructionPresentation : MonoBehaviour
             definition.InfrastructureCellColor,
             "Trap Infrastructure Cell", committed, previewParent,
             definition.CreateFallbackPresentation);
+    }
+
+    void CreateFallbackTargetPresentation(
+        TileGridGenerator grid,
+        TrapAttachmentDefinition definition,
+        TrapAttachmentPlacement attachment,
+        Transform targetAnchor,
+        Transform previewParent)
+    {
+        Vector3 targetPosition = targetAnchor != null
+            ? targetAnchor.position
+            : grid.GetCellWorldPosition(
+                attachment.TargetCell.x, attachment.TargetCell.y);
+        CreatePresentationObject(
+            definition.TargetSurfacePresentationPrefab,
+            targetPosition,
+            targetAnchor != null ? targetAnchor.rotation : Quaternion.identity,
+            new Vector3(0.58f, 0.58f, 0.06f),
+            definition.TargetSurfaceColor,
+            "Trap Target Surface",
+            previewParent,
+            definition.CreateFallbackPresentation);
+    }
+
+    void CreateVariantPreview(GameObject moduleRoot, Transform previewParent)
+    {
+        GameObject instance = Instantiate(moduleRoot, previewParent, true);
+        instance.name = $"{moduleRoot.name} (Trap Preview)";
+        PrepareVariantPreview(instance);
+        instance.SetActive(true);
+        presentationObjects.Add(instance);
+    }
+
+    void SuppressSurfaceRenderers(GameObject moduleRoot)
+    {
+        Renderer[] renderers = moduleRoot.GetComponentsInChildren<Renderer>(true);
+        for (int i = 0; i < renderers.Length; i++)
+        {
+            Renderer renderer = renderers[i];
+            if (renderer == null)
+                continue;
+            suppressedSurfaceRenderers.Add(new RendererEnabledState(renderer));
+            renderer.enabled = false;
+        }
+    }
+
+    static void PrepareVariantPreview(GameObject root)
+    {
+        Transform[] transforms = root.GetComponentsInChildren<Transform>(true);
+        for (int i = 0; i < transforms.Length; i++)
+            transforms[i].gameObject.hideFlags = HideFlags.DontSave;
+
+        Behaviour[] behaviours = root.GetComponentsInChildren<Behaviour>(true);
+        for (int i = 0; i < behaviours.Length; i++)
+            behaviours[i].enabled = false;
+        Collider[] colliders = root.GetComponentsInChildren<Collider>(true);
+        for (int i = 0; i < colliders.Length; i++)
+            colliders[i].enabled = false;
+        Collider2D[] colliders2D = root.GetComponentsInChildren<Collider2D>(true);
+        for (int i = 0; i < colliders2D.Length; i++)
+            colliders2D[i].enabled = false;
+        Rigidbody[] rigidbodies = root.GetComponentsInChildren<Rigidbody>(true);
+        for (int i = 0; i < rigidbodies.Length; i++)
+        {
+            rigidbodies[i].isKinematic = true;
+            rigidbodies[i].useGravity = false;
+            rigidbodies[i].detectCollisions = false;
+        }
+        Rigidbody2D[] rigidbodies2D =
+            root.GetComponentsInChildren<Rigidbody2D>(true);
+        for (int i = 0; i < rigidbodies2D.Length; i++)
+        {
+            rigidbodies2D[i].bodyType = RigidbodyType2D.Kinematic;
+            rigidbodies2D[i].simulated = false;
+        }
     }
 
     void CreateCellPresentations(

@@ -105,6 +105,10 @@ Unbuilt Ground
 - Compatible t021 slots select the requested target variant only when the slot
   is `VisualOnly`. The previously selected/default variant is restored on
   removal; topology-sensitive slots are rejected by the variant API.
+- Preview and commit resolve the same authored target variant. Preview clones
+  its module without selecting it on the live tile and transiently suppresses
+  only the currently active module's renderers. Each renderer's exact prior
+  enabled state is restored immediately when preview changes or ends.
 - Committed service cells temporarily hide their ordinary ground renderers.
   Existing placement reservations resolve overlap/competition before this
   override, and removal/clear restores the renderers.
@@ -116,6 +120,10 @@ Unbuilt Ground
 ## Unity Validation
 
 Validated in Unity on 2026-08-28.
+
+The original presentation foundation passed this validation. The subsequent
+authored-variant preview/commit parity correction requires the follow-up checks
+below before the ticket returns to Completed.
 
 1. Enter Expansion and choose SpikeWall. Hover a valid service cell and confirm
    target-surface and service-cell presentation appear before placement.
@@ -131,6 +139,24 @@ Validated in Unity on 2026-08-28.
 6. Capture/reset a `DungeonTestScenario` containing the trap and verify the same
    reconstruction. Confirm no presentation preview objects remain after leaving
    Play mode.
+
+### Authored-Variant Parity Follow-Up
+
+Validated in Unity on 2026-08-29.
+
+1. On a tile with a `VisualOnly` `TrapOpening` variant, hover SpikeWall from each
+   supported orientation. Confirm preview shows a clone of that authored module,
+   including its offset, rotation, scale, mesh, and materials.
+2. While hovering, confirm the live Default module remains active and the live
+   TrapOpening module remains inactive.
+3. Place the trap and confirm the live TrapOpening module matches preview with
+   no fallback target cube, duplicate module, or visual pop.
+4. Confirm mechanism/infrastructure preview and committed presentation are
+   unchanged by this correction.
+5. Remove the trap and confirm the prior variant and service-cell ground return.
+   Leave Play mode and confirm no cloned preview module remains.
+6. Repeat with a missing variant and confirm the explicit prefab/fallback path
+   still works. Confirm a `RequiresTopologyResolution` surface cannot be changed.
 
 ## Git
 Suggested branch: `feature/t025-trap-construction-presentation`

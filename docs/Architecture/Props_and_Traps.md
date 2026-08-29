@@ -107,8 +107,9 @@ cell center's Z plane so it aligns with the affected corridor volume.
 `TrapAttachmentPlacement`; it is not placement authority. A trap definition may
 provide a target-surface module prefab, a mechanism-cell module prefab, and an
 infrastructure-cell module prefab. The SpikeWall uses this generic contract.
-When an authored prefab is absent, the validation implementation creates a
-shared-material fallback module so the complete footprint remains readable.
+When neither an authored surface variant nor a presentation prefab is available,
+the validation implementation creates a shared-material fallback module so the
+complete footprint remains readable.
 
 The prospective presentation is built for preview under a `DontSave` root. It
 does not change live tile modules, ground renderers, topology, or reservations.
@@ -119,11 +120,19 @@ non-traversable. Authoritative reservation rules resolve competing ownership
 before presentation is created.
 
 If the target tile exposes a compatible `TileConstructionSurfaces` slot marked
-`VisualOnly`, placement may select the trap definition's requested variant and
-records the previously active variant for removal. A slot marked
-`RequiresTopologyResolution` is never selected through this path. The target
-presentation prefab/fallback is anchored to the compatible surface, so this
-system never silently changes connections or traversal.
+`VisualOnly`, preview retrieves the requested variant without changing live
+active states. Renderers under the currently selected module are suppressed
+transiently, with their individual enabled states recorded and restored as soon
+as preview changes or ends. Preview then clones only the requested module under
+the transient preview root. Its authored world transform, scale, meshes, and
+materials are preserved while colliders, rigidbodies, and behaviours are made
+non-interactive. Commit selects
+the same live variant and records the previously active variant for removal. A
+usable authored variant suppresses the target prefab/fallback, preventing a
+duplicate target treatment. Missing variants fall back to the explicit target
+prefab and then the generated fallback module. A slot marked
+`RequiresTopologyResolution` is never selected through this path, so target
+presentation cannot silently change connections or traversal.
 
 Removing or clearing a trap restores the recorded target variant and re-enables
 the ground renderers hidden by that trap. Save/load and scenario reset rebuild

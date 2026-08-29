@@ -626,6 +626,8 @@ public class TilePlacement : MonoBehaviour
     {
         if (trapConstructionPresentationPreview != null)
         {
+            trapConstructionPresentationPreview
+                .GetComponent<TrapConstructionPresentation>()?.Restore();
             trapConstructionPresentationPreview.SetActive(false);
             DestroyPreviewObject(trapConstructionPresentationPreview);
         }
