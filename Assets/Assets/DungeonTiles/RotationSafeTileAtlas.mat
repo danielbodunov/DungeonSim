@@ -86,29 +86,29 @@ Material:
     - _GroundCellWorldSize: 0.33333334
     - _GroundLookupStartRow: 0
     - _GroundTopY: 0
-    - _HotWashBlackPoint: 0.039
-    - _HotWashColorInfluence: 0.5
-    - _HotWashFullPoint: 0.118
-    - _HotWashStrength: 3
-    - _LightColorInfluence: 0.66
-    - _LightExposure: 1
-    - _LightSteps: 6
-    - _MaxOverbright: 3
+    - _HotWashBlackPoint: 0.186
+    - _HotWashColorInfluence: 1
+    - _HotWashFullPoint: 0.248
+    - _HotWashStrength: 1.526
+    - _LightColorInfluence: 1
+    - _LightExposure: 1.41
+    - _LightSteps: 8
+    - _MaxOverbright: 2.477
     - _Metallic: 0
     - _MinLight: 0
     - _NormalLightingStrength: 0.4
     - _OcclusionStrength: 1
     - _OverbrightColorInfluence: 1
-    - _OverbrightResponse: 3
-    - _OverbrightThreshold: 4
+    - _OverbrightResponse: 4
+    - _OverbrightThreshold: 1.68
     - _PrimaryFamily: 1
     - _QueueControl: 0
     - _QueueOffset: 0
     - _SecondaryFamily: 1
     - _SpecialFamily: 0
-    - _SpecularSteps: 4.9
-    - _SpecularStrength: 4
-    - _SpecularStylization: 1
+    - _SpecularSteps: 6
+    - _SpecularStrength: 1.5
+    - _SpecularStylization: 0.189
     - _UseGroundLayers: 0
     - _VisualSeed: 205
     - _WorldTiling: 3
