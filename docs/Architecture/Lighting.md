@@ -133,6 +133,26 @@ toward independently quantized `_SpecularSteps`, without changing diffuse
 `_LightSteps`. Both additions default to zero strength and introduce no normal
 map dependency or shader-keyword variants.
 
+## Shared pixel-lit shader core
+
+`Assets/Shaders/Includes/DungeonPixelLitCore.hlsl` owns the reusable visual
+lighting model. It declares the propagated dungeon-light globals, reconstructs
+the interpolated local field, and evaluates quantized diffuse brightness, local
+color tint, HDR overbright/hot wash, vertex AO, mask-driven emission, and the
+RENDER-00 roughness/metallic specular response.
+
+Consumers provide a sampled surface color, packed material mask, world position,
+world normal, vertex AO value, and `DungeonPixelLitSettings`. The interface has
+no UV, atlas rectangle, surface-family, ground-depth, rotation, or tile-role
+input. A conventional UV0 prop shader can therefore sample its own textures and
+call `DungeonPixelLitEvaluate` without adopting terrain addressing.
+
+`RotationSafeTileAtlas.shader` remains responsible for world projection,
+surface role/family lookup, weighted variant selection, ground stratification,
+rotation-safe atlas UVs, and aligned material-mask sampling. It passes those
+sampled values into the shared core. ShadowCaster and DepthOnly passes remain
+shader-specific and unchanged.
+
 ## Source controls and animation
 
 `DungeonLightSource` owns source behavior. Its effective contribution is
