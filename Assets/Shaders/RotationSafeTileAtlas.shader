@@ -73,6 +73,7 @@ Shader "DungeonSim/Rotation Safe Tile Atlas"
             #pragma multi_compile_instancing
 
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
+            #include "Assets/Shaders/Includes/DungeonPixelLitCore.hlsl"
 
             struct Attributes
             {
@@ -104,25 +105,10 @@ Shader "DungeonSim/Rotation Safe Tile Atlas"
             SAMPLER(sampler_SurfaceLookup);
             TEXTURE2D(_GroundSurfaceLookup);
             SAMPLER(sampler_GroundSurfaceLookup);
-            TEXTURE2D(_DungeonLightTexture);
-            SAMPLER(sampler_DungeonLightTexture);
-            TEXTURE2D(_DungeonPreviousLightTexture);
-            SAMPLER(sampler_DungeonPreviousLightTexture);
 
             float4 _BaseMap_TexelSize;
             float4 _SurfaceLookup_TexelSize;
             float4 _GroundSurfaceLookup_TexelSize;
-            float _GlobalLightIntensity;
-            float _DungeonGlobalLightInitialized;
-            float _DungeonLightingInitialized;
-            float _DungeonLightingModeBlend;
-            float _DungeonLightTextureBlend;
-            float _DungeonLightingPixelsPerCell;
-            float _DungeonLightingPropagationSamplesPerCell;
-            float4 _DungeonGridCellZero;
-            float4 _DungeonGridStep;
-            float4 _DungeonGridSize;
-            float4 _DungeonAmbientColor;
 
             CBUFFER_START(UnityPerMaterial)
                 float4 _BaseColor;
@@ -263,80 +249,6 @@ Shader "DungeonSim/Rotation Safe Tile Atlas"
                     _SurfaceLookup, sampler_SurfaceLookup, rectUV, 0);
             }
 
-            half3 SampleDungeonLocalLighting(float3 positionWS)
-            {
-                if (_DungeonLightingInitialized < 0.5)
-                    return 0;
-
-                float2 safeStep = float2(
-                    abs(_DungeonGridStep.x) < 0.0001 ? 1 : _DungeonGridStep.x,
-                    abs(_DungeonGridStep.y) < 0.0001 ? 1 : _DungeonGridStep.y);
-                float2 gridCoordinate =
-                    (positionWS.xy - _DungeonGridCellZero.xy) / safeStep;
-                float pixelsPerCell = max(
-                    1, round(_DungeonLightingPixelsPerCell));
-                gridCoordinate =
-                    (floor((gridCoordinate + 0.5) * pixelsPerCell) + 0.5) /
-                    pixelsPerCell - 0.5;
-                float2 lightUV =
-                    (gridCoordinate + 0.5) / max(_DungeonGridSize.xy, 1);
-                bool insideGrid = all(lightUV >= 0) && all(lightUV <= 1);
-                if (!insideGrid)
-                    return 0;
-
-                float propagationSamplesPerCell = max(
-                    1, round(_DungeonLightingPropagationSamplesPerCell));
-                float2 propagationSize = max(
-                    _DungeonGridSize.xy * propagationSamplesPerCell,
-                    1);
-                float2 sampleCoordinate =
-                    (gridCoordinate + 0.5) * propagationSamplesPerCell - 0.5;
-                float2 sampleBase = floor(sampleCoordinate);
-                float2 sampleFraction = frac(sampleCoordinate);
-                float2 sampleA = clamp(
-                    sampleBase, 0, propagationSize - 1);
-                float2 sampleB = clamp(
-                    sampleBase + float2(1, 0), 0, propagationSize - 1);
-                float2 sampleC = clamp(
-                    sampleBase + float2(0, 1), 0, propagationSize - 1);
-                float2 sampleD = clamp(
-                    sampleBase + float2(1, 1), 0, propagationSize - 1);
-                int2 texelA = int2(sampleA);
-                int2 texelB = int2(sampleB);
-                int2 texelC = int2(sampleC);
-                int2 texelD = int2(sampleD);
-
-                half3 previousA = LOAD_TEXTURE2D_LOD(
-                    _DungeonPreviousLightTexture, texelA, 0).rgb;
-                half3 previousB = LOAD_TEXTURE2D_LOD(
-                    _DungeonPreviousLightTexture, texelB, 0).rgb;
-                half3 previousC = LOAD_TEXTURE2D_LOD(
-                    _DungeonPreviousLightTexture, texelC, 0).rgb;
-                half3 previousD = LOAD_TEXTURE2D_LOD(
-                    _DungeonPreviousLightTexture, texelD, 0).rgb;
-                half3 previousLight = lerp(
-                    lerp(previousA, previousB, sampleFraction.x),
-                    lerp(previousC, previousD, sampleFraction.x),
-                    sampleFraction.y);
-
-                half3 currentA = LOAD_TEXTURE2D_LOD(
-                    _DungeonLightTexture, texelA, 0).rgb;
-                half3 currentB = LOAD_TEXTURE2D_LOD(
-                    _DungeonLightTexture, texelB, 0).rgb;
-                half3 currentC = LOAD_TEXTURE2D_LOD(
-                    _DungeonLightTexture, texelC, 0).rgb;
-                half3 currentD = LOAD_TEXTURE2D_LOD(
-                    _DungeonLightTexture, texelD, 0).rgb;
-                half3 currentLight = lerp(
-                    lerp(currentA, currentB, sampleFraction.x),
-                    lerp(currentC, currentD, sampleFraction.x),
-                    sampleFraction.y);
-                return lerp(
-                    previousLight,
-                    currentLight,
-                    saturate(_DungeonLightTextureBlend));
-            }
-
             half4 Frag(Varyings input) : SV_Target
             {
                 UNITY_SETUP_INSTANCE_ID(input);
@@ -360,124 +272,38 @@ Shader "DungeonSim/Rotation Safe Tile Atlas"
                         0);
                 }
 
-                half3 localLighting = SampleDungeonLocalLighting(input.positionWS);
-                half3 totalLighting = max(0, _DungeonAmbientColor.rgb) + localLighting;
-                float lightEnergy = max(0, dot(
-                    totalLighting,
-                    half3(0.2126, 0.7152, 0.0722)));
-                float shapedLight = 1 - exp(
-                    -lightEnergy * max(0.01, _LightExposure));
-                float steps = max(2, round(_LightSteps));
-                float quantized = round(saturate(shapedLight) * (steps - 1)) /
-                    (steps - 1);
-                float localLightMultiplier = lerp(
-                    saturate(_MinLight), 1, quantized);
-                float vertexAO = lerp(1, saturate(input.ao), saturate(_AOIntensity));
-                float presentationBrightness = _DungeonGlobalLightInitialized > 0.5
-                    ? max(0, _GlobalLightIntensity)
-                    : 1;
-                float presentationLighting = lerp(
-                    1,
-                    localLightMultiplier,
-                    saturate(_DungeonLightingModeBlend));
-                half maximumLocalChannel = max(
-                    localLighting.r,
-                    max(localLighting.g, localLighting.b));
-                half3 localTint = maximumLocalChannel > 0.0001
-                    ? localLighting / maximumLocalChannel
-                    : half3(1, 1, 1);
-                half3 stylizedTint = lerp(
-                    half3(1, 1, 1),
-                    localTint,
-                    saturate(_LightColorInfluence) *
-                        saturate(_DungeonLightingModeBlend));
-                float localEnergy = max(0, dot(
-                    localLighting,
-                    half3(0.2126, 0.7152, 0.0722)));
-                float excessEnergy = max(
-                    0, localEnergy - max(0, _OverbrightThreshold));
-                float overbrightT = 1 - exp(
-                    -excessEnergy * max(0.1, _OverbrightResponse));
-                float maximumOverbright = max(1, _MaxOverbright);
-                float overbright = lerp(1, maximumOverbright, overbrightT);
-                float hotAmount = saturate(
-                    (overbright - 1) /
-                    max(maximumOverbright - 1, 0.0001));
-                half3 multiplicativeHotTint = lerp(
-                    half3(1, 1, 1),
-                    localTint,
-                    saturate(_OverbrightColorInfluence) * hotAmount *
-                        saturate(_DungeonLightingModeBlend));
-                float presentationOverbright = lerp(
-                    1, overbright, saturate(_DungeonLightingModeBlend));
+                DungeonPixelLitSettings lighting;
+                lighting.baseTint = _BaseColor;
+                lighting.globalLightTint = _GlobalLightTint.rgb;
+                lighting.emissionColor = _EmissionColor.rgb;
+                lighting.specularLightDirection =
+                    _SpecularLightDirection.xyz;
+                lighting.lightSteps = _LightSteps;
+                lighting.minimumLight = _MinLight;
+                lighting.lightExposure = _LightExposure;
+                lighting.overbrightThreshold = _OverbrightThreshold;
+                lighting.overbrightResponse = _OverbrightResponse;
+                lighting.maximumOverbright = _MaxOverbright;
+                lighting.lightColorInfluence = _LightColorInfluence;
+                lighting.overbrightColorInfluence =
+                    _OverbrightColorInfluence;
+                lighting.hotWashStrength = _HotWashStrength;
+                lighting.hotWashBlackPoint = _HotWashBlackPoint;
+                lighting.hotWashFullPoint = _HotWashFullPoint;
+                lighting.hotWashColorInfluence = _HotWashColorInfluence;
+                lighting.aoIntensity = _AOIntensity;
+                lighting.emissionIntensity = _EmissionIntensity;
+                lighting.specularStrength = _SpecularStrength;
+                lighting.specularStylization = _SpecularStylization;
+                lighting.specularSteps = _SpecularSteps;
 
-                half3 baseLitColor =
-                    atlas.rgb * _BaseColor.rgb * _GlobalLightTint.rgb *
-                    presentationLighting * stylizedTint * multiplicativeHotTint *
-                    presentationOverbright * presentationBrightness * vertexAO;
-                float atlasLuminance = max(0, dot(
-                    atlas.rgb,
-                    half3(0.2126, 0.7152, 0.0722)));
-                float blackPoint = saturate(_HotWashBlackPoint);
-                float fullPoint = max(
-                    blackPoint + 0.0001,
-                    saturate(_HotWashFullPoint));
-                float washMask = smoothstep(
-                    blackPoint, fullPoint, atlasLuminance);
-                half3 hotColor = lerp(
-                    half3(1, 1, 1),
-                    localTint,
-                    saturate(_HotWashColorInfluence));
-                half3 hotWash = hotColor * overbrightT * washMask *
-                    max(0, _HotWashStrength) *
-                    saturate(_DungeonLightingModeBlend) *
-                    presentationBrightness * vertexAO;
-
-                float roughness = saturate(materialMask.g);
-                float metallic = saturate(materialMask.b);
-                half3 viewDirection = GetWorldSpaceNormalizeViewDir(
-                    input.positionWS);
-                half3 specularLightDirection = normalize(
-                    _SpecularLightDirection.xyz);
-                half3 halfDirection = normalize(
-                    viewDirection + specularLightDirection);
-                float normalHalf = saturate(dot(
-                    normalize(input.normalWS), halfDirection));
-                float smoothness = 1 - roughness;
-                float specularPower = lerp(
-                    4, 128, smoothness * smoothness);
-                float smoothSpecular = pow(normalHalf, specularPower) *
-                    lerp(0.35, 1, smoothness);
-                float specularSteps = max(2, round(_SpecularSteps));
-                float quantizedSpecular = round(
-                    saturate(smoothSpecular) * (specularSteps - 1)) /
-                    (specularSteps - 1);
-                float styledSpecular = lerp(
-                    smoothSpecular,
-                    quantizedSpecular,
-                    saturate(_SpecularStylization));
-                float specularLight = 1 - exp(
-                    -localEnergy * max(0.01, _LightExposure));
-                half3 specularTint = lerp(
-                    half3(0.04, 0.04, 0.04),
-                    atlas.rgb * _BaseColor.rgb,
-                    metallic);
-                half3 specularColor = specularTint * styledSpecular *
-                    specularLight * max(0, _SpecularStrength) *
-                    lerp(1, 2, metallic) *
-                    lerp(
-                        half3(1, 1, 1),
-                        localTint,
-                        saturate(_LightColorInfluence)) *
-                    saturate(_DungeonLightingModeBlend) *
-                    presentationBrightness * vertexAO;
-
-                half3 emission = materialMask.r * _EmissionColor.rgb *
-                    max(0, _EmissionIntensity);
-
-                return half4(
-                    baseLitColor + hotWash + specularColor + emission,
-                    atlas.a * _BaseColor.a);
+                return DungeonPixelLitEvaluate(
+                    atlas,
+                    materialMask,
+                    input.positionWS,
+                    input.normalWS,
+                    input.ao,
+                    lighting);
             }
             ENDHLSL
         }
