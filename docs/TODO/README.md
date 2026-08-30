@@ -34,6 +34,7 @@ None.
 
 ## Completed / Existing Work
 
+- [RENDER-03 — Prop Material and Atlas Pipeline](RENDER-03-Prop-Material-Atlas-Pipeline.md)
 - [RENDER-02 — Pixel-Lit Prop Shader](RENDER-02-Pixel-Lit-Prop-Shader.md)
 - [RENDER-01 — Shared Pixel-Lit Core](RENDER-01-Shared-Pixel-Lit-Core.md)
 - [RENDER-00 — Rotation-Safe Material Mask, Emission, and Specular](RENDER-00-Rotation-Safe-Material-Mask-Specular-Emission.md)

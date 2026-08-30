@@ -2,7 +2,7 @@
 
 ## Tracking
 - **ID:** RENDER-03
-- **Status:** Planned
+- **Status:** Complete
 - **Milestone:** Pixel Rendering / Asset Authoring
 - **Depends on:** RENDER-02
 
@@ -39,7 +39,36 @@ Formalize the Blender-to-Unity texture/material workflow for socket props, traps
 Author/import at least one simple reusable-material prop and one prop with unique artwork using only the documented pipeline.
 
 ## Post-Implementation Report
-Record the finalized atlas layout rules, texel-density baseline, Blender workflow, Unity import settings, material conventions, and any proposed automation/tooling follow-ups.
+
+- Added the task-oriented [pixel-lit prop authoring guide](../HowTo/Author_A_Pixel_Prop.md)
+  and linked it from the How-To index and prefab conventions.
+- Standardized a 512x512 base/mask pair that may grow to 1024x1024 without
+  moving existing pixels. The left half holds reusable patches, lower-right
+  holds unique art, and upper-right 256x64 remains validation/reserve space.
+- Regions are arbitrary integer rectangles with two-pixel extruded gutters;
+  UVs address inner art and sample edge texels at their centers.
+- Set 96 texels per Unity world unit from terrain's 32-pixel logical cells and
+  three cells per one-unit tile, with a documented 72-120 exception range.
+- Documented deliberate overlap for reusable wood, metal, stone, bone, cloth,
+  repeated, mirrored, and hidden surfaces, and when unique or directional data
+  must not overlap.
+- Documented Blender scale, UV0, grid, texel-center, vertex-AO, and FBX rules,
+  plus Unity Point/no-mipmap/no-compression/Clamp/color-space settings.
+- Standardized atlas, standalone texture, imported slot, and `PLP_` material
+  names. `Assets/Materials/PixelLitProp.mat` remains the default; distinct
+  materials/textures require a rendering or ownership need.
+- Preserved RENDER-00 channels: R emission, G roughness, B metallic, A reserved,
+  with `(0, 1, 0, 1)` neutral and exact base/mask UV registration.
+- Possible follow-ups after proving the manual workflow are allocation
+  metadata/visualization, Blender density checks, and Unity import validation.
+  No automation was added by this ticket.
+
+Manual validation and completion were confirmed by the user on 2026-08-30.
+
+## Validation Result
+
+Complete. The documented workflow was approved for production use on
+2026-08-30.
 
 ## Git
 Suggested implementation branch: `art/render03-prop-atlas-pipeline`

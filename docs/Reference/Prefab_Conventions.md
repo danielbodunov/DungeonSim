@@ -218,6 +218,12 @@ passes. Use it for cutout geometry only; blended or partially transparent FX
 need a separate shader. The rendering path is surface-oriented and intentionally
 contains no trap gameplay state, so traps and ordinary props can share it.
 
+The production contract—including the 512x512 allocation zones, two-pixel
+gutters, 96-texel-per-world-unit baseline, Blender pixel-center rules, import
+settings, naming, and shared-versus-distinct material choice—is owned by
+[Author a Pixel-Lit Prop](../HowTo/Author_A_Pixel_Prop.md). Do not invent
+per-asset conventions in prefab notes.
+
 ## Traps
 
 Location: `Assets/Resources/Traps/`
@@ -261,5 +267,6 @@ Prefab modularity matters more than requiring every resolved tile to originate f
 
 - [`../HowTo/Add_A_Dungeon_Tile.md`](../HowTo/Add_A_Dungeon_Tile.md)
 - [`../HowTo/Add_A_Trap.md`](../HowTo/Add_A_Trap.md)
+- [`../HowTo/Author_A_Pixel_Prop.md`](../HowTo/Author_A_Pixel_Prop.md)
 - [`Data_Assets.md`](Data_Assets.md)
 - [`../Architecture/Dungeon_Generation.md`](../Architecture/Dungeon_Generation.md)
