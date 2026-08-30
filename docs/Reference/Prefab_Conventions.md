@@ -198,6 +198,26 @@ top references without material instances. When a generator already owns a
 discrete elevation, call `Configure(topWorldY, tileWorldSize, cellsPerTile, seed)` rather than
 encoding depth in mesh channels.
 
+### Pixel-lit prop materials
+
+Use `DungeonSim/Pixel Lit Prop` (with `Assets/Materials/PixelLitProp.mat` as the
+starting material) for socket props, traps, decorations, and interactable
+environment meshes that use ordinary Blender-authored UVs. The shader samples
+UV0 directly; it does not resolve terrain surface families, tile rotations,
+world-projected atlas cells, or ground layers.
+
+Import pixel-art base textures with Point filtering, mipmaps disabled, and no
+compression. Use Clamp wrapping for packed atlases unless an asset deliberately
+tiles. An optional linear material-mask texture must use the same UV0 layout as
+the base texture: R emission, G roughness, B metallic, and A reserved. Reserve
+vertex-color red for structural AO (`1` unoccluded, `0` occluded), consistent
+with terrain.
+
+Alpha Clipping discards base-alpha pixels in the color, depth, and shadow-caster
+passes. Use it for cutout geometry only; blended or partially transparent FX
+need a separate shader. The rendering path is surface-oriented and intentionally
+contains no trap gameplay state, so traps and ordinary props can share it.
+
 ## Traps
 
 Location: `Assets/Resources/Traps/`

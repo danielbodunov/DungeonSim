@@ -153,6 +153,12 @@ rotation-safe atlas UVs, and aligned material-mask sampling. It passes those
 sampled values into the shared core. ShadowCaster and DepthOnly passes remain
 shader-specific and unchanged.
 
+`PixelLitProp.shader` is the ordinary-UV consumer of the same core. It samples
+base color and an optional packed material mask through UV0, then supplies the
+same world position, world normal, vertex-red AO, and settings interface as
+terrain. Optional alpha clipping is handled locally in its forward, depth, and
+shadow passes. It does not depend on terrain addressing or prop/trap gameplay.
+
 ## Source controls and animation
 
 `DungeonLightSource` owns source behavior. Its effective contribution is
