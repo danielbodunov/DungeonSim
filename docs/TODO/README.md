@@ -34,6 +34,7 @@ None.
 
 ## Completed / Existing Work
 
+- [RENDER-00 — Rotation-Safe Material Mask, Emission, and Specular](RENDER-00-Rotation-Safe-Material-Mask-Specular-Emission.md)
 - [t025 — Trap Construction Presentation](t025-Trap-Construction-Presentation.md)
 - [t020 — Service-Cell Trap Placement & Automatic Orientation](t020-Rotatable-Trap-Placement.md)
 - [t023 — Strategic Building Vertical Slice](t023-Strategic-Building-Vertical-Slice.md)

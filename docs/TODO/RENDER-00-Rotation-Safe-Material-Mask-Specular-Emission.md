@@ -2,7 +2,7 @@
 
 ## Tracking
 - **ID:** RENDER-00
-- **Status:** Planned
+- **Status:** Complete
 - **Milestone:** Pixel Rendering / Material Foundation
 - **Depends on:** Current rotation-safe terrain shader and terrain atlas pipeline
 
@@ -67,17 +67,43 @@ Extend the existing rotation-safe dungeon/terrain shader with a packed material-
 - Point sampling and import settings should preserve pixel registration between the base and mask atlases.
 
 ## Post-Implementation Report
-Record:
-- Files/shaders/materials changed
-- Final mask-channel contract
-- New shader properties and defaults
-- Any atlas/import-setting requirements
-- Selected default specular behavior/step count
-- Rotation-safety validation results
-- Performance or shader-variant impact observed
-- Follow-up work discovered
+
+- Extended `RotationSafeTileAtlas.shader` and its shared material without
+  changing surface-family lookup, rect selection, role classification, or
+  rotation semantics.
+- Added `DungeonAtlas_Mask.png`, matching the 512x512 base atlas. Channels
+  are R emission, G roughness, B metallic, and A reserved/ignored. Neutral areas
+  use `(0, 1, 0, 1)`.
+- Added `_EnableMaterialMask` (default 0), HDR `_EmissionColor` (white),
+  `_EmissionIntensity` (0), `_SpecularStrength` (0),
+  `_SpecularStylization` (1), `_SpecularSteps` (4), and
+  `_SpecularLightDirection` `(0.35, 0.65, -0.85)`.
+- The mask uses the exact final `selectedUV` used for base color. Import is
+  enforced as linear, Point, Clamp, uncompressed, with mipmaps disabled; lookup
+  rebuilding validates dimensions and reassigns the shared material reference.
+- The authored mask contains separated validation regions for emission,
+  low-roughness wet stone, metal, and rough stone. Unpainted regions remain
+  neutral.
+- Specular defaults to four-step stylization but has zero strength. Setting
+  stylization to zero exposes the smooth response for comparison. Diffuse light
+  quantization remains independent. The Unity-validated representative material
+  enables the mask with specular strength 4, approximately five rounded steps,
+  emission intensity 3.57, and its authored yellow-green emission color.
+- Cost is one uniform-conditional mask sample plus specular view/normal math and
+  `pow` when the shader executes. No shader keywords or normal-map sample were
+  added, so shader-variant count is unchanged.
+- The propagated RGB light field contains energy/color but no direction. Initial
+  specular therefore uses a shared art-directed direction; directional local
+  light data would require a separate lighting-field change.
+- Automated editor coverage verifies atlas dimensions/import settings, material
+  compatibility defaults, assignment, and representative mask channel values.
+  Unity validation confirmed shader appearance and rotation-safe registration.
 
 ## Git
 Suggested implementation branch: `render/render00-material-mask-specular-emission`
+
+## Validation Result
+
+Unity validation completed on 2026-08-29.
 
 Proceed according to `docs/AGENTS.md`.

@@ -117,7 +117,21 @@ contract pending visual validation.
 ```text
 Final = Atlas × normal lighting × normal tint × multiplicative overbright
         + local hot response × original-atlas luminance mask × hot color
+        + mask-driven local specular
+        + mask-driven surface emission
 ```
+
+The rotation-safe terrain shader optionally samples
+`DungeonAtlas_Mask.png` with the exact selected UV already used for base
+color. R is emission, G roughness, B metallic, and A is reserved. Emission is
+surface appearance only and never registers a `DungeonLightSource` or Unity
+Light. Specular is driven by local propagated energy and a shared art-directed
+direction because the current RGB light field does not encode per-source
+direction. Roughness controls highlight width/attenuation; metallic controls
+reflectivity and base-color tint. `_SpecularStylization` blends smooth response
+toward independently quantized `_SpecularSteps`, without changing diffuse
+`_LightSteps`. Both additions default to zero strength and introduce no normal
+map dependency or shader-keyword variants.
 
 ## Source controls and animation
 

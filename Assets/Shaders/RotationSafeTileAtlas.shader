@@ -3,6 +3,7 @@ Shader "DungeonSim/Rotation Safe Tile Atlas"
     Properties
     {
         [MainTexture] _BaseMap("Surface Atlas", 2D) = "white" {}
+        [NoScaleOffset] _MaterialMaskAtlas("Material Mask Atlas", 2D) = "black" {}
         [MainColor] _BaseColor("Base Color", Color) = (1, 1, 1, 1)
         [NoScaleOffset] _SurfaceLookup("Surface Lookup", 2D) = "black" {}
         [NoScaleOffset] _GroundSurfaceLookup("Ground Surface Lookup", 2D) = "black" {}
@@ -35,6 +36,13 @@ Shader "DungeonSim/Rotation Safe Tile Atlas"
         _HotWashFullPoint("Hot Wash Full Point", Range(0, 1)) = 0.3
         _HotWashColorInfluence("Hot Wash Color Influence", Range(0, 1)) = 0.9
         _AOIntensity("Vertex AO Intensity", Range(0, 1)) = 1
+        [Enum(Off,0,On,1)] _EnableMaterialMask("Enable Material Mask", Float) = 0
+        [HDR] _EmissionColor("Emission Color", Color) = (1, 1, 1, 1)
+        _EmissionIntensity("Emission Intensity", Range(0, 16)) = 0
+        _SpecularStrength("Specular Strength", Range(0, 4)) = 0
+        _SpecularStylization("Specular Stylization", Range(0, 1)) = 1
+        _SpecularSteps("Specular Steps", Range(2, 16)) = 4
+        _SpecularLightDirection("Specular Light Direction", Vector) = (0.35, 0.65, -0.85, 0)
         _GlobalLightTint("Global Light Tint", Color) = (1, 1, 1, 1)
         [Enum(UnityEngine.Rendering.CullMode)] _Cull("Cull", Float) = 2
     }
@@ -90,6 +98,8 @@ Shader "DungeonSim/Rotation Safe Tile Atlas"
 
             TEXTURE2D(_BaseMap);
             SAMPLER(sampler_BaseMap);
+            TEXTURE2D(_MaterialMaskAtlas);
+            SAMPLER(sampler_MaterialMaskAtlas);
             TEXTURE2D(_SurfaceLookup);
             SAMPLER(sampler_SurfaceLookup);
             TEXTURE2D(_GroundSurfaceLookup);
@@ -116,7 +126,9 @@ Shader "DungeonSim/Rotation Safe Tile Atlas"
 
             CBUFFER_START(UnityPerMaterial)
                 float4 _BaseColor;
+                float4 _EmissionColor;
                 float4 _GlobalLightTint;
+                float4 _SpecularLightDirection;
                 float4 _SurfaceLookupSize;
                 float _EnableWorldSpace;
                 float _WorldTiling;
@@ -143,6 +155,11 @@ Shader "DungeonSim/Rotation Safe Tile Atlas"
                 float _HotWashFullPoint;
                 float _HotWashColorInfluence;
                 float _AOIntensity;
+                float _EnableMaterialMask;
+                float _EmissionIntensity;
+                float _SpecularStrength;
+                float _SpecularStylization;
+                float _SpecularSteps;
             CBUFFER_END
 
             Varyings Vert(Attributes input)
@@ -333,6 +350,15 @@ Shader "DungeonSim/Rotation Safe Tile Atlas"
                     ? atlasUV
                     : input.uv * max(_WorldTiling, 0.0001);
                 half4 atlas = SAMPLE_TEXTURE2D_LOD(_BaseMap, sampler_BaseMap, selectedUV, 0);
+                half4 materialMask = half4(0, 1, 0, 0);
+                if (_EnableMaterialMask > 0.5)
+                {
+                    materialMask = SAMPLE_TEXTURE2D_LOD(
+                        _MaterialMaskAtlas,
+                        sampler_MaterialMaskAtlas,
+                        selectedUV,
+                        0);
+                }
 
                 half3 localLighting = SampleDungeonLocalLighting(input.positionWS);
                 half3 totalLighting = max(0, _DungeonAmbientColor.rgb) + localLighting;
@@ -407,7 +433,51 @@ Shader "DungeonSim/Rotation Safe Tile Atlas"
                     saturate(_DungeonLightingModeBlend) *
                     presentationBrightness * vertexAO;
 
-                return half4(baseLitColor + hotWash, atlas.a * _BaseColor.a);
+                float roughness = saturate(materialMask.g);
+                float metallic = saturate(materialMask.b);
+                half3 viewDirection = GetWorldSpaceNormalizeViewDir(
+                    input.positionWS);
+                half3 specularLightDirection = normalize(
+                    _SpecularLightDirection.xyz);
+                half3 halfDirection = normalize(
+                    viewDirection + specularLightDirection);
+                float normalHalf = saturate(dot(
+                    normalize(input.normalWS), halfDirection));
+                float smoothness = 1 - roughness;
+                float specularPower = lerp(
+                    4, 128, smoothness * smoothness);
+                float smoothSpecular = pow(normalHalf, specularPower) *
+                    lerp(0.35, 1, smoothness);
+                float specularSteps = max(2, round(_SpecularSteps));
+                float quantizedSpecular = round(
+                    saturate(smoothSpecular) * (specularSteps - 1)) /
+                    (specularSteps - 1);
+                float styledSpecular = lerp(
+                    smoothSpecular,
+                    quantizedSpecular,
+                    saturate(_SpecularStylization));
+                float specularLight = 1 - exp(
+                    -localEnergy * max(0.01, _LightExposure));
+                half3 specularTint = lerp(
+                    half3(0.04, 0.04, 0.04),
+                    atlas.rgb * _BaseColor.rgb,
+                    metallic);
+                half3 specularColor = specularTint * styledSpecular *
+                    specularLight * max(0, _SpecularStrength) *
+                    lerp(1, 2, metallic) *
+                    lerp(
+                        half3(1, 1, 1),
+                        localTint,
+                        saturate(_LightColorInfluence)) *
+                    saturate(_DungeonLightingModeBlend) *
+                    presentationBrightness * vertexAO;
+
+                half3 emission = materialMask.r * _EmissionColor.rgb *
+                    max(0, _EmissionIntensity);
+
+                return half4(
+                    baseLitColor + hotWash + specularColor + emission,
+                    atlas.a * _BaseColor.a);
             }
             ENDHLSL
         }
