@@ -11,6 +11,7 @@ using UnityEngine.Rendering;
 public class DungeonLightReceiver : MonoBehaviour
 {
     const string DungeonShaderName = "DungeonSim/Dungeon Grid Lit";
+    const string PixelLitPropShaderName = "DungeonSim/Pixel Lit Prop";
 
     static readonly Dictionary<Material, Material> generatedMaterials = new();
     static bool missingShaderWasLogged;
@@ -128,6 +129,11 @@ public class DungeonLightReceiver : MonoBehaviour
             return original;
         if (materialOverride != null)
             return materialOverride;
+        if (original.shader != null &&
+            original.shader.name == PixelLitPropShaderName)
+        {
+            return original;
+        }
         if (original.shader == dungeonShader)
             return original;
         if (generatedMaterials.TryGetValue(original, out Material generated) &&
