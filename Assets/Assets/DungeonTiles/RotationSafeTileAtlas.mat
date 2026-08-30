@@ -49,6 +49,10 @@ Material:
         m_Texture: {fileID: 2800000, guid: 8ec79d8d5259072469c263e0fe7ac665, type: 2}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
+    - _MaterialMaskAtlas:
+        m_Texture: {fileID: 2800000, guid: 00637d25c3b71bb4c8db62ad98ad3033, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
     - _OcclusionMap:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
@@ -74,6 +78,8 @@ Material:
     - _AOIntensity: 1
     - _AccentFamily: 1
     - _Cull: 2
+    - _EmissionIntensity: 3.57
+    - _EnableMaterialMask: 1
     - _EnableWorldSpace: 1
     - _Glossiness: 0
     - _GroundCellScale: 3
@@ -100,14 +106,18 @@ Material:
     - _QueueOffset: 0
     - _SecondaryFamily: 1
     - _SpecialFamily: 0
+    - _SpecularSteps: 4.9
+    - _SpecularStrength: 4
+    - _SpecularStylization: 1
     - _UseGroundLayers: 0
     - _VisualSeed: 205
     - _WorldTiling: 3
     m_Colors:
     - _BaseColor: {r: 1, g: 1, b: 1, a: 1}
-    - _EmissionColor: {r: 0, g: 0, b: 0, a: 0}
+    - _EmissionColor: {r: 0.9369869, g: 0.9622642, b: 0, a: 1}
     - _GlobalLightTint: {r: 1, g: 1, b: 1, a: 1}
     - _ShapeLightDirection: {r: -0.35, g: 0.65, b: 0.85, a: 0}
+    - _SpecularLightDirection: {r: 0.35, g: 0.65, b: -0.85, a: 0}
     - _SurfaceLookupSize: {r: 257, g: 40, b: 0.0038910506, a: 0.025}
   m_BuildTextureStacks: []
   m_AllowLocking: 1

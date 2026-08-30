@@ -121,6 +121,19 @@ range to the first/last texel centers using the actual atlas texel size. The
 atlas must use Point filtering, disabled mipmaps, no compression, and Clamp.
 `Narrow_Corner_L` is the representative family-aware prefab across R0-R3.
 
+`Assets/Materials/DungeonAtlas_Mask.png` is the packed material companion
+to `DungeonAtlas.png`. It must have identical dimensions and tile layout. The
+shader samples it with the already-resolved base-atlas UV; do not author a
+second orientation or addressing scheme. Its linear channels are R emission,
+G roughness, B metallic, and A reserved. Import it as Default/linear with Point
+filtering, Clamp wrapping, mipmaps disabled, and compression disabled. Alpha is
+currently ignored and must not be repurposed without updating this contract.
+
+The initial validation atlas contains localized emission, low-roughness wet
+stone, metal, and ordinary rough stone regions. Unpainted areas are neutral
+`(R=0, G=1, B=0, A=1)`. Shader defaults disable mask evaluation, emission, and
+specular; the representative shared material may retain validated enabled values.
+
 The atlas represents authored full-light color. The URP Unlit output multiplies
 that color by global presentation brightness, vertex-color red AO, and a
 quantized propagated dungeon-light multiplier. The shader derives non-negative
@@ -140,9 +153,12 @@ using separate active samples-per-cell metadata, so high visible densities such
 as 16 or 32 remain independent from Smooth2x/Smooth4x field resolution. Local RGB
 tint is normalized independently from ambient and applied
 multiplicatively through `_LightColorInfluence`, default 0.35.
-No PBR, specular, GI color wash, reflection, or smooth normal-diffuse response
-participates. Directional-light reception is not part of normal dungeon
-rendering. Realtime local-light shadows are deferred.
+Optional mask-driven surface emission and stylized specular layer onto this
+lighting result. Specular uses roughness/metallic mask channels, propagated local
+light energy, the world normal/view direction, and an art-directed shared light
+direction. It can blend independently between smooth and quantized response.
+There is still no normal map, GI/reflection contribution, smooth normal-diffuse
+response, or realtime local-light shadowing.
 
 ### Configurable ground depth bands
 

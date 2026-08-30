@@ -9,6 +9,8 @@ using UnityEngine;
 public static class DungeonSurfaceLookupGenerator
 {
     const string AtlasPath = "Assets/Materials/DungeonAtlas.png";
+    const string MaterialMaskAtlasPath =
+        "Assets/Materials/DungeonAtlas_Mask.png";
     const string LookupPath = "Assets/Resources/DungeonSurfaceLookup.asset";
     const string GroundLookupPath = "Assets/Resources/DungeonGroundSurfaceLookup.asset";
     const string MaterialPath = "Assets/Assets/DungeonTiles/RotationSafeTileAtlas.mat";
@@ -31,6 +33,16 @@ public static class DungeonSurfaceLookupGenerator
         Texture2D atlas = AssetDatabase.LoadAssetAtPath<Texture2D>(AtlasPath);
         if (atlas == null)
             throw new InvalidOperationException($"Dungeon surface atlas is missing at {AtlasPath}.");
+        Texture2D materialMaskAtlas =
+            AssetDatabase.LoadAssetAtPath<Texture2D>(MaterialMaskAtlasPath);
+        if (materialMaskAtlas == null)
+            throw new InvalidOperationException(
+                $"Dungeon material-mask atlas is missing at {MaterialMaskAtlasPath}.");
+        if (materialMaskAtlas.width != atlas.width ||
+            materialMaskAtlas.height != atlas.height)
+            throw new InvalidOperationException(
+                "Dungeon material-mask atlas dimensions must exactly match " +
+                $"the surface atlas ({atlas.width}x{atlas.height}).");
 
         DungeonSurfaceFamily[] families = AssetDatabase.FindAssets("t:DungeonSurfaceFamily")
             .Select(AssetDatabase.GUIDToAssetPath)
@@ -127,6 +139,7 @@ public static class DungeonSurfaceLookupGenerator
         if (material != null)
         {
             material.SetTexture("_BaseMap", atlas);
+            material.SetTexture("_MaterialMaskAtlas", materialMaskAtlas);
             material.SetTexture("_SurfaceLookup", savedLookup);
             material.SetVector("_SurfaceLookupSize", new Vector4(savedLookup.width, savedLookup.height,
                 1f / savedLookup.width, 1f / savedLookup.height));
@@ -375,5 +388,26 @@ public static class DungeonSurfaceLookupGenerator
             return false;
         }
         return true;
+    }
+}
+
+public sealed class DungeonMaterialMaskAtlasImporter : AssetPostprocessor
+{
+    const string MaskAtlasPath =
+        "Assets/Materials/DungeonAtlas_Mask.png";
+
+    void OnPreprocessTexture()
+    {
+        if (!string.Equals(assetPath, MaskAtlasPath, StringComparison.Ordinal))
+            return;
+
+        var importer = (TextureImporter)assetImporter;
+        importer.textureType = TextureImporterType.Default;
+        importer.sRGBTexture = false;
+        importer.mipmapEnabled = false;
+        importer.filterMode = FilterMode.Point;
+        importer.wrapMode = TextureWrapMode.Clamp;
+        importer.textureCompression = TextureImporterCompression.Uncompressed;
+        importer.alphaIsTransparency = false;
     }
 }
