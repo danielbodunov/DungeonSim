@@ -82,6 +82,7 @@ public class GameSaveManager : MonoBehaviour
             connectionEdges = tileGrid.CaptureConnectionIntents(),
             traps = tileGrid.CaptureTrapLayout(),
             floorProps = tileGrid.CaptureFloorPropLayout(),
+            buildObstacles = tileGrid.CaptureBuildObstacleLayout(),
             recoverableLootDrops = npcTraversal != null
                 ? npcTraversal.CaptureRecoverableLootDrops()
                 : new List<RecoverableLootDrop>(),
@@ -194,8 +195,8 @@ public class GameSaveManager : MonoBehaviour
                 $"{tileGrid.GridWidth}x{tileGrid.GridHeight}.");
         }
 
-        if (!TryValidateSavedTrapFootprints(save, out string trapFailure))
-            return ReportFailure(trapFailure);
+        if (!TryValidateSavedSpatialContent(save, out string spatialFailure))
+            return ReportFailure(spatialFailure);
 
         List<SavedTileCell> previousTiles = tileGrid.CaptureTileLayout();
         List<SavedConnectionEdge> previousConnections =
@@ -203,12 +204,15 @@ public class GameSaveManager : MonoBehaviour
         List<SavedTrapCell> previousTraps = tileGrid.CaptureTrapLayout();
         List<SavedFloorPropCell> previousFloorProps =
             tileGrid.CaptureFloorPropLayout();
+        List<SavedGeneratedBuildObstacle> previousObstacles =
+            tileGrid.CaptureBuildObstacleLayout();
         SavedEntrance previousEntrance = tileGrid.CaptureEntranceLayout();
         int previousPropSeed = tileGrid.PropGenerationSeed;
         if (!tileGrid.RestoreTileLayout(save.tileCells, save.connectionEdges))
         {
             if (tileGrid.RestoreTileLayout(previousTiles, previousConnections))
             {
+                tileGrid.RestoreBuildObstacleLayout(previousObstacles, out _);
                 RestoreTraps(previousTraps);
                 RestoreFloorProps(previousFloorProps);
                 RestoreEntrance(previousEntrance);
@@ -244,6 +248,9 @@ public class GameSaveManager : MonoBehaviour
                     save.recoveredLootInventory,
                     PhysicalResourceCategory.ArcaneComponents));
 
+        if (!tileGrid.RestoreBuildObstacleLayout(
+                save.buildObstacles, out string obstacleFailure))
+            return ReportFailure($"Could not restore build obstacles: {obstacleFailure}");
         int restoredTraps = RestoreTraps(save.traps);
         bool restoredEntrance = RestoreEntrance(save.entrance);
         int restoredFloorProps = RestoreFloorProps(save.floorProps);
@@ -258,6 +265,7 @@ public class GameSaveManager : MonoBehaviour
             : save.saveName;
         return ReportSuccess(
             $"Loaded '{displayName}': {save.tileCells.Count} cells, " +
+            $"{save.buildObstacles?.Count ?? 0} build obstacles, " +
             $"{restoredTraps} traps, " +
             $"{restoredFloorProps} floor props, " +
             $"{restoredRecoverableLoot} recoverable loot drops, " +
@@ -268,7 +276,7 @@ public class GameSaveManager : MonoBehaviour
             "recorded spends.");
     }
 
-    bool TryValidateSavedTrapFootprints(
+    bool TryValidateSavedSpatialContent(
         DungeonSaveData save,
         out string failure)
     {
@@ -279,6 +287,14 @@ public class GameSaveManager : MonoBehaviour
                 out failure))
         {
             failure = $"The saved tile layout is invalid: {failure}";
+            return false;
+        }
+
+        if (!tileGrid.TryValidateBuildObstacleLayout(
+                save.buildObstacles, context, out string obstacleFailure))
+        {
+            failure = $"The saved build-obstacle layout is invalid: " +
+                obstacleFailure;
             return false;
         }
 

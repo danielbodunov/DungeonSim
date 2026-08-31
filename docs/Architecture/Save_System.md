@@ -11,7 +11,10 @@
 - `TilePlacement`
 - `NPCTraversal`
 
-The save path currently captures state including gameplay progression, generation seed, adventurers, tile layout, connection intent, traps, floor props, recoverable loot, entrance state, recovered loot, Dread spending, and related histories.
+The save path currently captures state including gameplay progression,
+generation seed, adventurers, tile layout, connection intent, generated build
+obstacles, traps, floor props, recoverable loot, entrance state, recovered loot,
+Dread spending, and related histories.
 
 The authoritative Construction Material, Trap Component, and Arcane Component
 balances are persisted separately from Dread. Each category starts with a
@@ -28,6 +31,14 @@ surface is authoritative orientation state; mechanism position, rotation,
 service cell, and hazard direction are rebuilt from it and the target cell.
 Older trap records choose one compatible surface during migration and save that
 resolved choice on their next checkpoint.
+
+Version 15 persists generated build obstacles as stable definition ID, anchor
+cell, quarter-turn rotation, and selected visual variant ID. Their explicit
+footprints are resolved from the current definition, validated atomically
+against the prospective tile layout, and reserved before trap footprints are
+validated. Obstacles restore before traps; positions and variants are never
+rerolled during load or scenario reset. Missing version-15 obstacle collections
+remain empty for older saves.
 
 Service-cell-first placement does not add transient preview or candidate-index
 state to the save. The committed target cell and resolved surface remain the
