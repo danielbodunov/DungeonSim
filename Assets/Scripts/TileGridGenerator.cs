@@ -573,6 +573,32 @@ public class TileGridGenerator : MonoBehaviour
     public Vector2 GridOrigin => origin;
     public Vector2 GridGenerationDirection => generationDirection;
     public bool IsInitialized => cells != null && instantiated != null && placed != null;
+
+    /// <summary>
+    /// Gets the world XY extent of buildable interior cells, excluding the
+    /// fixed outer border used by grid generation.
+    /// </summary>
+    public bool TryGetPlayableWorldRect(out Rect rect)
+    {
+        rect = default;
+        if (width <= 2 || height <= 2 ||
+            Mathf.Approximately(generationDirection.x, 0f) ||
+            Mathf.Approximately(generationDirection.y, 0f))
+        {
+            return false;
+        }
+
+        Vector3 first = GetCellWorldPosition(1, 1);
+        Vector3 last = GetCellWorldPosition(width - 2, height - 2);
+        float halfCellWidth = Mathf.Abs(generationDirection.x) * 0.5f;
+        float halfCellHeight = Mathf.Abs(generationDirection.y) * 0.5f;
+        rect = Rect.MinMaxRect(
+            Mathf.Min(first.x, last.x) - halfCellWidth,
+            Mathf.Min(first.y, last.y) - halfCellHeight,
+            Mathf.Max(first.x, last.x) + halfCellWidth,
+            Mathf.Max(first.y, last.y) + halfCellHeight);
+        return true;
+    }
     public bool HasManualEntrance => placedEntrance != null && !placedEntranceIsFallback;
     public bool HasFallbackEntrance => placedEntrance != null && placedEntranceIsFallback;
     public int PropGenerationSeed => propGenerator != null

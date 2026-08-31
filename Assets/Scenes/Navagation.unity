@@ -315,6 +315,11 @@ MonoBehaviour:
   panWithMiddleMouse: 1
   panMouseSensitivity: 0.02
   invertMiddlePan: 0
+  navigationGrid: {fileID: 0}
+  constrainHorizontalNavigation: 1
+  constrainVerticalNavigation: 1
+  accountForViewportFootprint: 0
+  navigationEdgeMargin: {x: 0.5, y: 3}
   focusZoom: 5
   focusOffset: {x: 0, y: 0.5, z: 0}
   focusSmoothTime: 0.2
