@@ -23,6 +23,17 @@ public class CameraFollow : MonoBehaviour
     [Tooltip("Reverse the default grab-style middle-mouse pan direction.")]
     public bool invertMiddlePan = false;
 
+    [Header("Navigation Bounds")]
+    [SerializeField] TileGridGenerator navigationGrid;
+    [SerializeField] bool constrainHorizontalNavigation = true;
+    [SerializeField] bool constrainVerticalNavigation = true;
+    [SerializeField, Tooltip("Inset the navigation target by the camera's " +
+        "projected viewport footprint on the dungeon plane.")]
+    bool accountForViewportFootprint = true;
+    [SerializeField, Tooltip("Additional world-space framing allowed " +
+        "outside the playable grid on X and Y.")]
+    Vector2 navigationEdgeMargin = new(0.5f, 0.5f);
+
     [Header("Target Focus")]
     [SerializeField, Min(0.01f), Tooltip("Orthographic size or perspective dolly distance used while focusing a target.")]
     float focusZoom = 5f;
@@ -63,6 +74,9 @@ public class CameraFollow : MonoBehaviour
 
         if (inputManager == null)
             inputManager = InputManager.Instance ?? Object.FindAnyObjectByType<InputManager>();
+
+        if (navigationGrid == null)
+            navigationGrid = Object.FindAnyObjectByType<TileGridGenerator>();
 
         if (camComponent == null)
             camComponent = GetComponent<Camera>() ?? Camera.main;
@@ -140,6 +154,60 @@ public class CameraFollow : MonoBehaviour
         return new Vector3(grabDelta.x, grabDelta.y, 0f) * sensitivity;
     }
 
+    public static Vector2 CalculateClampedNavigationCenter(
+        Vector2 desiredCenter,
+        Rect playableBounds,
+        Vector2 minimumViewportOffset,
+        Vector2 maximumViewportOffset,
+        Vector2 edgeMargin,
+        bool constrainHorizontal,
+        bool constrainVertical)
+    {
+        Vector2 result = desiredCenter;
+        if (constrainHorizontal)
+        {
+            float boardMinimum = playableBounds.xMin - Mathf.Max(0f, edgeMargin.x);
+            float boardMaximum = playableBounds.xMax + Mathf.Max(0f, edgeMargin.x);
+            result.x = ClampAxisCenter(
+                desiredCenter.x,
+                boardMinimum,
+                boardMaximum,
+                minimumViewportOffset.x,
+                maximumViewportOffset.x);
+        }
+        if (constrainVertical)
+        {
+            float boardMinimum = playableBounds.yMin - Mathf.Max(0f, edgeMargin.y);
+            float boardMaximum = playableBounds.yMax + Mathf.Max(0f, edgeMargin.y);
+            result.y = ClampAxisCenter(
+                desiredCenter.y,
+                boardMinimum,
+                boardMaximum,
+                minimumViewportOffset.y,
+                maximumViewportOffset.y);
+        }
+        return result;
+    }
+
+    static float ClampAxisCenter(
+        float desiredCenter,
+        float boardMinimum,
+        float boardMaximum,
+        float minimumViewportOffset,
+        float maximumViewportOffset)
+    {
+        float minimumCenter = boardMinimum - minimumViewportOffset;
+        float maximumCenter = boardMaximum - maximumViewportOffset;
+        if (minimumCenter <= maximumCenter)
+            return Mathf.Clamp(desiredCenter, minimumCenter, maximumCenter);
+
+        // The viewport is larger than the playable span. There is no interval
+        // satisfying both edges, so use the one stable center that balances
+        // the projected footprint around the authoritative board bounds.
+        return (boardMinimum + boardMaximum -
+            minimumViewportOffset - maximumViewportOffset) * 0.5f;
+    }
+
     /// <summary>Begins smoothly framing and following a generic world target.</summary>
     public bool FocusTarget(Transform target)
     {
@@ -210,6 +278,8 @@ public class CameraFollow : MonoBehaviour
         else if (!isPanning && followTarget != null && followTarget != transform)
             targetPosition.x = followTarget.position.x;
 
+        ClampOrthographicNavigationTarget();
+
         transform.position = Vector3.SmoothDamp(
             transform.position,
             targetPosition,
@@ -232,6 +302,8 @@ public class CameraFollow : MonoBehaviour
         else if (!isPanning && followTarget != null && followTarget != transform)
             targetFocusPoint.x = followTarget.position.x;
 
+        ClampPerspectiveNavigationTarget();
+
         currentFocusPoint = Vector3.SmoothDamp(
             currentFocusPoint,
             targetFocusPoint,
@@ -246,6 +318,150 @@ public class CameraFollow : MonoBehaviour
 
         // Leave fieldOfView untouched: perspective zoom is entirely camera motion.
         transform.position = currentFocusPoint - transform.forward * currentZoomDistance;
+    }
+
+    void ClampOrthographicNavigationTarget()
+    {
+        if (!TryResolveNavigationBounds(out Rect playableBounds) ||
+            !TryGetPlaneIntersection(
+                targetPosition, transform.forward, out Vector3 centerOnPlane))
+            return;
+
+        GetViewportOffsets(
+            new Vector2(centerOnPlane.x, centerOnPlane.y),
+            targetZoom,
+            out Vector2 minimumOffset,
+            out Vector2 maximumOffset);
+        Vector2 clamped = CalculateClampedNavigationCenter(
+            new Vector2(centerOnPlane.x, centerOnPlane.y),
+            playableBounds,
+            minimumOffset,
+            maximumOffset,
+            navigationEdgeMargin,
+            constrainHorizontalNavigation,
+            constrainVerticalNavigation);
+        targetPosition.x += clamped.x - centerOnPlane.x;
+        targetPosition.y += clamped.y - centerOnPlane.y;
+    }
+
+    void ClampPerspectiveNavigationTarget()
+    {
+        if (!TryResolveNavigationBounds(out Rect playableBounds))
+            return;
+
+        GetViewportOffsets(
+            new Vector2(targetFocusPoint.x, targetFocusPoint.y),
+            targetZoom,
+            out Vector2 minimumOffset,
+            out Vector2 maximumOffset);
+        Vector2 clamped = CalculateClampedNavigationCenter(
+            new Vector2(targetFocusPoint.x, targetFocusPoint.y),
+            playableBounds,
+            minimumOffset,
+            maximumOffset,
+            navigationEdgeMargin,
+            constrainHorizontalNavigation,
+            constrainVerticalNavigation);
+        targetFocusPoint.x = clamped.x;
+        targetFocusPoint.y = clamped.y;
+    }
+
+    bool TryResolveNavigationBounds(out Rect playableBounds)
+    {
+        playableBounds = default;
+        if (!constrainHorizontalNavigation && !constrainVerticalNavigation)
+            return false;
+        if (navigationGrid == null)
+            navigationGrid = Object.FindAnyObjectByType<TileGridGenerator>();
+        return navigationGrid != null &&
+            navigationGrid.TryGetPlayableWorldRect(out playableBounds);
+    }
+
+    void GetViewportOffsets(
+        Vector2 center,
+        float zoom,
+        out Vector2 minimumOffset,
+        out Vector2 maximumOffset)
+    {
+        minimumOffset = Vector2.zero;
+        maximumOffset = Vector2.zero;
+        if (!accountForViewportFootprint || camComponent == null)
+            return;
+
+        float aspect = Mathf.Max(0.0001f, camComponent.aspect);
+        float halfHeight = camComponent.orthographic
+            ? Mathf.Max(0.0001f, zoom)
+            : Mathf.Tan(camComponent.fieldOfView * 0.5f * Mathf.Deg2Rad);
+        Vector3 centerOnPlane = new(center.x, center.y, zoomFocusPlaneZ);
+        Vector3 cameraOrigin = centerOnPlane - transform.forward *
+            Mathf.Max(0.01f, zoom);
+        bool hasSample = false;
+
+        for (int x = 0; x <= 1; x++)
+        for (int y = 0; y <= 1; y++)
+        {
+            float normalizedX = x * 2f - 1f;
+            float normalizedY = y * 2f - 1f;
+            Vector3 rayOrigin;
+            Vector3 rayDirection;
+            if (camComponent.orthographic)
+            {
+                rayOrigin = cameraOrigin +
+                    transform.right * (normalizedX * halfHeight * aspect) +
+                    transform.up * (normalizedY * halfHeight);
+                rayDirection = transform.forward;
+            }
+            else
+            {
+                rayOrigin = cameraOrigin;
+                rayDirection = (
+                    transform.forward +
+                    transform.right * (normalizedX * halfHeight * aspect) +
+                    transform.up * (normalizedY * halfHeight)).normalized;
+            }
+
+            if (!TryGetPlaneIntersection(
+                    rayOrigin, rayDirection, out Vector3 intersection))
+                continue;
+            Vector2 offset = new(
+                intersection.x - center.x,
+                intersection.y - center.y);
+            if (!hasSample)
+            {
+                minimumOffset = offset;
+                maximumOffset = offset;
+                hasSample = true;
+            }
+            else
+            {
+                minimumOffset = Vector2.Min(minimumOffset, offset);
+                maximumOffset = Vector2.Max(maximumOffset, offset);
+            }
+        }
+
+        if (!hasSample)
+        {
+            minimumOffset = Vector2.zero;
+            maximumOffset = Vector2.zero;
+        }
+    }
+
+    bool TryGetPlaneIntersection(
+        Vector3 rayOrigin,
+        Vector3 rayDirection,
+        out Vector3 intersection)
+    {
+        var plane = new Plane(
+            Vector3.forward,
+            new Vector3(0f, 0f, zoomFocusPlaneZ));
+        var ray = new Ray(rayOrigin, rayDirection);
+        if (plane.Raycast(ray, out float distance))
+        {
+            intersection = ray.GetPoint(distance);
+            return true;
+        }
+        intersection = default;
+        return false;
     }
 
     private void InitializePerspectiveZoom()
@@ -316,5 +532,6 @@ public class CameraFollow : MonoBehaviour
         zoomSmoothTime = Mathf.Max(0.001f, zoomSmoothTime);
         focusZoom = Mathf.Clamp(focusZoom, minZoom, maxZoom);
         focusSmoothTime = Mathf.Max(0.001f, focusSmoothTime);
+        navigationEdgeMargin = Vector2.Max(Vector2.zero, navigationEdgeMargin);
     }
 }

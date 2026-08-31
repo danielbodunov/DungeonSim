@@ -36,16 +36,13 @@ None.
 - [t030 — Placeable Platforms](t030-Placeable-Platforms.md)
 - [t031 — Placeable Ladders](t031-Placeable-Ladders.md)
 
-## Planned — Save & Camera UX
-
-- [t032 — Horizontal Camera Navigation Bounds](t032-Horizontal-Camera-Navigation-Bounds.md)
-
 ## Planned — Physical Consequences & Dungeon Economy
 
 - [t018 — Build Cost Foundation](t018-Build-Cost-Foundation.md)
 
 ## Completed / Existing Work
 
+- [t032 — Horizontal Camera Navigation Bounds](t032-Horizontal-Camera-Navigation-Bounds.md)
 - [t028 — Save Deletion UI](t028-Save-Deletion-UI.md)
 - [t026 — Generated Build Obstacles](t026-Generated-Build-Obstacles.md)
 - [RENDER-03 — Prop Material and Atlas Pipeline](RENDER-03-Prop-Material-Atlas-Pipeline.md)
