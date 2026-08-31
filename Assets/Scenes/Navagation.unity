@@ -1496,6 +1496,7 @@ GameObject:
   - component: {fileID: 1410278424}
   - component: {fileID: 1410278425}
   - component: {fileID: 1410278426}
+  - component: {fileID: 1410278427}
   m_Layer: 0
   m_Name: GridManager
   m_TagString: Untagged
@@ -1554,6 +1555,7 @@ MonoBehaviour:
   database: {fileID: 11400000, guid: 7bd6d774b621d844ba2bd943e68f7261, type: 2}
   placeholderPrefab: {fileID: 175052975836350859, guid: 7bd5947bc781b64459fbd3bfb956b422, type: 3}
   propGenerator: {fileID: 1410278425}
+  buildObstacleGenerator: {fileID: 0}
   width: 15
   height: 15
   origin: {x: 0, y: 0}
@@ -1605,6 +1607,39 @@ MonoBehaviour:
   drawLightCells: 0
   debugMinimumBrightness: 0.02
   debugMaximumCells: 4096
+--- !u!114 &1410278427
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1410278421}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2d97e068b0be4e678b077fc64a941daf, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::GeneratedBuildObstacleGenerator
+  generateOnInitialize: 1
+  generationSeed: 5555
+  additionalObstacleCount: 4
+  protectedRadiusAroundBuiltCells: 2
+  protectedRadiusAroundGridCenter: 2
+  definitions:
+  - definitionId: Boulder
+    blocksConstruction: 1
+    blocksServiceSpace: 1
+    allowRotation: 1
+    minimumGenerationHeight: 0
+    maximumGenerationHeight: -20
+    footprintOffsets:
+    - {x: 0, y: 0}
+    visualVariants:
+    - variantId: Boulder_01
+      prefab: {fileID: 6447191817140778632, guid: e2f737f74f73bb341af6292457184005, type: 3}
+      instantiatePerFootprintCell: 1
+    - variantId: Boulder_02
+      prefab: {fileID: 6447191817140778632, guid: 8c0a1f2d3f4114045937cb0ac1858891, type: 3}
+      instantiatePerFootprintCell: 1
 --- !u!1 &1551020205
 GameObject:
   m_ObjectHideFlags: 0
