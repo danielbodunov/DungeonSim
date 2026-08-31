@@ -2,7 +2,7 @@
 
 ## Tracking
 - **ID:** t033
-- **Status:** Awaiting Unity Validation
+- **Status:** Complete
 - **Milestone:** Camera / Input UX
 - **Depends on:** Existing middle-mouse camera-pan input
 
@@ -69,9 +69,10 @@ The underlying camera/focus transform therefore moves opposite the screen-space 
 - t032 remains Planned and has no bounds code on this branch. The correction is
   upstream of camera target movement, so a later target clamp can consume the
   corrected delta without compensating signs.
-
-Manual Unity drag-direction, restart/no-jump, non-middle-input, and eventual
-t032-bound validation remain pending.
+- **Unity validation completed 2026-08-31.** Manual drag direction, drag
+  restart/no-jump behavior, and existing non-middle-mouse camera input were
+  validated in Unity. t032-specific bounds validation remains applicable when
+  that separate planned ticket is implemented.
 
 ## Git
 Suggested implementation branch: `fix/t033-middle-mouse-pan-direction`
