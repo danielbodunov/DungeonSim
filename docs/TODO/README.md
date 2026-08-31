@@ -37,7 +37,6 @@ None.
 
 ## Planned — Save & Camera UX
 
-- [t028 — Save Deletion UI](t028-Save-Deletion-UI.md)
 - [t032 — Horizontal Camera Navigation Bounds](t032-Horizontal-Camera-Navigation-Bounds.md)
 - [t033 — Correct Middle-Mouse Camera Pan Direction](t033-Correct-Middle-Mouse-Camera-Pan-Direction.md)
 
@@ -47,6 +46,7 @@ None.
 
 ## Completed / Existing Work
 
+- [t028 — Save Deletion UI](t028-Save-Deletion-UI.md)
 - [t026 — Generated Build Obstacles](t026-Generated-Build-Obstacles.md)
 - [RENDER-03 — Prop Material and Atlas Pipeline](RENDER-03-Prop-Material-Atlas-Pipeline.md)
 - [RENDER-02 — Pixel-Lit Prop Shader](RENDER-02-Pixel-Lit-Prop-Shader.md)
