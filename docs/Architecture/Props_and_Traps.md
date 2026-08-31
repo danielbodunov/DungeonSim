@@ -10,6 +10,7 @@ DungeonSim currently separates several kinds of dungeon content because they hav
 | Floor prop | `TileGridGenerator` placement state + `FloorProp` | Low; compatibility hook can add restrictions | Yes |
 | Dungeon entrance | authoritative placed entrance state | Yes; must use compatible authored socket | Yes |
 | Procedural prop/structure | `PropGenerator` | Often; can occupy cells or provide traversal | Reconstructed from authoritative inputs/seed unless separately promoted |
+| Generated build obstacle | `GeneratedBuildObstacleGenerator` definition + instance records | Blocks unbuilt construction/service footprints | Yes; exact definition, anchor, rotation, and variant |
 | POI | content component bound to a cell | Depends on host content | Through host/content state as applicable |
 
 ## Procedural props
@@ -25,6 +26,51 @@ DungeonSim currently separates several kinds of dungeon content because they hav
 - role-based prefab fallback.
 
 Generated structures are derived state. If the authoritative layout is restored, generated props can be discarded and regenerated.
+
+## Generated build obstacles
+
+`GeneratedBuildObstacleDefinition` owns a stable ID, one-to-four explicit cell
+offsets, rotation policy, build/service blocking flags, and compatible visual
+variants. `GeneratedBuildObstacleInstance` owns the selected definition, anchor,
+quarter-turn rotation, resolved cells, and variant ID. A variant never changes
+the definition's logical footprint.
+
+`GeneratedBuildObstacleGenerator` deterministically shuffles eligible interior
+unbuilt cells with `System.Random` and the configured seed. It attempts every
+configured footprint before optional additional placements. Border/fixed cells,
+built cells, generated-prop occupancy, overlaps, a protected grid-center square,
+and a radius around starting built content are excluded. Every footprint is
+validated before any cell is registered, so partial placement cannot occur.
+Each definition owns inclusive minimum and maximum world-space Y settings, so
+different obstacle kinds can use different vertical generation bands. Reversed
+values are normalized. Like the protected radii, these ranges apply only when
+generating new obstacles and do not invalidate persisted obstacles after
+configuration changes.
+
+The default runtime configuration supplies 1-cell, 2-cell line, 3-cell L, and
+4-cell 2x2 definitions plus Boulder, Bone, Relic, and Ore variant identities.
+Projects may assign compatible prefabs in the generator's variant lists. A
+variant defaults to instancing its prefab once per resolved footprint cell.
+Disable `Instantiate Per Footprint Cell` only for a composite prefab authored to
+cover the definition's whole rotated shape from its anchor. Until art is
+assigned, a cell-sized fallback cube is emitted for every blocked cell so the
+full footprint remains readable without debug UI. Selecting the generator
+displays footprint gizmos; runtime diagnostics include definition, variant,
+anchor, and blocked cell.
+
+Obstacle cells join `TileGridGenerator.PlacementValidationContext`. Normal
+construction rejects construction-blocking cells before solver mutation or
+resource spending. Trap mechanism and infrastructure validation rejects
+service-blocking cells through the same atomic footprint path used for live,
+save, and scenario placement.
+
+Unlike socket-generated decoration, obstacle placement is authoritative world
+state. Save version 15 and `DungeonTestScenario` store definition ID, anchor,
+rotation, and variant ID, validate the complete incoming obstacle set against
+the prospective layout, restore it before traps, and never reroll it. Definition
+blocking flags and stable identity are the extension points for future removal,
+mining, harvesting, or encounter behavior; this ticket does not expose those
+interactions.
 
 ## Externally attached cell traps
 

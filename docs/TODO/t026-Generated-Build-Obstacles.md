@@ -2,7 +2,7 @@
 
 ## Tracking
 - **ID:** t026
-- **Status:** Planned
+- **Status:** Complete
 - **Milestone:** Strategic Construction
 - **Depends on:** t023; compatible with t021–t022 construction-space rules
 
@@ -141,14 +141,59 @@ These possibilities are one reason obstacle gameplay identity should remain sepa
 - Advanced global solvability optimization
 
 ## Post-Implementation Notes
-Document:
-- obstacle definition/instance authority;
-- footprint representation;
-- deterministic generation rules;
-- construction/trap validation integration;
-- persistence/scenario representation;
-- how visual variants are selected;
-- future removal/resource hooks exposed by the implementation.
+
+- Added `GeneratedBuildObstacleDefinition`, which owns a stable ID, explicit
+  one-to-four-cell offsets, quarter-turn policy, construction/service blocking
+  flags, and compatible visual variants. `GeneratedBuildObstacleInstance` owns
+  anchor, resolved rotation-safe footprint, and selected variant identity.
+- Added `GeneratedBuildObstacleGenerator`. A local `System.Random` seeded from
+  configuration shuffles eligible cells deterministically, attempts every
+  configured shape, and then places optional additional obstacles. Placement
+  validates a complete footprint before registering any cell.
+- The default definitions prove 1-cell, 2-cell line, 3-cell L, and 4-cell 2x2
+  shapes. Variant pools support authored prefabs; Boulder, Bone, Relic, and Ore
+  identities plus per-cell fallback cubes make the initial blocked footprint
+  readable when art is not assigned.
+- Authored variants instantiate once per resolved footprint cell by default.
+  Composite prefabs that already cover an entire shape can opt out and spawn
+  once at the rotated anchor.
+- Eligibility rejects borders/fixed cells, built cells, generated-prop
+  occupancy, overlaps, a protected center region, and a configurable radius
+  around starting built content. This is the initial conservative expansion
+  guarantee rather than a global solvability optimizer.
+- Each obstacle definition owns inclusive minimum/maximum world-height settings,
+  allowing different kinds to occupy different vertical bands. Reversed values
+  are normalized, and ranges remain generation-only so later configuration
+  changes cannot invalidate saves.
+- Integrated obstacle occupancy into `TileGridGenerator` and its transactional
+  `PlacementValidationContext`. Construction rejects before solver mutation or
+  resource spending. Trap mechanism/infrastructure/service footprints reject
+  service-blocking obstacle cells through their existing atomic validation.
+- Added capture/validation/restore APIs. Save format version 15 and
+  `DungeonTestScenario` persist exact definition ID, anchor, rotation, and
+  variant, validate against the prospective layout, restore obstacles before
+  traps, and do not reroll on load/reset.
+- Added cell blocker descriptions, named runtime visuals, selected-generator
+  footprint gizmos, and focused editor coverage for footprint sizes,
+  non-rectangular rotation, variant/footprint separation, and exact record copy.
+- Definition identity and blocking flags are the future hooks for excavation,
+  mining, harvesting, and encounters. No removal/resource interaction was
+  implemented.
+
+Automated C# compilation succeeds. Unity validation was confirmed by the user
+on 2026-08-30, including the corrected adjacent-construction restore behavior
+and complete per-cell authored-variant presentation for multi-cell footprints.
+Unity validation was reconfirmed after adding per-definition world-height
+generation bands and verifying the configured five-column center exclusion
+produced by a center protection radius of two.
+
+## Validation Result
+
+Complete. Seeded obstacle generation, footprint presentation, construction and
+service-space blocking, persistence, and scenario behavior were approved in
+Unity on 2026-08-30. Per-definition height constraints, multi-cell authored
+variant spawning, adjacent construction restore, and center protection were
+also validated.
 
 ## Git
 Suggested branch: `feature/t026-generated-build-obstacles`

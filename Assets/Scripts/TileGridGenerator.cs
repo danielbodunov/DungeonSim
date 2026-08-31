@@ -37,6 +37,7 @@ public class TileGridGenerator : MonoBehaviour
         readonly HashSet<Vector2Int> reservedTraps = new();
         readonly HashSet<Vector2Int> reservedTrapFootprintCells = new();
         readonly HashSet<Vector2Int> reservedFloorProps = new();
+        readonly HashSet<Vector2Int> reservedObstacleCells = new();
         Vector2Int? reservedEntrance;
 
         internal PlacementValidationContext(
@@ -71,6 +72,7 @@ public class TileGridGenerator : MonoBehaviour
             reservedTraps.Clear();
             reservedTrapFootprintCells.Clear();
             reservedFloorProps.Clear();
+            reservedObstacleCells.Clear();
             reservedEntrance = null;
         }
 
@@ -112,7 +114,7 @@ public class TileGridGenerator : MonoBehaviour
             if (owner == null || cell.x <= 0 || cell.y <= 0 ||
                 cell.x >= owner.width - 1 || cell.y >= owner.height - 1 ||
                 IsPlacedCell(cell.x, cell.y) ||
-                reservedTrapFootprintCells.Contains(cell))
+                reservedTrapFootprintCells.Contains(cell) || IsObstacleCell(cell))
                 return false;
             if (layout != null)
                 return true;
@@ -127,6 +129,22 @@ public class TileGridGenerator : MonoBehaviour
         internal void ReserveFloorProp(Vector2Int cell) =>
             reservedFloorProps.Add(cell);
         internal void ReserveEntrance(Vector2Int cell) => reservedEntrance = cell;
+
+        internal bool IsObstacleCell(Vector2Int cell)
+        {
+            if (reservedObstacleCells.Contains(cell))
+                return true;
+            return layout == null && owner != null &&
+                owner.IsBuildObstacleServiceCell(cell);
+        }
+
+        internal void ReserveObstacleCells(IEnumerable<Vector2Int> cells)
+        {
+            if (cells == null)
+                return;
+            foreach (Vector2Int cell in cells)
+                reservedObstacleCells.Add(cell);
+        }
 
         internal bool HasTopologySensitiveEntrance(Vector2Int cell)
         {
@@ -232,6 +250,7 @@ public class TileGridGenerator : MonoBehaviour
     [SerializeField] TileAdjacencyDatabase database;
     [SerializeField] GameObject placeholderPrefab;
     [SerializeField] PropGenerator propGenerator;
+    [SerializeField] GeneratedBuildObstacleGenerator buildObstacleGenerator;
     [SerializeField] int width = 32;
     [SerializeField] int height = 32;
     [SerializeField] Vector2 origin = Vector2.zero;
@@ -287,6 +306,11 @@ public class TileGridGenerator : MonoBehaviour
             propGenerator = gameObject.AddComponent<PropGenerator>();
 
         propGenerator.Initialize(this);
+        if (buildObstacleGenerator == null)
+            buildObstacleGenerator = GetComponent<GeneratedBuildObstacleGenerator>();
+        if (buildObstacleGenerator == null)
+            buildObstacleGenerator = gameObject.AddComponent<GeneratedBuildObstacleGenerator>();
+        buildObstacleGenerator.Initialize(this);
         propGenerator.GenerateProps();
     }
 
@@ -554,6 +578,13 @@ public class TileGridGenerator : MonoBehaviour
     public int PropGenerationSeed => propGenerator != null
         ? propGenerator.SaveGenerationSeed
         : 0;
+    public int BuildObstacleGenerationSeed => buildObstacleGenerator != null
+        ? buildObstacleGenerator.GenerationSeed
+        : 0;
+    public IReadOnlyList<GeneratedBuildObstacleInstance> BuildObstacles =>
+        buildObstacleGenerator != null
+            ? buildObstacleGenerator.Instances
+            : System.Array.Empty<GeneratedBuildObstacleInstance>();
     public int PlacedCellCount
     {
         get
@@ -585,6 +616,20 @@ public class TileGridGenerator : MonoBehaviour
 
         return placed[x, y];
     }
+
+    public bool IsCellOccupiedByGeneratedProp(Vector2Int cell) =>
+        propGenerator != null && propGenerator.IsCellOccupiedByGeneratedProp(cell);
+
+    public bool IsBuildObstacleCell(Vector2Int cell) =>
+        buildObstacleGenerator != null &&
+        buildObstacleGenerator.IsConstructionBlocked(cell);
+
+    public bool IsBuildObstacleServiceCell(Vector2Int cell) =>
+        buildObstacleGenerator != null &&
+        buildObstacleGenerator.IsServiceSpaceBlocked(cell);
+
+    public string GetBuildObstacleBlockReason(Vector2Int cell) =>
+        buildObstacleGenerator?.GetBlockReason(cell) ?? string.Empty;
 
     public CellWidthIntent GetCellWidthIntent(int x, int y)
     {
@@ -668,6 +713,62 @@ public class TileGridGenerator : MonoBehaviour
     {
         if (propGenerator != null)
             propGenerator.GenerateProps(generationSeed);
+    }
+
+    public void RegenerateBuildObstacles(int generationSeed)
+    {
+        EnsureBuildObstacleGenerator();
+        buildObstacleGenerator.Generate(generationSeed);
+    }
+
+    public List<SavedGeneratedBuildObstacle> CaptureBuildObstacleLayout()
+    {
+        return buildObstacleGenerator != null
+            ? buildObstacleGenerator.Capture()
+            : new List<SavedGeneratedBuildObstacle>();
+    }
+
+    public bool TryValidateBuildObstacleLayout(
+        IReadOnlyList<SavedGeneratedBuildObstacle> obstacles,
+        PlacementValidationContext context,
+        out string failure)
+    {
+        if (!TryValidatePlacementContext(context, out failure))
+            return false;
+        EnsureBuildObstacleGenerator();
+        if (!buildObstacleGenerator.Validate(obstacles, context, out failure))
+            return false;
+        if (obstacles != null)
+            for (int i = 0; i < obstacles.Count; i++)
+            {
+                SavedGeneratedBuildObstacle saved = obstacles[i];
+                if (buildObstacleGenerator.TryResolveFootprint(
+                        saved,
+                        out IReadOnlyList<Vector2Int> footprint,
+                        out bool blocksServiceSpace) && blocksServiceSpace)
+                    context.ReserveObstacleCells(footprint);
+            }
+        return true;
+    }
+
+    public bool RestoreBuildObstacleLayout(
+        IReadOnlyList<SavedGeneratedBuildObstacle> obstacles,
+        out string failure)
+    {
+        EnsureBuildObstacleGenerator();
+        return buildObstacleGenerator.Restore(
+            obstacles, GetLivePlacementValidationContext(), out failure);
+    }
+
+    public void ClearBuildObstacles() => buildObstacleGenerator?.Clear();
+
+    void EnsureBuildObstacleGenerator()
+    {
+        if (buildObstacleGenerator == null)
+            buildObstacleGenerator = GetComponent<GeneratedBuildObstacleGenerator>();
+        if (buildObstacleGenerator == null)
+            buildObstacleGenerator = gameObject.AddComponent<GeneratedBuildObstacleGenerator>();
+        buildObstacleGenerator.InitializeDefinitionsOnly(this);
     }
 
     public List<SavedTileCell> CaptureTileLayout()
@@ -760,6 +861,7 @@ public class TileGridGenerator : MonoBehaviour
         // grid is applied directly so restoration cannot discover a layout
         // contradiction after outgoing content has been cleared.
         propGenerator?.ClearGeneratedProps();
+        buildObstacleGenerator?.Clear();
         ClearTraps();
         ClearFloorProps();
         ResetEntranceState();
@@ -2470,6 +2572,13 @@ public class TileGridGenerator : MonoBehaviour
         }
 
         var requestedCell = new Vector2Int(x, y);
+        if (IsBuildObstacleCell(requestedCell))
+        {
+            Debug.LogWarning(
+                $"Cell ({x},{y}) is blocked by " +
+                GetBuildObstacleBlockReason(requestedCell) + ".", this);
+            return false;
+        }
         if (TryGetTrapConstructionConflict(
                 requestedCell, out CellTrap blockingTrap))
         {
@@ -2571,6 +2680,13 @@ public class TileGridGenerator : MonoBehaviour
         }
 
         var requestedCell = new Vector2Int(x, y);
+        if (IsBuildObstacleCell(requestedCell))
+        {
+            Debug.LogWarning(
+                $"Cell ({x},{y}) is blocked by " +
+                GetBuildObstacleBlockReason(requestedCell) + ".", this);
+            return false;
+        }
         if (TryGetTrapConstructionConflict(
                 requestedCell, out CellTrap blockingTrap))
         {
@@ -2683,7 +2799,8 @@ public class TileGridGenerator : MonoBehaviour
         }
         if (context.HasTrap(serviceCell) || context.HasFloorProp(serviceCell) ||
             context.HasEntranceAt(serviceCell) ||
-            context.IsGeneratedPropOccupied(serviceCell))
+            context.IsGeneratedPropOccupied(serviceCell) ||
+            context.IsObstacleCell(serviceCell))
         {
             failure = $"Cell ({serviceCell.x},{serviceCell.y}) contains " +
                 "authoritative or topology-sensitive content.";

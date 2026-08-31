@@ -1,0 +1,144 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9652393d1f694693a9c01ce6e1642ba7, type: 3}
+  m_Name: ObstacleTesting
+  m_EditorClassIdentifier: Assembly-CSharp::DungeonTestScenario
+  scenarioName: ObstacleTesting
+  description: 
+  intendedTestPurpose: 
+  gridWidth: 15
+  gridHeight: 15
+  propGenerationSeed: -548729788
+  tileCells:
+  - x: 1
+    y: 6
+    isPlaced: 0
+    profileId: Ground_Full_X_R0
+    widthIntent: 0
+  - x: 1
+    y: 7
+    isPlaced: 1
+    profileId: Narrow_Cap_R2
+    widthIntent: 0
+  - x: 2
+    y: 7
+    isPlaced: 1
+    profileId: Narrow_Straight_I_R0
+    widthIntent: 0
+  - x: 3
+    y: 6
+    isPlaced: 0
+    profileId: Ground_Full_X_R0
+    widthIntent: 0
+  - x: 3
+    y: 7
+    isPlaced: 1
+    profileId: Narrow_Corner_L_R2
+    widthIntent: 0
+  - x: 3
+    y: 8
+    isPlaced: 1
+    profileId: Narrow_Corner_L_R0
+    widthIntent: 0
+  - x: 3
+    y: 9
+    isPlaced: 0
+    profileId: Ground_Full_X_R0
+    widthIntent: 0
+  - x: 4
+    y: 8
+    isPlaced: 1
+    profileId: Narrow_Cap_R0
+    widthIntent: 0
+  connectionEdges:
+  - fromX: 1
+    fromY: 7
+    toX: 2
+    toY: 7
+    intent: 1
+  - fromX: 2
+    fromY: 7
+    toX: 3
+    toY: 7
+    intent: 1
+  - fromX: 3
+    fromY: 7
+    toX: 3
+    toY: 8
+    intent: 1
+  - fromX: 3
+    fromY: 8
+    toX: 4
+    toY: 8
+    intent: 1
+  traps: []
+  floorProps: []
+  buildObstacles:
+  - definitionId: Boulder
+    anchorX: 1
+    anchorY: 8
+    rotation: 3
+    variantId: Boulder_02
+  - definitionId: Boulder
+    anchorX: 2
+    anchorY: 8
+    rotation: 2
+    variantId: Boulder_01
+  - definitionId: Boulder
+    anchorX: 3
+    anchorY: 5
+    rotation: 3
+    variantId: Boulder_01
+  - definitionId: Boulder
+    anchorX: 4
+    anchorY: 6
+    rotation: 2
+    variantId: Boulder_01
+  - definitionId: Boulder
+    anchorX: 4
+    anchorY: 7
+    rotation: 1
+    variantId: Boulder_01
+  entranceMode: 0
+  entrance:
+    x: 0
+    y: 0
+    objectId: -1
+    prefabName: 
+    prefab: {fileID: 0}
+    isResolved: 0
+    hasTrapAttachmentSurface: 0
+    trapAttachmentSurface: 0
+  hasDefaultEntranceCell: 1
+  defaultEntranceCell: {x: 1, y: 7}
+  hasRuntimeStateSnapshot: 1
+  traversalState:
+    recoverableLootDrops: []
+    deathLootOutcomes: []
+    escapeLootOutcomes: []
+    nextRecoverableLootDropNumber: 1
+    nextRuntimeAgentId: 1
+  gameplayState:
+    dungeonOpenCount: 0
+    dread: 0
+    dungeonLevel: 1
+    selectedSpeed: 1
+    adventurerRoster: []
+    dreadHarvests: []
+    dreadSpends: []
+    expeditionOutcomes: []
+    recoveredLootInventory: []
+    playerLootRecoveries: []
+    constructionMaterials: 0
+    trapComponents: 5
+    arcaneComponents: 5
+    hasAuthoritativePhysicalResourceBalances: 1

@@ -28,12 +28,9 @@ None.
 
 - [t018 — Build Cost Foundation](t018-Build-Cost-Foundation.md)
 
-## Planned — Strategic Construction
-
-- [t026 — Generated Build Obstacles](t026-Generated-Build-Obstacles.md)
-
 ## Completed / Existing Work
 
+- [t026 — Generated Build Obstacles](t026-Generated-Build-Obstacles.md)
 - [RENDER-03 — Prop Material and Atlas Pipeline](RENDER-03-Prop-Material-Atlas-Pipeline.md)
 - [RENDER-02 — Pixel-Lit Prop Shader](RENDER-02-Pixel-Lit-Prop-Shader.md)
 - [RENDER-01 — Shared Pixel-Lit Core](RENDER-01-Shared-Pixel-Lit-Core.md)
