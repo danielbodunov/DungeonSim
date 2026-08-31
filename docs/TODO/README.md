@@ -8,6 +8,7 @@ None.
 
 ## Awaiting Unity Validation
 
+- [t033 — Correct Middle-Mouse Camera Pan Direction](t033-Correct-Middle-Mouse-Camera-Pan-Direction.md)
 - [t019 — External Trap Attachment Model](t019-External-Trap-Attachment-Model.md)
 - [t021 — Modular Tile Construction Surfaces](t021-Modular-Tile-Construction-Surfaces.md)
 - [t022 — Trap Space & Compatibility Validation](t022-Trap-Space-Compatibility-Validation.md)
@@ -38,7 +39,6 @@ None.
 ## Planned — Save & Camera UX
 
 - [t032 — Horizontal Camera Navigation Bounds](t032-Horizontal-Camera-Navigation-Bounds.md)
-- [t033 — Correct Middle-Mouse Camera Pan Direction](t033-Correct-Middle-Mouse-Camera-Pan-Direction.md)
 
 ## Planned — Physical Consequences & Dungeon Economy
 

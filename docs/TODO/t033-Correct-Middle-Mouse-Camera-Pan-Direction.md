@@ -2,7 +2,7 @@
 
 ## Tracking
 - **ID:** t033
-- **Status:** Planned
+- **Status:** Complete
 - **Milestone:** Camera / Input UX
 - **Depends on:** Existing middle-mouse camera-pan input
 
@@ -49,12 +49,30 @@ The underlying camera/focus transform therefore moves opposite the screen-space 
 5. If t032 is present, drag against both horizontal bounds and verify the corrected direction and clamp interact correctly.
 
 ## Post-Implementation Report
-Record:
-- input/controller code changed
-- axis/sign correction made
-- sensitivity/smoothing compatibility
-- interaction with t032 if present
-- manual validation results
+
+- Updated only the middle-mouse input-to-pan conversion in
+  `Assets/Scripts/CameraMovement.cs` (`CameraFollow`). Keyboard movement, wheel
+  zoom, focus/follow, orthographic/perspective updates, and smoothing remain
+  unchanged.
+- Changed the default mouse conversion from `(mouseDelta.x, -mouseDelta.y)` to
+  `(-mouseDelta.x, -mouseDelta.y)`. The camera/focus target therefore moves
+  opposite cursor motion on both supported axes, producing grab-style on-screen
+  board movement.
+- Preserved the exact `panMouseSensitivity` multiplier. The existing
+  `invertMiddlePan` field is now a stable explicit whole-drag override instead
+  of being toggled on each middle-button press; no press/release state changes
+  the pan sign or target position.
+- Added `CameraPanDirectionTests` covering positive/negative X and Y,
+  sensitivity-scaled deltas, zero Z movement, and magnitude-preserving inversion.
+- Runtime and editor assemblies compile successfully. The only editor warning
+  is the pre-existing unused `TileSocketBakerWindow.visualizeSamples` field.
+- t032 remains Planned and has no bounds code on this branch. The correction is
+  upstream of camera target movement, so a later target clamp can consume the
+  corrected delta without compensating signs.
+- **Unity validation completed 2026-08-31.** Manual drag direction, drag
+  restart/no-jump behavior, and existing non-middle-mouse camera input were
+  validated in Unity. t032-specific bounds validation remains applicable when
+  that separate planned ticket is implemented.
 
 ## Git
 Suggested implementation branch: `fix/t033-middle-mouse-pan-direction`

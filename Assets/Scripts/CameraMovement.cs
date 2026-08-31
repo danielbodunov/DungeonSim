@@ -20,6 +20,7 @@ public class CameraFollow : MonoBehaviour
     public float zoomSmoothTime = 0.08f;
     public bool panWithMiddleMouse = true;
     public float panMouseSensitivity = 0.02f;
+    [Tooltip("Reverse the default grab-style middle-mouse pan direction.")]
     public bool invertMiddlePan = false;
 
     [Header("Target Focus")]
@@ -38,8 +39,6 @@ public class CameraFollow : MonoBehaviour
     private Vector3 positionVelocity;
     private float targetZoom;
     private float zoomVelocity;
-    private bool prevMiddlePressed;
-
     // A perspective camera zooms by moving along its forward axis. Keeping a
     // separate focus point lets panning and dolly movement remain independent.
     private bool perspectiveZoomInitialized;
@@ -118,14 +117,10 @@ public class CameraFollow : MonoBehaviour
 
         if (panWithMiddleMouse && inputManager != null)
         {
-            if (middle && !prevMiddlePressed)
-                invertMiddlePan = !invertMiddlePan;
-
-            prevMiddlePressed = middle;
-
             if (middle)
             {
-                panDelta += new Vector3(mouseDelta.x, -mouseDelta.y, 0f) * panMouseSensitivity;
+                panDelta += CalculateMiddleMousePanDelta(
+                    mouseDelta, panMouseSensitivity, invertMiddlePan);
                 isPanning = true;
             }
         }
@@ -134,6 +129,15 @@ public class CameraFollow : MonoBehaviour
             UpdateOrthographicCamera(panDelta, isPanning);
         else
             UpdatePerspectiveCamera(panDelta, isPanning);
+    }
+
+    public static Vector3 CalculateMiddleMousePanDelta(
+        Vector2 mouseDelta,
+        float sensitivity,
+        bool invert)
+    {
+        Vector2 grabDelta = invert ? mouseDelta : -mouseDelta;
+        return new Vector3(grabDelta.x, grabDelta.y, 0f) * sensitivity;
     }
 
     /// <summary>Begins smoothly framing and following a generic world target.</summary>
