@@ -44,6 +44,7 @@ public sealed class DungeonTestScenario : ScriptableObject
     [SerializeField] List<SavedConnectionEdge> connectionEdges = new();
     [SerializeField] List<DungeonScenarioPlacedObject> traps = new();
     [SerializeField] List<DungeonScenarioPlacedObject> floorProps = new();
+    [SerializeField] List<SavedGeneratedBuildObstacle> buildObstacles = new();
     [SerializeField] DungeonScenarioEntranceMode entranceMode;
     [SerializeField] DungeonScenarioPlacedObject entrance;
     [SerializeField] bool hasDefaultEntranceCell;
@@ -62,6 +63,7 @@ public sealed class DungeonTestScenario : ScriptableObject
     public IReadOnlyList<SavedConnectionEdge> ConnectionEdges => connectionEdges;
     public IReadOnlyList<DungeonScenarioPlacedObject> Traps => traps;
     public IReadOnlyList<DungeonScenarioPlacedObject> FloorProps => floorProps;
+    public IReadOnlyList<SavedGeneratedBuildObstacle> BuildObstacles => buildObstacles;
     public DungeonScenarioEntranceMode EntranceMode => GetEffectiveEntranceMode();
     public DungeonScenarioPlacedObject Entrance => entrance;
 
@@ -98,6 +100,7 @@ public sealed class DungeonTestScenario : ScriptableObject
         floorProps = CapturePlacedObjects(
             grid.CaptureFloorPropLayout(), objectCatalog,
             ObjectPlacementType.FloorProp);
+        buildObstacles = CopyBuildObstacles(grid.CaptureBuildObstacleLayout());
 
         SavedEntrance capturedEntrance = grid.CaptureEntranceLayout();
         if (capturedEntrance != null)
@@ -164,7 +167,8 @@ public sealed class DungeonTestScenario : ScriptableObject
             ? gameplayLoop.CaptureScenarioState()
             : null;
 
-        report = $"Captured {tileCells.Count} cells, {traps.Count} traps, " +
+        report = $"Captured {tileCells.Count} cells, {buildObstacles.Count} " +
+            $"build obstacles, {traps.Count} traps, " +
             $"{floorProps.Count} floor props, and " +
             GetEntranceReportDescription() +
             $" Runtime baseline: {traversalState.RecoverableLootDrops.Count} " +
@@ -190,6 +194,7 @@ public sealed class DungeonTestScenario : ScriptableObject
         connectionEdges = CopyConnectionEdges(source.connectionEdges);
         traps = CopyPlacedObjects(source.traps);
         floorProps = CopyPlacedObjects(source.floorProps);
+        buildObstacles = CopyBuildObstacles(source.buildObstacles);
         entranceMode = source.GetEffectiveEntranceMode();
         entrance = CopyPlacedObject(source.entrance);
         hasDefaultEntranceCell = source.hasDefaultEntranceCell;
@@ -201,6 +206,7 @@ public sealed class DungeonTestScenario : ScriptableObject
 
     public bool TryApplyTo(TileGridGenerator grid, out string report)
     {
+        buildObstacles ??= new List<SavedGeneratedBuildObstacle>();
         if (grid == null || !grid.IsInitialized)
         {
             report = "No initialized dungeon grid is available to load.";
@@ -246,6 +252,12 @@ public sealed class DungeonTestScenario : ScriptableObject
                 CopyConnectionEdges(connectionEdges)))
         {
             report = "The scenario layout is incompatible with the current tile database.";
+            return false;
+        }
+
+        if (!grid.RestoreBuildObstacleLayout(buildObstacles, out string obstacleFailure))
+        {
+            report = $"Could not restore build obstacles: {obstacleFailure}";
             return false;
         }
 
@@ -327,6 +339,7 @@ public sealed class DungeonTestScenario : ScriptableObject
         }
 
         report = $"Loaded '{scenarioName}': {tileCells.Count} cells, " +
+            $"{buildObstacles.Count} build obstacles, " +
             $"{restoredTraps} traps, {restoredFloorProps} floor props, and " +
             GetEntranceReportDescription() +
             $" Restored {traversalState?.RecoverableLootDrops.Count ?? 0} " +
@@ -419,6 +432,12 @@ public sealed class DungeonTestScenario : ScriptableObject
         if (floorProps == null)
         {
             report = "The scenario floor-prop collection is missing.";
+            return false;
+        }
+        if (!grid.TryValidateBuildObstacleLayout(
+                buildObstacles, placementContext, out string obstacleFailure))
+        {
+            report = $"Scenario build obstacles are invalid: {obstacleFailure}";
             return false;
         }
 
@@ -641,6 +660,18 @@ public sealed class DungeonTestScenario : ScriptableObject
 
         report = string.Empty;
         return true;
+    }
+
+    static List<SavedGeneratedBuildObstacle> CopyBuildObstacles(
+        IReadOnlyList<SavedGeneratedBuildObstacle> source)
+    {
+        var result = new List<SavedGeneratedBuildObstacle>(source?.Count ?? 0);
+        if (source == null)
+            return result;
+        for (int i = 0; i < source.Count; i++)
+            if (source[i] != null)
+                result.Add(source[i].Copy());
+        return result;
     }
 
     static List<DungeonScenarioPlacedObject> CapturePlacedObjects(

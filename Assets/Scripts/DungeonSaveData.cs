@@ -5,7 +5,7 @@ using UnityEngine.Serialization;
 [Serializable]
 public class DungeonSaveData
 {
-    public const int CurrentVersion = 14;
+    public const int CurrentVersion = 15;
 
     public int version = CurrentVersion;
     public string saveName;
@@ -26,6 +26,7 @@ public class DungeonSaveData
     public List<SavedConnectionEdge> connectionEdges = new();
     public List<SavedTrapCell> traps = new();
     public List<SavedFloorPropCell> floorProps = new();
+    public List<SavedGeneratedBuildObstacle> buildObstacles = new();
     public List<RecoverableLootDrop> recoverableLootDrops = new();
     public int nextRecoverableLootDropNumber = 1;
     public List<DungeonStoredLootItem> recoveredLootInventory = new();
