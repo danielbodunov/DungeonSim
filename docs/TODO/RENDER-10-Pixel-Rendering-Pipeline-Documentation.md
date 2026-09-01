@@ -29,7 +29,7 @@ The reference should sit above task-specific How-To guides. It should explain wh
 - For each category, identify:
   - shader family / material path;
   - texture-addressing model;
-  - texture organization;
+  - normal texture organization;
   - relevant masks;
   - important category-specific constraints.
 - A contributor must be able to determine the correct shader/material/texture organization without inspecting shader source.
