@@ -12,9 +12,6 @@ public class TilePlacement : MonoBehaviour
 
 
     [SerializeField]
-    private Grid grid;
-
-    [SerializeField]
     private TileGridGenerator tileGridGenerator;
 
     [SerializeField]
@@ -31,7 +28,7 @@ public class TilePlacement : MonoBehaviour
     [SerializeField]
     private TileAdjacencyDatabase tileDatabase;
 
-    private Vector3Int? lastDragCell;
+    private Vector2Int? lastDragCell;
     private bool buildingEnabled = true;
     private bool removingTraps;
     private bool removingEntrance;
@@ -56,7 +53,7 @@ public class TilePlacement : MonoBehaviour
     private TrapAttachmentPlacement selectedTrapCandidate;
     private bool hasSelectedTrapCandidate;
     private string trapPlacementFailure = string.Empty;
-    private Vector3Int? lastTrapPreviewCell;
+    private Vector2Int? lastTrapPreviewCell;
     private Renderer[] cellIndicatorRenderers = System.Array.Empty<Renderer>();
     private MaterialPropertyBlock previewPropertyBlock;
     private GameplayLoopController gameplayLoop;
@@ -219,8 +216,11 @@ public class TilePlacement : MonoBehaviour
             return;
         }
 
-        Vector3Int gridPosition = grid.WorldToCell(mousePosition);
-        PlaceAtCell(gridPosition);
+        if (tileGridGenerator.TryWorldToPlayableCell(
+                mousePosition, out Vector2Int logicalCell))
+        {
+            PlaceAtCell(logicalCell);
+        }
     }
 
     private void PlaceGround()
@@ -232,40 +232,46 @@ public class TilePlacement : MonoBehaviour
             return;
 
         Vector3 mousePosition = inputManager.GetSelectedMapPosition();
-        Vector3Int gridPosition = grid.WorldToCell(mousePosition);
-        Vector3 cellCenter = grid.GetCellCenterWorld(gridPosition);
-        if (!tileGridGenerator.TryWorldToCell(cellCenter, out Vector2Int logicalCell) ||
+        if (!tileGridGenerator.TryWorldToPlayableCell(
+                mousePosition, out Vector2Int logicalCell) ||
             !tileGridGenerator.IsPlacedCell(logicalCell.x, logicalCell.y))
+        {
             return;
+        }
+        Vector3 cellCenter = tileGridGenerator.GetCellWorldPosition(
+            logicalCell.x, logicalCell.y);
         if (tileGridGenerator.PlaceGroundWorldPosition(cellCenter))
             ResolveGameplayLoop()?.RefundBuildCost(DungeonTileCost);
     }
 
-    private void PlaceAtCell(Vector3Int gridPosition)
+    private void PlaceAtCell(Vector2Int logicalCell)
     {
         if (!buildingEnabled)
             return;
 
-        if (lastDragCell.HasValue && lastDragCell.Value == gridPosition)
+        if (!tileGridGenerator.IsPlayableCell(logicalCell) ||
+            (lastDragCell.HasValue && lastDragCell.Value == logicalCell))
             return;
 
-        Vector3 cellCenter = grid.GetCellCenterWorld(gridPosition);
+        Vector3 cellCenter = tileGridGenerator.GetCellWorldPosition(
+            logicalCell.x, logicalCell.y);
         if (removingTraps)
         {
             tileGridGenerator.RemoveTrapWorldPosition(cellCenter);
-            lastDragCell = gridPosition;
+            lastDragCell = logicalCell;
             return;
         }
 
         if (removingEntrance)
         {
             tileGridGenerator.RemoveEntranceWorldPosition(cellCenter);
-            lastDragCell = gridPosition;
+            lastDragCell = logicalCell;
             return;
         }
 
         ObjectData selectedObject = database.objectsData[selectedObjectIndex];
-        Debug.Log($"Placing {selectedObject.Name} (ID {selectedObject.ID}) at grid position ({gridPosition.x}, {gridPosition.y})");
+        Debug.Log($"Placing {selectedObject.Name} (ID {selectedObject.ID}) " +
+            $"at grid position ({logicalCell.x}, {logicalCell.y})");
         if (selectedObject.PlacementType == ObjectPlacementType.Trap)
         {
             if (tileGridGenerator.PlaceTrapFromServiceWorldPosition(
@@ -273,33 +279,29 @@ public class TilePlacement : MonoBehaviour
                     selectedObject.Prefab,
                     selectedObject.ID,
                     selectedTrapCandidateIndex))
-                lastDragCell = gridPosition;
+                lastDragCell = logicalCell;
         }
         else if (selectedObject.PlacementType == ObjectPlacementType.Entrance)
         {
             if (tileGridGenerator.PlaceEntranceWorldPosition(
                     cellCenter, selectedObject.Prefab, selectedObject.ID))
             {
-                lastDragCell = gridPosition;
+                lastDragCell = logicalCell;
             }
         }
         else if (selectedObject.PlacementType == ObjectPlacementType.FloorProp)
         {
-            tileGridGenerator.TryWorldToCell(
-                cellCenter,
-                out Vector2Int logicalCell);
             bool placed = customPlacementHandler != null
                 ? customPlacementHandler.Invoke(logicalCell)
                 : tileGridGenerator.PlaceFloorPropWorldPosition(
                     cellCenter, selectedObject.Prefab, selectedObject.ID);
             if (placed)
             {
-                lastDragCell = gridPosition;
+                lastDragCell = logicalCell;
             }
         }
         else
         {
-            tileGridGenerator.TryWorldToCell(cellCenter, out Vector2Int logicalCell);
             bool createsCell = !tileGridGenerator.IsPlacedCell(
                 logicalCell.x, logicalCell.y);
             GameplayLoopController resources = ResolveGameplayLoop();
@@ -316,7 +318,7 @@ public class TilePlacement : MonoBehaviour
             {
                 if (createsCell)
                     resources.TrySpendBuildCost(DungeonTileCost, out _);
-                lastDragCell = gridPosition;
+                lastDragCell = logicalCell;
             }
         }
     }
@@ -377,18 +379,20 @@ public class TilePlacement : MonoBehaviour
         }
         
         Vector3 mousePosition = inputManager.GetSelectedMapPosition();
-        Vector3Int gridPosition = grid.WorldToCell(mousePosition);
+        tileGridGenerator.TryWorldToCell(
+            mousePosition, out Vector2Int logicalCell);
+        Vector3 cellCenter = tileGridGenerator.GetCellWorldPosition(
+            logicalCell.x, logicalCell.y);
         mouseIndicator.transform.position = mousePosition;
-        cellIndicator.transform.position = grid.GetCellCenterWorld(gridPosition);
+        cellIndicator.transform.position = cellCenter;
 
-        UpdateFloorPropPreview(grid.GetCellCenterWorld(gridPosition));
-        Vector3 cellCenter = grid.GetCellCenterWorld(gridPosition);
+        UpdateFloorPropPreview(cellCenter);
         if (IsTrapPlacementActive &&
             (!lastTrapPreviewCell.HasValue ||
-             lastTrapPreviewCell.Value != gridPosition))
+             lastTrapPreviewCell.Value != logicalCell))
         {
             selectedTrapCandidateIndex = 0;
-            lastTrapPreviewCell = gridPosition;
+            lastTrapPreviewCell = logicalCell;
         }
         UpdateTrapPreview(cellCenter);
         if (IsTrapPlacementActive && inputManager.TrapCandidateCyclePressed &&
@@ -410,7 +414,7 @@ public class TilePlacement : MonoBehaviour
         }
 
         if (!inputManager.IsPointerOverUI())
-            PlaceAtCell(gridPosition);
+            PlaceAtCell(logicalCell);
 
     }
 

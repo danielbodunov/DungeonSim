@@ -8,6 +8,7 @@ None.
 
 ## Awaiting Unity Validation
 
+- [t033 — Correct Middle-Mouse Camera Pan Direction](t033-Correct-Middle-Mouse-Camera-Pan-Direction.md)
 - [t019 — External Trap Attachment Model](t019-External-Trap-Attachment-Model.md)
 - [t021 — Modular Tile Construction Surfaces](t021-Modular-Tile-Construction-Surfaces.md)
 - [t022 — Trap Space & Compatibility Validation](t022-Trap-Space-Compatibility-Validation.md)
@@ -26,7 +27,6 @@ None.
 
 ## Planned — Ground Rendering
 
-- [RENDER-08 — Consolidated Ground Surface Rendering](RENDER-08-Consolidated-Ground-Surface-Rendering.md)
 - [RENDER-09 — Exterior / Out-of-Bounds Ground Rendering](RENDER-09-Exterior-Ground-Rendering.md)
 
 ## Planned — Pixel Rendering Documentation
@@ -39,18 +39,15 @@ None.
 - [t030 — Placeable Platforms](t030-Placeable-Platforms.md)
 - [t031 — Placeable Ladders](t031-Placeable-Ladders.md)
 
-## Planned — Save & Camera UX
-
-- [t028 — Save Deletion UI](t028-Save-Deletion-UI.md)
-- [t032 — Horizontal Camera Navigation Bounds](t032-Horizontal-Camera-Navigation-Bounds.md)
-- [t033 — Correct Middle-Mouse Camera Pan Direction](t033-Correct-Middle-Mouse-Camera-Pan-Direction.md)
-
 ## Planned — Physical Consequences & Dungeon Economy
 
 - [t018 — Build Cost Foundation](t018-Build-Cost-Foundation.md)
 
 ## Completed / Existing Work
 
+- [RENDER-08 — Consolidated Ground Surface Rendering](RENDER-08-Consolidated-Ground-Surface-Rendering.md)
+- [t032 — Horizontal Camera Navigation Bounds](t032-Horizontal-Camera-Navigation-Bounds.md)
+- [t028 — Save Deletion UI](t028-Save-Deletion-UI.md)
 - [t026 — Generated Build Obstacles](t026-Generated-Build-Obstacles.md)
 - [RENDER-03 — Prop Material and Atlas Pipeline](RENDER-03-Prop-Material-Atlas-Pipeline.md)
 - [RENDER-02 — Pixel-Lit Prop Shader](RENDER-02-Pixel-Lit-Prop-Shader.md)

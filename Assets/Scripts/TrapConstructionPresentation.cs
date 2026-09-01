@@ -22,12 +22,14 @@ public sealed class TrapConstructionPresentation : MonoBehaviour
 
     static readonly Dictionary<Color32, Material> fallbackMaterials = new();
     readonly List<Renderer> hiddenGroundRenderers = new();
+    readonly List<Vector2Int> suppressedGroundCells = new();
     readonly List<RendererEnabledState> suppressedSurfaceRenderers = new();
     readonly List<GameObject> presentationObjects = new();
     TileConstructionSurfaces targetSurfaces;
     string targetSurfaceId;
     string restoredVariantId;
     bool restored;
+    TileGridGenerator groundGrid;
 
     public static void ApplyCommitted(
         TileGridGenerator grid,
@@ -78,6 +80,12 @@ public sealed class TrapConstructionPresentation : MonoBehaviour
             if (hiddenGroundRenderers[i] != null)
                 hiddenGroundRenderers[i].enabled = true;
         hiddenGroundRenderers.Clear();
+        if (groundGrid != null)
+            for (int i = 0; i < suppressedGroundCells.Count; i++)
+                groundGrid.SetOrdinaryGroundSuppressed(
+                    suppressedGroundCells[i], false);
+        suppressedGroundCells.Clear();
+        groundGrid = null;
     }
 
     void OnDestroy() => Restore();
@@ -250,7 +258,7 @@ public sealed class TrapConstructionPresentation : MonoBehaviour
         for (int i = 0; i < cells.Count; i++)
         {
             Vector2Int cell = cells[i];
-            if (committed)
+            if (committed && !SuppressOrdinaryGround(grid, cell))
                 HideOrdinaryGround(grid.GetCellPresentationObject(cell));
             CreatePresentationObject(
                 prefab,
@@ -262,6 +270,15 @@ public sealed class TrapConstructionPresentation : MonoBehaviour
                 previewParent,
                 createFallback);
         }
+    }
+
+    bool SuppressOrdinaryGround(TileGridGenerator grid, Vector2Int cell)
+    {
+        if (!grid.SetOrdinaryGroundSuppressed(cell, true))
+            return false;
+        groundGrid = grid;
+        suppressedGroundCells.Add(cell);
+        return true;
     }
 
     void HideOrdinaryGround(GameObject cellObject)

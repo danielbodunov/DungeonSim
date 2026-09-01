@@ -27,8 +27,8 @@ public class InputManager : MonoBehaviour
     private Camera sceneCamera;
     private Vector3 lastPosition;
 
-    [SerializeField]
-    private LayerMask placementLayerMask;
+    [SerializeField, Tooltip("World-space Z plane used for gameplay grid selection.")]
+    float placementPlaneZ;
 
     public event Action OnClicked, OnRightClicked, OnExit;
     public static InputManager Instance { get; private set; }
@@ -225,15 +225,25 @@ public class InputManager : MonoBehaviour
 
     public Vector3 GetSelectedMapPosition()
     {
-        Vector3 mousePos =  UnityEngine.InputSystem.Mouse.current.position.ReadValue();;
-        mousePos.z = sceneCamera.nearClipPlane;
-        Ray ray = sceneCamera.ScreenPointToRay(mousePos);
-        RaycastHit hit;
-        if (Physics.Raycast(ray, out hit, 100, placementLayerMask))
-        {
-            lastPosition = hit.point;
-        }
+        if (TryGetPointerRay(out Ray ray) &&
+            TryGetMapPlanePosition(ray, placementPlaneZ, out Vector3 position))
+            lastPosition = position;
         return lastPosition;
+    }
+
+    public static bool TryGetMapPlanePosition(
+        Ray ray,
+        float planeZ,
+        out Vector3 position)
+    {
+        var plane = new Plane(Vector3.forward, new Vector3(0f, 0f, planeZ));
+        if (plane.Raycast(ray, out float distance))
+        {
+            position = ray.GetPoint(distance);
+            return true;
+        }
+        position = default;
+        return false;
     }
 
     private void OnClickPerformed(InputAction.CallbackContext ctx)

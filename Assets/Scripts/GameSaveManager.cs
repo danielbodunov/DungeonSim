@@ -31,11 +31,18 @@ public class GameSaveManager : MonoBehaviour
     TileGridGenerator tileGrid;
     TilePlacement tilePlacement;
     NPCTraversal npcTraversal;
+    [NonSerialized] string persistenceRootOverride = null;
 
     public string SavesDirectory => Path.Combine(
-        Application.persistentDataPath, SavesFolderName);
+        string.IsNullOrEmpty(persistenceRootOverride)
+            ? Application.persistentDataPath
+            : persistenceRootOverride,
+        SavesFolderName);
     public string LegacySavePath => Path.Combine(
-        Application.persistentDataPath, LegacySaveFileName);
+        string.IsNullOrEmpty(persistenceRootOverride)
+            ? Application.persistentDataPath
+            : persistenceRootOverride,
+        LegacySaveFileName);
     public bool HasSave => GetSaveSlots().Count > 0;
     public string LastStatus { get; private set; } = string.Empty;
 
@@ -162,6 +169,62 @@ public class GameSaveManager : MonoBehaviour
 
         saves.Sort((left, right) => right.SortTimeUtc.CompareTo(left.SortTimeUtc));
         return saves;
+    }
+
+    public bool DeleteSave(SaveSlotInfo slot)
+    {
+        if (slot == null || string.IsNullOrWhiteSpace(slot.FilePath))
+            return ReportFailure("Select a saved game to delete.");
+
+        string requestedPath;
+        try
+        {
+            requestedPath = Path.GetFullPath(slot.FilePath);
+        }
+        catch (Exception exception)
+        {
+            Debug.LogException(exception, this);
+            return ReportFailure("The selected save has an invalid file path.");
+        }
+
+        SaveSlotInfo recognizedSlot = null;
+        List<SaveSlotInfo> currentSlots = GetSaveSlots();
+        for (int i = 0; i < currentSlots.Count; i++)
+        {
+            if (!string.Equals(
+                    Path.GetFullPath(currentSlots[i].FilePath),
+                    requestedPath,
+                    StringComparison.OrdinalIgnoreCase))
+                continue;
+            recognizedSlot = currentSlots[i];
+            break;
+        }
+        if (recognizedSlot == null)
+        {
+            return ReportFailure(
+                $"Could not delete '{slot.SaveName}': it is no longer a " +
+                "recognized save slot.");
+        }
+
+        try
+        {
+            File.Delete(requestedPath);
+            if (File.Exists(requestedPath))
+            {
+                return ReportFailure(
+                    $"Could not delete '{recognizedSlot.SaveName}'. The save " +
+                    "file is still present.");
+            }
+        }
+        catch (Exception exception)
+        {
+            Debug.LogException(exception, this);
+            return ReportFailure(
+                $"Could not delete '{recognizedSlot.SaveName}'. The save was " +
+                "not removed. See the Console for details.");
+        }
+
+        return ReportSuccess($"Deleted save '{recognizedSlot.SaveName}'.");
     }
 
     bool LoadGameFromPath(string savePath)

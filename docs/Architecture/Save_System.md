@@ -68,6 +68,20 @@ Saving is intentionally constrained to a safe gameplay state. Current logic requ
 
 That rule prevents persistence from freezing a transient exploration state whose route graph, animations, encounters, or topology-sensitive runtime state may be mid-update.
 
+## Save discovery and deletion
+
+`GameSaveManager` owns save discovery and destructive deletion. UI code passes a
+selected `SaveSlotInfo` to `DeleteSave`; it does not construct paths or call the
+filesystem. Before deleting, the manager canonicalizes the requested path and
+requires an exact match in a fresh `GetSaveSlots` result. This permits named and
+legacy saves while rejecting stale, malformed, or unrelated paths.
+
+Deletion reports success only after the recognized file is absent. Exceptions
+or a still-present file report failure through the existing `LastStatus` and
+`StatusChanged` contract. `GameplayLoopUI` requires a separate confirmation
+step naming the save and filename, then rebuilds the list only after success.
+Cancellation performs no persistence call.
+
 ## Persistence model
 
 Prefer this split:

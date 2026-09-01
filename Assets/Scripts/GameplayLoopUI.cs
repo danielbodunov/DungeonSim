@@ -39,6 +39,9 @@ public class GameplayLoopUI : MonoBehaviour
     TMP_Text menuStatusText;
     Button namedSaveButton;
     RectTransform saveListContent;
+    GameObject deleteConfirmationOverlay;
+    TMP_Text deleteConfirmationText;
+    SaveSlotInfo pendingSaveDeletion;
     bool wasPausedBeforeSaveMenu;
     Image removeTrapButtonImage;
     Image removeEntranceButtonImage;
@@ -508,7 +511,43 @@ public class GameplayLoopUI : MonoBehaviour
             13, FontStyles.Normal, TextAlignmentOptions.Center, Ink);
         SetTopLeftRect(hint.rectTransform, new Vector2(24f, -686f), new Vector2(852f, 24f));
 
+        BuildDeleteConfirmation(overlay);
+
         saveMenuOverlay.SetActive(false);
+    }
+
+    void BuildDeleteConfirmation(RectTransform parent)
+    {
+        RectTransform blocker = CreateRect("Delete Save Confirmation", parent);
+        SetRect(blocker, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
+        blocker.gameObject.AddComponent<Image>().color =
+            new Color(0.015f, 0.02f, 0.06f, 0.86f);
+        deleteConfirmationOverlay = blocker.gameObject;
+
+        RectTransform panel = CreatePanel(
+            "Confirmation Panel", blocker,
+            new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
+            new Vector2(0.5f, 0.5f), new Vector2(570f, 250f),
+            Vector2.zero, Panel);
+        CreateLabel(panel, "DELETE SAVE?", 27,
+            new Vector2(24f, -20f), new Vector2(522f, 38f));
+        deleteConfirmationText = CreateText(
+            "Confirmation Details", panel, string.Empty, 17,
+            FontStyles.Normal, TextAlignmentOptions.TopLeft, Ink);
+        SetTopLeftRect(deleteConfirmationText.rectTransform,
+            new Vector2(24f, -72f), new Vector2(522f, 92f));
+
+        Button cancel = CreateButton(
+            panel, "Cancel", new Vector2(92f, -184f), new Vector2(170f, 46f),
+            CancelSaveDeletion);
+        Button confirm = CreateButton(
+            panel, "Delete Save", new Vector2(308f, -184f),
+            new Vector2(170f, 46f), ConfirmSaveDeletion);
+        confirm.GetComponent<Image>().color = new Color(0.62f, 0.12f, 0.15f, 1f);
+        cancel.GetComponentInChildren<TMP_Text>().fontStyle = FontStyles.Bold;
+        confirm.GetComponentInChildren<TMP_Text>().fontStyle = FontStyles.Bold;
+
+        deleteConfirmationOverlay.SetActive(false);
     }
 
     void BuildSaveScrollView(RectTransform parent)
@@ -604,6 +643,12 @@ public class GameplayLoopUI : MonoBehaviour
     {
         if (saveMenuOverlay == null)
             return;
+        if (deleteConfirmationOverlay != null &&
+            deleteConfirmationOverlay.activeSelf)
+        {
+            CancelSaveDeletion();
+            return;
+        }
         if (saveMenuOverlay.activeSelf)
             CloseSaveMenu();
         else
@@ -634,6 +679,7 @@ public class GameplayLoopUI : MonoBehaviour
     {
         if (saveMenuOverlay == null || !saveMenuOverlay.activeSelf)
             return;
+        CancelSaveDeletion();
         saveMenuOverlay.SetActive(false);
         if (loop != null && !wasPausedBeforeSaveMenu && loop.IsPaused)
             loop.SetPaused(false);
@@ -653,6 +699,50 @@ public class GameplayLoopUI : MonoBehaviour
     {
         if (saveManager != null && saveManager.LoadGame(slot))
             CloseSaveMenu();
+    }
+
+    void RequestSaveDeletion(SaveSlotInfo slot)
+    {
+        if (slot == null || deleteConfirmationOverlay == null)
+            return;
+        pendingSaveDeletion = slot;
+        if (deleteConfirmationText != null)
+        {
+            string fileName = string.IsNullOrWhiteSpace(slot.FilePath)
+                ? "Unknown file"
+                : System.IO.Path.GetFileName(slot.FilePath);
+            deleteConfirmationText.text =
+                $"Delete '{slot.SaveName}'?\nFile: {fileName}\n\n" +
+                "This cannot be undone.";
+        }
+        deleteConfirmationOverlay.SetActive(true);
+    }
+
+    void CancelSaveDeletion()
+    {
+        pendingSaveDeletion = null;
+        if (deleteConfirmationOverlay != null)
+            deleteConfirmationOverlay.SetActive(false);
+        if (EventSystem.current != null && saveNameInput != null &&
+            saveMenuOverlay != null && saveMenuOverlay.activeSelf)
+            EventSystem.current.SetSelectedGameObject(saveNameInput.gameObject);
+    }
+
+    void ConfirmSaveDeletion()
+    {
+        if (saveManager == null || pendingSaveDeletion == null)
+            return;
+        SaveSlotInfo selectedSlot = pendingSaveDeletion;
+        if (!saveManager.DeleteSave(selectedSlot))
+            return;
+
+        pendingSaveDeletion = null;
+        if (deleteConfirmationOverlay != null)
+            deleteConfirmationOverlay.SetActive(false);
+        RebuildSaveSlotList();
+        Refresh();
+        if (EventSystem.current != null && saveNameInput != null)
+            EventSystem.current.SetSelectedGameObject(saveNameInput.gameObject);
     }
 
     void OnSaveStatusChanged()
@@ -700,7 +790,7 @@ public class GameplayLoopUI : MonoBehaviour
         TMP_Text name = CreateText(
             "Name", row, slot.SaveName, 21, FontStyles.Bold,
             TextAlignmentOptions.Left, Ink);
-        SetTopLeftRect(name.rectTransform, new Vector2(14f, -8f), new Vector2(610f, 30f));
+        SetTopLeftRect(name.rectTransform, new Vector2(14f, -8f), new Vector2(570f, 30f));
 
         string savedTime = FormatSaveTime(slot.SavedAtUtc, slot.SortTimeUtc);
         TMP_Text details = CreateText(
@@ -710,11 +800,15 @@ public class GameplayLoopUI : MonoBehaviour
             $"Loot {slot.RecoveredLootValue}   •   " +
             $"{slot.AdventurerCount} NPCs   •   {slot.TileCellCount} cells",
             13, FontStyles.Normal, TextAlignmentOptions.Left, Ink);
-        SetTopLeftRect(details.rectTransform, new Vector2(14f, -42f), new Vector2(650f, 25f));
+        SetTopLeftRect(details.rectTransform, new Vector2(14f, -42f), new Vector2(590f, 25f));
 
         SaveSlotInfo selectedSlot = slot;
-        CreateButton(row, "Load", new Vector2(680f, -20f), new Vector2(104f, 42f),
+        CreateButton(row, "Load", new Vector2(616f, -20f), new Vector2(92f, 42f),
             () => LoadSaveSlot(selectedSlot));
+        Button delete = CreateButton(
+            row, "Delete", new Vector2(718f, -20f), new Vector2(92f, 42f),
+            () => RequestSaveDeletion(selectedSlot));
+        delete.GetComponent<Image>().color = new Color(0.62f, 0.12f, 0.15f, 1f);
     }
 
     static string BuildDefaultSaveName()
