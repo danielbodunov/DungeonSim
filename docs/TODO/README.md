@@ -29,6 +29,10 @@ None.
 
 - [RENDER-09 — Exterior / Out-of-Bounds Ground Rendering](RENDER-09-Exterior-Ground-Rendering.md)
 
+## Planned — Pixel Rendering Documentation
+
+- [RENDER-10 — Pixel Rendering Pipeline Documentation](RENDER-10-Pixel-Rendering-Pipeline-Documentation.md)
+
 ## Planned — Vertical Construction & Traversal
 
 - [t029 — Placeable Traversal Structure Foundation](t029-Placeable-Traversal-Structure-Foundation.md)
