@@ -120,11 +120,11 @@ public sealed class DungeonConsolidatedGroundSurface : MonoBehaviour
 
             Vector3 worldCenter = grid.GetCellWorldPosition(x, y);
             visualTranslations.Add(
-                visualFilter.transform.InverseTransformVector(worldCenter));
+                visualFilter.transform.InverseTransformPoint(worldCenter));
             if (groundCollider != null)
             {
                 collisionTranslations.Add(
-                    surfaceRoot.transform.InverseTransformVector(worldCenter));
+                    surfaceRoot.transform.InverseTransformPoint(worldCenter));
             }
         }
 

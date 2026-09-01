@@ -43,6 +43,78 @@ public sealed class ConsolidatedGroundSurfaceTests
     }
 
     [Test]
+    public void RebuildKeepsGeometryAtWorldCellWhenHierarchyIsTranslated()
+    {
+        var gridRoot = new GameObject("Translated Consolidated Ground Test");
+        var template = new GameObject("Translated Ground Template");
+        var sourceMesh = new Mesh { name = "Translated Ground Source" };
+        try
+        {
+            TileGridGenerator grid = gridRoot.AddComponent<TileGridGenerator>();
+            var cells = new List<int>[1, 1];
+            cells[0, 0] = new List<int> { 0 };
+            SetField(grid, "width", 1);
+            SetField(grid, "height", 1);
+            SetField(grid, "origin", new Vector2(12f, -7f));
+            SetField(grid, "generationDirection", new Vector2(1f, -1f));
+            SetField(grid, "groundTileIndex", 0);
+            SetField(grid, "cells", cells);
+            SetField(grid, "instantiated", new GameObject[1, 1]);
+            SetField(grid, "placed", new bool[1, 1]);
+
+            var visualObject = new GameObject("Offset Visual");
+            visualObject.transform.SetParent(template.transform, false);
+            visualObject.transform.localPosition = new Vector3(2.5f, -1.5f, 0.75f);
+            MeshFilter sourceFilter = visualObject.AddComponent<MeshFilter>();
+            visualObject.AddComponent<MeshRenderer>();
+            sourceMesh.vertices = new[]
+            {
+                new Vector3(-0.5f, -0.5f, 0f),
+                new Vector3(-0.5f, 0.5f, 0f),
+                new Vector3(0.5f, 0.5f, 0f),
+                new Vector3(0.5f, -0.5f, 0f)
+            };
+            sourceMesh.triangles = new[] { 0, 1, 2, 0, 2, 3 };
+            sourceFilter.sharedMesh = sourceMesh;
+            template.AddComponent<BoxCollider>().size = Vector3.one;
+
+            DungeonConsolidatedGroundSurface surface =
+                gridRoot.AddComponent<DungeonConsolidatedGroundSurface>();
+            surface.Initialize(grid, template, createCollider: true);
+            Transform generatedRoot = gridRoot.transform.Find(
+                "Consolidated Ground Surface");
+            Assert.That(generatedRoot, Is.Not.Null);
+
+            generatedRoot.position = new Vector3(5f, 6f, 7f);
+            surface.RebuildNow();
+
+            Vector3 cellCenter = grid.GetCellWorldPosition(0, 0);
+            MeshFilter generatedVisual =
+                generatedRoot.GetComponentInChildren<MeshFilter>(true);
+            MeshCollider generatedCollider =
+                generatedRoot.GetComponent<MeshCollider>();
+            Assert.That(surface.VisibleCellCount, Is.EqualTo(1));
+            Assert.That(generatedVisual, Is.Not.Null);
+            Assert.That(generatedCollider, Is.Not.Null);
+
+            AssertWorldPosition(
+                GetWorldVertexCenter(
+                    generatedVisual.sharedMesh, generatedVisual.transform),
+                cellCenter);
+            AssertWorldPosition(
+                GetWorldVertexCenter(
+                    generatedCollider.sharedMesh, generatedCollider.transform),
+                cellCenter + Vector3.up * 0.5f);
+        }
+        finally
+        {
+            Object.DestroyImmediate(gridRoot);
+            Object.DestroyImmediate(template);
+            Object.DestroyImmediate(sourceMesh);
+        }
+    }
+
+    [Test]
     public void GridGroundVisibilityUsesOccupancyAndReferenceCountedSuppression()
     {
         var root = new GameObject("Consolidated Ground Visibility Test");
@@ -169,6 +241,24 @@ public sealed class ConsolidatedGroundSurfaceTests
             name, BindingFlags.Instance | BindingFlags.NonPublic);
         Assert.That(field, Is.Not.Null, $"Missing TileGridGenerator.{name}");
         field.SetValue(grid, value);
+    }
+
+    static Vector3 GetWorldVertexCenter(Mesh mesh, Transform transform)
+    {
+        Assert.That(mesh, Is.Not.Null);
+        Vector3[] vertices = mesh.vertices;
+        Assert.That(vertices, Is.Not.Empty);
+        Vector3 total = Vector3.zero;
+        for (int i = 0; i < vertices.Length; i++)
+            total += transform.TransformPoint(vertices[i]);
+        return total / vertices.Length;
+    }
+
+    static void AssertWorldPosition(Vector3 actual, Vector3 expected)
+    {
+        Assert.That(actual.x, Is.EqualTo(expected.x).Within(0.0001f));
+        Assert.That(actual.y, Is.EqualTo(expected.y).Within(0.0001f));
+        Assert.That(actual.z, Is.EqualTo(expected.z).Within(0.0001f));
     }
 }
 #endif
