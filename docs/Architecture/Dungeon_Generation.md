@@ -13,6 +13,10 @@ This page describes the current implementation boundary for player-driven dungeo
 - `ObjectsDatabaseSO` — build-palette object definitions and placement type.
 - `PropGenerator` — derived procedural structures/props created from the resolved dungeon.
 
+`DungeonConsolidatedGroundSurface` owns the derived ordinary-ground visual mesh
+and the consolidated NPC-grounding collider. It reads occupancy from
+`TileGridGenerator`; it does not own gameplay state.
+
 ## Runtime flow
 
 ```mermaid
@@ -28,6 +32,7 @@ flowchart TD
     H --> I[PropGenerator regeneration]
     H --> J[NPC route rebuild consumers]
     H --> K[Lighting rebuild consumer]
+    G --> L[Consolidated ground mesh invalidation]
 ```
 
 ## Authoritative versus derived state
@@ -45,6 +50,7 @@ Treat these as conceptually separate:
 - generated structures and decorative/procedural props;
 - NPC route graph;
 - lighting field.
+- consolidated ordinary-ground render and collision meshes.
 
 This distinction is important when implementing regeneration, save/load, or replacement behavior. Do not persist a derived object as the only record of player intent.
 
@@ -86,6 +92,14 @@ A successful layout mutation can affect:
 - `NPCTraversal` — route graph depends on resolved openings and generated traversal structures.
 - `DungeonLightingManager` — listens to `LayoutChanged` and rebuilds lighting.
 - `GameSaveManager` — must be able to capture the new authoritative state.
+
+Ordinary unbuilt ground is not represented by one GameObject per cell.
+`DungeonConsolidatedGroundSurface` emits exposed-cell quads into one visual mesh
+and upward walkable faces into one `MeshCollider`. Tile topology, generated
+build obstacles, and committed trap presentation suppressions invalidate that
+derived surface. Rebuild requests are coalesced until `LateUpdate`; the mesh is
+never a gameplay occupancy source. Pointer placement resolves against the
+world-Z grid plane instead of relying on ground colliders.
 
 ## Safe extension points
 

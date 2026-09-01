@@ -230,6 +230,7 @@ public sealed class GeneratedBuildObstacleGenerator : MonoBehaviour
             TryPlaceFromCandidates(definitions[i], order, random);
         for (int i = 0; i < additionalObstacleCount && definitions.Count > 0; i++)
             TryPlaceFromCandidates(definitions[random.Next(definitions.Count)], order, random);
+        grid.RequestGroundSurfaceRebuild();
     }
 
     public List<SavedGeneratedBuildObstacle> Capture()
@@ -321,6 +322,7 @@ public sealed class GeneratedBuildObstacleGenerator : MonoBehaviour
                 record.rotation,
                 record.variantId));
         }
+        grid.RequestGroundSurfaceRebuild();
         return true;
     }
 
@@ -334,6 +336,7 @@ public sealed class GeneratedBuildObstacleGenerator : MonoBehaviour
         if (visualContainer != null)
             Destroy(visualContainer.gameObject);
         visualContainer = null;
+        grid?.RequestGroundSurfaceRebuild();
     }
 
     bool TryPlaceFromCandidates(
@@ -375,8 +378,7 @@ public sealed class GeneratedBuildObstacleGenerator : MonoBehaviour
         Vector2Int cell,
         TileGridGenerator.PlacementValidationContext context)
     {
-        if (grid == null || cell.x <= 0 || cell.y <= 0 ||
-            cell.x >= grid.GridWidth - 1 || cell.y >= grid.GridHeight - 1 ||
+        if (grid == null || !grid.IsPlayableCell(cell) ||
             grid.IsFixedGround(cell.x, cell.y) ||
             (context != null ? context.IsPlacedCell(cell.x, cell.y) : grid.IsPlacedCell(cell.x, cell.y)))
             return false;

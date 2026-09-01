@@ -256,6 +256,9 @@ public class TileGridGenerator : MonoBehaviour
     [SerializeField] Vector2 origin = Vector2.zero;
     [SerializeField] Vector2 generationDirection = new Vector2(1, -1);
     [SerializeField, Min(1000)] int localSearchNodeLimit = 25000;
+    [Header("Ground Surface")]
+    [SerializeField] bool useConsolidatedGroundSurface = true;
+    [SerializeField] bool createConsolidatedGroundCollider = true;
 
     List<GameObject> prefabs;
     int groundTileIndex = -1;
@@ -291,6 +294,8 @@ public class TileGridGenerator : MonoBehaviour
     bool placedEntranceIsFallback;
     Transform entranceContainer;
     PlacementValidationContext livePlacementValidationContext;
+    DungeonConsolidatedGroundSurface consolidatedGroundSurface;
+    readonly Dictionary<Vector2Int, int> ordinaryGroundSuppressions = new();
 
     public event System.Action LayoutChanged;
 
@@ -298,6 +303,7 @@ public class TileGridGenerator : MonoBehaviour
     {
         BuildRuntimeDatabase();
         InitializeGrid();
+        EnsureConsolidatedGroundSurface();
         InstantiateGrid();
 
         if (propGenerator == null)
@@ -395,6 +401,7 @@ public class TileGridGenerator : MonoBehaviour
         instantiated = new GameObject[width, height];
         placed = new bool[width, height];
         fixedGround = new bool[width, height];
+        ordinaryGroundSuppressions.Clear();
         widthIntents = new CellWidthIntent[width, height];
         eastConnectionIntents = new ConnectionIntent[width, height];
         southConnectionIntents = new ConnectionIntent[width, height];
@@ -611,6 +618,8 @@ public class TileGridGenerator : MonoBehaviour
         buildObstacleGenerator != null
             ? buildObstacleGenerator.Instances
             : System.Array.Empty<GeneratedBuildObstacleInstance>();
+    public DungeonConsolidatedGroundSurface ConsolidatedGroundSurface =>
+        consolidatedGroundSurface;
     public int PlacedCellCount
     {
         get
@@ -650,6 +659,50 @@ public class TileGridGenerator : MonoBehaviour
         buildObstacleGenerator != null &&
         buildObstacleGenerator.IsConstructionBlocked(cell);
 
+    public bool ShouldRenderOrdinaryGround(int x, int y)
+    {
+        if (!IsInitialized || x < 0 || y < 0 || x >= width || y >= height ||
+            placed[x, y] || ordinaryGroundSuppressions.ContainsKey(
+                new Vector2Int(x, y)))
+        {
+            return false;
+        }
+
+        var cell = new Vector2Int(x, y);
+        if (buildObstacleGenerator != null &&
+            buildObstacleGenerator.TryGetObstacle(cell, out _))
+        {
+            return false;
+        }
+
+        return cells[x, y].Count != 1 || cells[x, y][0] == groundTileIndex;
+    }
+
+    public bool SetOrdinaryGroundSuppressed(Vector2Int cell, bool suppressed)
+    {
+        if (!useConsolidatedGroundSurface || consolidatedGroundSurface == null ||
+            cell.x < 0 || cell.y < 0 || cell.x >= width || cell.y >= height)
+        {
+            return false;
+        }
+
+        ordinaryGroundSuppressions.TryGetValue(cell, out int count);
+        if (suppressed)
+            ordinaryGroundSuppressions[cell] = count + 1;
+        else if (count > 1)
+            ordinaryGroundSuppressions[cell] = count - 1;
+        else if (count == 1)
+            ordinaryGroundSuppressions.Remove(cell);
+        else
+            return true;
+
+        RequestGroundSurfaceRebuild();
+        return true;
+    }
+
+    public void RequestGroundSurfaceRebuild() =>
+        consolidatedGroundSurface?.RequestRebuild();
+
     public bool IsBuildObstacleServiceCell(Vector2Int cell) =>
         buildObstacleGenerator != null &&
         buildObstacleGenerator.IsServiceSpaceBlocked(cell);
@@ -673,6 +726,7 @@ public class TileGridGenerator : MonoBehaviour
         if (propGenerator != null)
             propGenerator.GenerateProps();
 
+        RequestGroundSurfaceRebuild();
         LayoutChanged?.Invoke();
     }
 
@@ -913,6 +967,7 @@ public class TileGridGenerator : MonoBehaviour
         }
 
         InstantiateGrid();
+        RequestGroundSurfaceRebuild();
         LayoutChanged?.Invoke();
         return true;
     }
@@ -1184,6 +1239,26 @@ public class TileGridGenerator : MonoBehaviour
         return coordinates.x >= 0 && coordinates.y >= 0 &&
             coordinates.x < width && coordinates.y < height;
     }
+
+    /// <summary>
+    /// Resolves a world position only when it belongs to the buildable grid
+    /// interior. The fixed outer ring is presentation/support ground, not a
+    /// gameplay cell.
+    /// </summary>
+    public bool TryWorldToPlayableCell(
+        Vector3 worldPosition,
+        out Vector2Int coordinates)
+    {
+        coordinates = GetGridCoordinates(worldPosition);
+        return IsPlayableCell(coordinates);
+    }
+
+    public bool IsPlayableCell(Vector2Int coordinates) =>
+        coordinates.x > 0 && coordinates.y > 0 &&
+        coordinates.x < width - 1 && coordinates.y < height - 1;
+
+    public bool IsPlayableCell(int x, int y) =>
+        IsPlayableCell(new Vector2Int(x, y));
 
     PlacementValidationContext GetLivePlacementValidationContext()
     {
@@ -2326,8 +2401,7 @@ public class TileGridGenerator : MonoBehaviour
 
     bool IsInteriorCell(Vector2Int position)
     {
-        return position.x > 0 && position.y > 0 &&
-            position.x < width - 1 && position.y < height - 1;
+        return IsPlayableCell(position);
     }
 
     static string GetCanonicalEdgeKey(Vector2Int from, Vector2Int to)
@@ -2540,16 +2614,21 @@ public class TileGridGenerator : MonoBehaviour
         {
             if (cells[x, y].Count == 0)
             {
-                InstantiateCell(x, y, groundTileIndex);
+                if (!useConsolidatedGroundSurface)
+                    InstantiateCell(x, y, groundTileIndex);
                 Debug.LogError("Contradiction detected.");
                 continue;
             }
             if (cells[x, y].Count == 1)
             {
                 int tileIndex = cells[x, y][0];
-                instantiated[x, y] = InstantiateTile(tileIndex, GetWorldPosition(x, y));
+                if (!useConsolidatedGroundSurface || tileIndex != groundTileIndex)
+                {
+                    instantiated[x, y] = InstantiateTile(
+                        tileIndex, GetWorldPosition(x, y));
+                }
             }
-            else
+            else if (!useConsolidatedGroundSurface)
             {
                 instantiated[x, y] = Instantiate(placeholderPrefab, GetWorldPosition(x, y), Quaternion.identity, transform);
                 var comp = instantiated[x, y].AddComponent<TilePlaceholder>();
@@ -2558,6 +2637,7 @@ public class TileGridGenerator : MonoBehaviour
                 comp.generator = this;
             }
         }
+        RequestGroundSurfaceRebuild();
     }
 
     void InstantiateCell(
@@ -2568,6 +2648,12 @@ public class TileGridGenerator : MonoBehaviour
         {
             instantiated[x, y].SetActive(false);
             Destroy(instantiated[x, y]);
+        }
+        if (useConsolidatedGroundSurface && tileIndex == groundTileIndex)
+        {
+            instantiated[x, y] = null;
+            RequestGroundSurfaceRebuild();
+            return;
         }
         instantiated[x, y] = InstantiateTile(tileIndex, GetWorldPosition(x, y));
     }
@@ -2696,6 +2782,14 @@ public class TileGridGenerator : MonoBehaviour
         if (x < 0 || x >= width || y < 0 || y >= height)
         {
             Debug.LogWarning($"Cell ({x},{y}) is outside the grid bounds [0-{width - 1}, 0-{height - 1}].");
+            return false;
+        }
+
+        if (!IsPlayableCell(x, y))
+        {
+            Debug.LogWarning(
+                $"Cell ({x},{y}) is part of the fixed outer border and " +
+                "cannot be built on.", this);
             return false;
         }
 
@@ -3215,7 +3309,19 @@ public class TileGridGenerator : MonoBehaviour
         if (placed[x, y] && cells[x, y].Count == 1)
         {
             int tileIndex = cells[x, y][0];
-            instantiated[x, y] = InstantiateTile(tileIndex, GetWorldPosition(x, y));
+            if (!useConsolidatedGroundSurface || tileIndex != groundTileIndex)
+            {
+                instantiated[x, y] = InstantiateTile(
+                    tileIndex, GetWorldPosition(x, y));
+            }
+            RequestGroundSurfaceRebuild();
+            return;
+        }
+
+        if (useConsolidatedGroundSurface)
+        {
+            instantiated[x, y] = null;
+            RequestGroundSurfaceRebuild();
             return;
         }
 
@@ -3225,6 +3331,27 @@ public class TileGridGenerator : MonoBehaviour
         placeholder.x = x;
         placeholder.y = y;
         placeholder.generator = this;
+    }
+
+    void EnsureConsolidatedGroundSurface()
+    {
+        if (!useConsolidatedGroundSurface || groundTileIndex < 0 ||
+            groundTileIndex >= prefabs.Count || prefabs[groundTileIndex] == null)
+        {
+            return;
+        }
+
+        consolidatedGroundSurface =
+            GetComponent<DungeonConsolidatedGroundSurface>();
+        if (consolidatedGroundSurface == null)
+        {
+            consolidatedGroundSurface =
+                gameObject.AddComponent<DungeonConsolidatedGroundSurface>();
+        }
+        consolidatedGroundSurface.Initialize(
+            this,
+            prefabs[groundTileIndex],
+            createConsolidatedGroundCollider);
     }
 
     void AddCollapsedNeighbor(List<Vector2Int> region, int x, int y)

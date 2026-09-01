@@ -2,7 +2,7 @@
 
 ## Tracking
 - **ID:** RENDER-08
-- **Status:** Planned
+- **Status:** Complete
 - **Milestone:** Rendering / Ground Optimization
 - **Depends on:** Existing grid occupancy/build-obstacle state and current ground material/texture pipeline
 
@@ -114,3 +114,18 @@ Record:
 Suggested implementation branch: `render/render08-consolidated-ground`
 
 Proceed according to `docs/AGENTS.md`.
+
+## Implementation Report
+
+- **Rendering approach:** `DungeonConsolidatedGroundSurface` builds one runtime mesh containing one quad for each ordinary exposed ground cell. `TileGridGenerator` no longer instantiates `Ground_Full_X` for each unresolved or ordinary-ground cell when consolidation is enabled; resolved non-ground tile prefabs remain unchanged.
+- **Authoritative inputs:** `TileGridGenerator.ShouldRenderOrdinaryGround` derives visibility from grid bounds, placed-cell state, the resolved ground profile, generated build-obstacle footprints, and reference-counted trap-presentation suppression. The mesh does not own or persist occupancy.
+- **Renderer/material structure:** The builder instantiates one `Ground_Full_X` template and replaces its source mesh with the generated mesh. This preserves its single `MeshRenderer`, shared `RotationSafeTileAtlas` material, `DungeonGroundSurfaceAppearance`, ground-family lookup, and material property block.
+- **UV/atlas preservation:** Each generated cell uses the source mesh bounds, unit quad UVs, white vertex AO, and the existing world-space ground shader. Texture-family and deterministic variation selection therefore continue to derive from world position and the existing visual seed rather than mesh-instance identity.
+- **Invalidation:** Tile topology commits, save-layout restoration, build-obstacle generate/restore/clear, and committed trap ground suppression request a rebuild. Requests are coalesced and serviced once in `LateUpdate`; ordinary floor-prop and entrance-only changes do not rebuild the mesh. `LastRebuildMilliseconds` exposes the most recent rebuild cost for validation.
+- **Collider audit:** Cursor/build selection previously raycast the per-cell ground `BoxCollider`; it now intersects a configurable world-Z grid plane through `InputManager`. NPC grounding and fall recovery genuinely use downward 3D raycasts, so the builder creates one `MeshCollider` containing the upward walkable face for each exposed ground cell. No per-cell ground collider remains.
+- **Representative component counts:** For the checked-in 15x15 empty-grid configuration, ordinary ground changes from 225 prefab instances / 900 prefab-hierarchy GameObjects / 225 `MeshRenderer`s / 225 `BoxCollider`s to one four-GameObject template hierarchy / one `MeshRenderer` / one `MeshCollider`. With `E` exposed cells, the visual mesh contains `4E` vertices and `2E` triangles; its collision mesh has the same counts. The empty 15x15 baseline is therefore 900 vertices and 450 triangles per mesh.
+- **Draw/batch and rebuild measurements:** Renderer-submission capacity changes from 225 ordinary-ground renderers to one. Unity validation found a slight overall performance improvement; no larger gain is claimed without more detailed profiling because batching and hardware affect the result.
+- **Compatibility:** Player tile prefabs, pathfinding, saves, obstacle rules, and construction state remain independent of the derived mesh. RENDER-09 can add a separate exterior surface without expanding this builder, which iterates only authoritative grid coordinates.
+- **Automated checks:** Runtime and editor assemblies compile. `ConsolidatedGroundSurfaceTests` covers combined mesh structure, occupancy/suppression visibility, collider-independent grid-plane pointer resolution, and rejection of the fixed outer ring (including the right border and coordinates beyond it).
+- **Boundary compatibility:** Construction snapping now resolves directly through `TileGridGenerator` instead of the camera-following visual `Grid`. Player construction and generated obstacles share the same explicit playable-interior predicate, so the rendered fixed border cannot become a build or obstacle cell.
+- **Manual validation:** Completed in Unity. The consolidated ground behavior, visual result, construction/obstacle boundaries, and overall workflow were accepted. Observed runtime performance improved slightly.
