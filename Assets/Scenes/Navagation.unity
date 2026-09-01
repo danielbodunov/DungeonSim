@@ -700,9 +700,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::InputManager
   sceneCamera: {fileID: 330585545}
-  placementLayerMask:
-    serializedVersion: 2
-    m_Bits: 8
+  placementPlaneZ: 0
 --- !u!1 &806986659
 GameObject:
   m_ObjectHideFlags: 0
@@ -1539,7 +1537,6 @@ MonoBehaviour:
   mouseIndicator: {fileID: 1088748802}
   cellIndicator: {fileID: 853043479}
   inputManager: {fileID: 724667839}
-  grid: {fileID: 889250767}
   tileGridGenerator: {fileID: 1410278424}
   database: {fileID: 11400000, guid: a8129abeb0c696f4c83dfcb37af47713, type: 2}
   gridVisualization: {fileID: 2036019436}
@@ -1566,6 +1563,8 @@ MonoBehaviour:
   origin: {x: 0, y: 0}
   generationDirection: {x: 1, y: -1}
   localSearchNodeLimit: 25000
+  useConsolidatedGroundSurface: 1
+  createConsolidatedGroundCollider: 1
 --- !u!114 &1410278425
 MonoBehaviour:
   m_ObjectHideFlags: 0

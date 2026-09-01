@@ -27,7 +27,6 @@ None.
 
 ## Planned — Ground Rendering
 
-- [RENDER-08 — Consolidated Ground Surface Rendering](RENDER-08-Consolidated-Ground-Surface-Rendering.md)
 - [RENDER-09 — Exterior / Out-of-Bounds Ground Rendering](RENDER-09-Exterior-Ground-Rendering.md)
 
 ## Planned — Vertical Construction & Traversal
@@ -42,6 +41,7 @@ None.
 
 ## Completed / Existing Work
 
+- [RENDER-08 — Consolidated Ground Surface Rendering](RENDER-08-Consolidated-Ground-Surface-Rendering.md)
 - [t032 — Horizontal Camera Navigation Bounds](t032-Horizontal-Camera-Navigation-Bounds.md)
 - [t028 — Save Deletion UI](t028-Save-Deletion-UI.md)
 - [t026 — Generated Build Obstacles](t026-Generated-Build-Obstacles.md)
