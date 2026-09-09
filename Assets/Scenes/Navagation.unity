@@ -1565,6 +1565,13 @@ MonoBehaviour:
   localSearchNodeLimit: 25000
   useConsolidatedGroundSurface: 1
   createConsolidatedGroundCollider: 1
+  renderExteriorGround: 1
+  exteriorLeftPadding: 50
+  exteriorRightPadding: 50
+  exteriorTopPadding: 0
+  exteriorBottomPadding: 0
+  exteriorGroundMaterialOverride: {fileID: 0}
+  exteriorGroundFamilyOverride: {fileID: 11400000, guid: 2f781e7efc262d44ba1be2765a7d9ca3, type: 2}
 --- !u!114 &1410278425
 MonoBehaviour:
   m_ObjectHideFlags: 0

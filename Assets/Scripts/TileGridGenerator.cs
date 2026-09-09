@@ -259,6 +259,14 @@ public class TileGridGenerator : MonoBehaviour
     [Header("Ground Surface")]
     [SerializeField] bool useConsolidatedGroundSurface = true;
     [SerializeField] bool createConsolidatedGroundCollider = true;
+    [Header("Exterior Ground")]
+    [SerializeField] bool renderExteriorGround = true;
+    [SerializeField, Min(0)] int exteriorLeftPadding = 4;
+    [SerializeField, Min(0)] int exteriorRightPadding = 4;
+    [SerializeField, Min(0)] int exteriorTopPadding = 4;
+    [SerializeField, Min(0)] int exteriorBottomPadding = 4;
+    [SerializeField] Material exteriorGroundMaterialOverride;
+    [SerializeField] DungeonGroundSurfaceFamily exteriorGroundFamilyOverride;
 
     List<GameObject> prefabs;
     int groundTileIndex = -1;
@@ -295,6 +303,7 @@ public class TileGridGenerator : MonoBehaviour
     Transform entranceContainer;
     PlacementValidationContext livePlacementValidationContext;
     DungeonConsolidatedGroundSurface consolidatedGroundSurface;
+    DungeonExteriorGroundSurface exteriorGroundSurface;
     readonly Dictionary<Vector2Int, int> ordinaryGroundSuppressions = new();
 
     public event System.Action LayoutChanged;
@@ -620,6 +629,8 @@ public class TileGridGenerator : MonoBehaviour
             : System.Array.Empty<GeneratedBuildObstacleInstance>();
     public DungeonConsolidatedGroundSurface ConsolidatedGroundSurface =>
         consolidatedGroundSurface;
+    public DungeonExteriorGroundSurface ExteriorGroundSurface =>
+        exteriorGroundSurface;
     public int PlacedCellCount
     {
         get
@@ -3352,6 +3363,26 @@ public class TileGridGenerator : MonoBehaviour
             this,
             prefabs[groundTileIndex],
             createConsolidatedGroundCollider);
+
+        if (!renderExteriorGround ||
+            exteriorLeftPadding + exteriorRightPadding +
+            exteriorTopPadding + exteriorBottomPadding <= 0)
+        {
+            return;
+        }
+
+        exteriorGroundSurface = GetComponent<DungeonExteriorGroundSurface>();
+        if (exteriorGroundSurface == null)
+            exteriorGroundSurface = gameObject.AddComponent<DungeonExteriorGroundSurface>();
+        exteriorGroundSurface.Initialize(
+            this,
+            prefabs[groundTileIndex],
+            exteriorLeftPadding,
+            exteriorRightPadding,
+            exteriorTopPadding,
+            exteriorBottomPadding,
+            exteriorGroundMaterialOverride,
+            exteriorGroundFamilyOverride);
     }
 
     void AddCollapsedNeighbor(List<Vector2Int> region, int x, int y)

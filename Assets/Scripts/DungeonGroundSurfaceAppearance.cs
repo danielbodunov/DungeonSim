@@ -22,6 +22,8 @@ public sealed class DungeonGroundSurfaceAppearance : MonoBehaviour
 
     MaterialPropertyBlock propertyBlock;
 
+    public DungeonGroundSurfaceFamily Family => family;
+
     void Awake() => Apply();
     void OnEnable() => Apply();
 
@@ -42,6 +44,12 @@ public sealed class DungeonGroundSurfaceAppearance : MonoBehaviour
         dungeonTileWorldSize = Mathf.Max(0.0001f, tileWorldSize);
         logicalCellsPerTile = Mathf.Max(1, cellsPerTile);
         visualSeed = seed;
+        Apply();
+    }
+
+    public void SetFamily(DungeonGroundSurfaceFamily value)
+    {
+        family = value;
         Apply();
     }
 

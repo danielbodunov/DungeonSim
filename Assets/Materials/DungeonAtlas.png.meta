@@ -417,6 +417,28 @@ TextureImporter:
       indices: 
       edges: []
       weights: []
+    - serializedVersion: 2
+      name: Border_Rock_A
+      rect:
+        serializedVersion: 2
+        x: 160
+        y: 448
+        width: 32
+        height: 32
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData:
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: d96a07250a2a84347a40f3083bdba3e8
+      internalID: 1851880969
+      vertices: []
+      indices:
+      edges: []
+      weights: []
     outline: []
     customData: 
     physicsShape: []
@@ -435,6 +457,7 @@ TextureImporter:
       - key: SpriteEditor.SliceOnImport
         value: False
     nameFileIdTable:
+      Border_Rock_A: 1851880969
       Ceiling_Support_Default: 2050930290
       Ceiling_Tile_Default: -677269027
       Floor_Tile_Cracked: 1032600401
