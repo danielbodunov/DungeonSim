@@ -1,5 +1,8 @@
 # Character Visuals Architecture
 
+> **2026-09-10 scope update:** Retain rigged pixel-lit 3D and shared animation. The [raid prototype](../Design/Raid_Prototype.md) uses one fixed Warrior; modular appearance, procedural generation and equippable-item systems below are deferred or superseded. Fixed class weapon props are allowed without inventory slots. Talismans are later UI/data perks. This page is an intended visual contract, not a claim those systems are implemented.
+
+
 ## Purpose
 Dungeon Sim characters use modular rigged 3D assets presented with a pixel-art visual language. The system favors runtime configurability, shared animation, visible equipment, and manageable authoring over hand-drawn or generated sprite-sheet permutations.
 

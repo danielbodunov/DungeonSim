@@ -1,110 +1,71 @@
 # Implementation TODO
 
-This directory is the working queue for prioritized, actionable tickets. Broader sequencing belongs in `docs/Roadmap/`; enduring game/system direction belongs in `docs/Design/`.
-
-## In Progress
-
-None.
-
-## Awaiting Unity Validation
-
-- [t033 — Correct Middle-Mouse Camera Pan Direction](t033-Correct-Middle-Mouse-Camera-Pan-Direction.md)
-- [t019 — External Trap Attachment Model](t019-External-Trap-Attachment-Model.md)
-- [t021 — Modular Tile Construction Surfaces](t021-Modular-Tile-Construction-Surfaces.md)
-- [t022 — Trap Space & Compatibility Validation](t022-Trap-Space-Compatibility-Validation.md)
+Active milestone: [Playable Raid Prototype](../Roadmap/Core-Gameplay-Loop.md). The [core direction](../Design/Core_Game_Direction.md) and [prototype contract](../Design/Raid_Prototype.md) supersede management-era priorities. Ticket files are the status authority.
 
 ## Ready
 
-None.
+- [t35 — Separate authoring, validation and raid lifecycle](t035-Dungeon-Lifecycle-and-Modes.md)
+- [t38 — Define shared raider gameplay abilities](t038-Shared-Raider-Abilities.md)
 
-## Planned — Near-Term Tooling
+## Planned — Raid Prototype
 
-None.
+- [t36 — Adapt existing grid construction](t036-Player-Authored-Dungeon-Construction.md)
+- [t37 — Adapt the entrance and treasure foundations](t037-Raid-Entrance-and-Treasure-Placement.md)
+- [t39 — Implement one fixed controllable Warrior](t039-Prototype-Warrior-Controller.md)
+- [t40 — Implement the playable raid objective](t040-Treasure-and-Escape-Objective.md)
+- [t41 — Adapt traps for real-time raiding](t041-Raid-Trap-Framework.md)
+- [t42 — Implement a predictable spike hazard](t042-Prototype-Spike-Trap.md)
+- [t43 — Implement the directional dart wall](t043-Prototype-Dart-Wall.md)
+- [t44 — Prove controlled physics hazards](t044-Prototype-Rolling-Rock.md)
+- [t45 — Add one defensive minion](t045-Prototype-Melee-Minion.md)
+- [t46 — Require a successful creator run](t046-Creator-Completion-Validation.md)
+- [t47 — Persist authored dungeons safely](t047-Raid-Authoring-Persistence.md)
+- [t48 — Publish a validated local version](t048-Immutable-Local-Publishing.md)
+- [t49 — Raid as a separate local profile](t049-Local-Published-Dungeon-Raids.md)
+- [t50 — Record one authoritative result per attempt](t050-Raid-Result-Recording.md)
+- [t51 — Close the construction/reward loop](t051-Prototype-Raid-Resources.md)
+- [t52 — Validate the complete vertical slice](t052-Raid-Prototype-Playtest.md)
 
-## Planned — Current Vertical Slice
+Dependency ordering is in each ticket. t050 records outcomes before t051 awards resources; all three traps are required for t052.
 
-- [t011 — Sinister Dungeon Vertical Slice Validation](t011-Sinister-Dungeon-Vertical-Slice.md)
+## Supporting Work — Not Prototype Gates
 
-## Planned — Ground Rendering
+- [CHAR-01 — Skeleton contract](CHAR-01-Skeleton-Family-Contract.md)
+- [CHAR-04 — Shared animation](CHAR-04-Shared-Animation-Library.md)
+- [RENDER-04 — Character shader](RENDER-04-Pixel-Lit-Character-Shader.md)
+- [t029 — Traversal structure foundation](t029-Placeable-Traversal-Structure-Foundation.md)
+- [t030 — Platforms](t030-Placeable-Platforms.md)
+- [t031 — Ladders](t031-Placeable-Ladders.md)
+- [RENDER-10 — Pipeline documentation](RENDER-10-Pixel-Rendering-Pipeline-Documentation.md)
 
-None.
+## Deferred / Superseded Scope
 
-## Planned — Pixel Rendering Documentation
-
-- [RENDER-10 — Pixel Rendering Pipeline Documentation](RENDER-10-Pixel-Rendering-Pipeline-Documentation.md)
-
-## Planned — Vertical Construction & Traversal
-
-- [t029 — Placeable Traversal Structure Foundation](t029-Placeable-Traversal-Structure-Foundation.md)
-- [t030 — Placeable Platforms](t030-Placeable-Platforms.md)
-- [t031 — Placeable Ladders](t031-Placeable-Ladders.md)
-
-## Planned — Physical Consequences & Dungeon Economy
-
-- [t018 — Build Cost Foundation](t018-Build-Cost-Foundation.md)
+- [CHAR-02 — Modular appearance](CHAR-02-Modular-Character-Appearance.md) — post-prototype.
+- [CHAR-05 — Appearance data](CHAR-05-Character-Appearance-Data.md) — post-prototype.
+- [CHAR-03 — Visible equipment](CHAR-03-Visible-Equipment-Sockets.md) — cancelled broad equipment scope; fixed class props remain allowed.
+- [Post-prototype backlog](../Design/Raid_Prototype.md#post-prototype-backlog) — movement extensions, classes, NPC raiders, online, escape-phase traps, talismans, trap modifiers and unlockables.
+- Existing RENDER-05–RENDER-08 polish/documentation plans remain outside the raid milestone; their ticket IDs and acceptance scope are preserved.
 
 ## Completed / Existing Work
 
-- [RENDER-09 — Exterior / Out-of-Bounds Ground Rendering](RENDER-09-Exterior-Ground-Rendering.md)
-- [RENDER-08 — Consolidated Ground Surface Rendering](RENDER-08-Consolidated-Ground-Surface-Rendering.md)
-- [t032 — Horizontal Camera Navigation Bounds](t032-Horizontal-Camera-Navigation-Bounds.md)
-- [t028 — Save Deletion UI](t028-Save-Deletion-UI.md)
-- [t026 — Generated Build Obstacles](t026-Generated-Build-Obstacles.md)
-- [RENDER-03 — Prop Material and Atlas Pipeline](RENDER-03-Prop-Material-Atlas-Pipeline.md)
-- [RENDER-02 — Pixel-Lit Prop Shader](RENDER-02-Pixel-Lit-Prop-Shader.md)
-- [RENDER-01 — Shared Pixel-Lit Core](RENDER-01-Shared-Pixel-Lit-Core.md)
-- [RENDER-00 — Rotation-Safe Material Mask, Emission, and Specular](RENDER-00-Rotation-Safe-Material-Mask-Specular-Emission.md)
-- [t025 — Trap Construction Presentation](t025-Trap-Construction-Presentation.md)
-- [t020 — Service-Cell Trap Placement & Automatic Orientation](t020-Rotatable-Trap-Placement.md)
-- [t023 — Strategic Building Vertical Slice](t023-Strategic-Building-Vertical-Slice.md)
-- [t024 — Rotation-Safe Tile Textures](t024-Rotation-Safe-Tile-Textures.md)
-- [t027 — Stylized HDR Light Response](t027-Stylized-HDR-Light-Response.md)
-- [Initial building and adventurer vertical slices](2026-08-09-initial-vertical-slices.md)
-- [DEV001 — Generic Prop & Treasure Placement](DEV001-Generic-Prop-Treasure-Placement.md)
-- [DEV002 — Reusable Dungeon Test Scenarios](DEV002-Reusable-Dungeon-Test-Scenarios.md)
-- [DEV003 — NPC Runtime Debug Harness](DEV003-NPC-Runtime-Debug-Harness.md)
-- [DEV004 — NPC Camera Focus & Follow](DEV004-NPC-Camera-Focus-Follow.md)
-- [DEV005 — Editor Window Input Isolation](DEV005-Editor-Input-Isolation.md)
-- [DEV006 — Selective Simulation Pause](DEV006-Selective-Simulation-Pause.md)
-- [DEV007 — Scenario Default Entrance Compatibility](DEV007-Scenario-Default-Entrance-Compatibility.md)
-- [DEV008 — Single Authoritative Entrance Placement](DEV008-Single-Entrance-Replacement.md)
-- [t001 — NPC Traversal Memory](t001-NPC-Traversal-Memory.md)
-- [t002 — Dungeon Entrance / Adventurer Spawn Contract](t002-Dungeon-Entrance.md)
-- [t003 — Point-of-Interest Foundation](t003-Point-of-Interest-Foundation.md)
-- [t004 — Treasure Prop + Treasure Socket](t004-Treasure-Prop.md)
-- [t005 — NPC Treasure Discovery & Investigation](t005-NPC-Treasure-Investigation.md)
-- [t006 — Treasure Pickup & Ownership](t006-NPC-Carried-Treasure.md)
-- [t007 — Adventurer Loot Drop & Dungeon Recovery](t007-Expedition-Vertical-Slice-Validation.md)
-- [t008 — Successful Escape & Lost Treasure](t008-Successful-Escape-Lost-Treasure.md)
-- [t009 — Soul / Dread Harvesting Foundation](t009-Soul-Dread-Harvesting.md)
-- [t010 — Expedition Outcomes](t010-Expedition-Outcomes.md)
-- [t012 — Visible Adventurer Carried Loot](t012-Visible-Adventurer-Carried-Loot.md)
-- [t013 — Physical Death Loot Drops](t013-Physical-Death-Loot-Drops.md)
-- [t014 — Adventurer Loot Rediscovery](t014-Adventurer-Loot-Rediscovery.md)
-- [t015 — Player Recovery Phase](t015-Player-Recovery-Phase.md)
-- [t016 — Dread Spend & Dungeon Growth Foundation](t016-Dread-Spend-Dungeon-Growth.md)
-- [t017 — Adventurer Physical Resource Drops](t017-Adventurer-Physical-Resource-Drops.md)
+- [t034 — Raid direction documentation](t034-Raid-Building-Game-Direction.md) — documentation only.
+- [RENDER-08-Consolidated-Ground-Surface-Rendering](RENDER-08-Consolidated-Ground-Surface-Rendering.md)
+- [RENDER-09-Exterior-Ground-Rendering](RENDER-09-Exterior-Ground-Rendering.md)
+- [t026-Generated-Build-Obstacles](t026-Generated-Build-Obstacles.md)
+- [t028-Save-Deletion-UI](t028-Save-Deletion-UI.md)
+- [t032-Horizontal-Camera-Navigation-Bounds](t032-Horizontal-Camera-Navigation-Bounds.md)
+- [t033-Correct-Middle-Mouse-Camera-Pan-Direction](t033-Correct-Middle-Mouse-Camera-Pan-Direction.md)
+- [Completed ticket history](Complete/) — includes earlier building, trap, rendering and management work. Completed history does not imply the new raid contracts are implemented.
+- [Initial vertical slices](2026-08-09-initial-vertical-slices.md) — historical implementation/validation notes.
 
-## Roadmaps
+The previous index contained stale status locations and links to tickets moved into Complete/. This queue follows the current ticket files and preserves completed history rather than reactivating it.
 
-- [Core Gameplay Loop Roadmap](../Roadmap/Core-Gameplay-Loop.md)
-- [Developer Tooling Roadmap](../Roadmap/Developer-Tooling.md)
-- [Roadmap index and planning rules](../Roadmap/README.md)
+## References and Lifecycle
 
-## Design References
-
-- [Core game direction](../Design/Core_Game_Direction.md)
-- [NPC behavior](../Design/NPC_Behavior.md)
-- [World generation and building](../Design/World_Generation_and_Building.md)
-
-## Issue Tracking
-
+- [Roadmap](../Roadmap/Core-Gameplay-Loop.md)
 - [Known issues and follow-ups](Known_Issues_and_followups.md)
+- [Codex workflow](../Reference/Codex_Workflow.md)
 
-## Ticket Lifecycle
+Use stable t### gameplay IDs, DEV### tooling IDs and established CHAR-/RENDER- IDs. Never reuse an assigned ID. Conversation aliases on t034–t052 are not additional repository IDs.
 
-Gameplay/production features use stable `t###` IDs. Developer/testing infrastructure uses stable `DEV###` IDs. Never renumber or reuse an assigned ID.
-
-Standard statuses: Planned, Ready, In Progress, Awaiting Unity Validation, Complete, Blocked, Cancelled.
-
-Branches, commits, PRs, known issues, and design discussions should reference the stable ticket ID when practical.
+Statuses: Planned, Ready, In Progress, Awaiting Unity Validation, Complete, Blocked, Cancelled. Deferred is a scheduling disposition, not a claim of implementation. No gameplay ticket was completed by this documentation update.

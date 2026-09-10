@@ -1,5 +1,7 @@
 # CHAR-05 — Procedural and Player Appearance Data Contract
 
+> **Raid pivot:** Deferred until after the prototype. Fixed class visuals do not require modular or procedural appearance. See [raid roadmap](../Roadmap/Core-Gameplay-Loop.md).
+
 ## Tracking
 - **ID:** CHAR-05
 - **Status:** Planned

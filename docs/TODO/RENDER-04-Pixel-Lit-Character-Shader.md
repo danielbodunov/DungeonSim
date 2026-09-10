@@ -1,5 +1,8 @@
 # RENDER-04 — Pixel-Lit Modular Character Shader
 
+> **Raid milestone scope:** Retained supporting rendering ticket, not a prerequisite for the fixed-Warrior prototype. Full recoloring/modular appearance acceptance below belongs to this separate rendering work; it does not require procedural NPCs or equipment inventory. See [raid roadmap](../Roadmap/Core-Gameplay-Loop.md).
+
+
 ## Tracking
 - **ID:** RENDER-04
 - **Status:** Planned

@@ -1,5 +1,10 @@
 # DungeonSim Documentation
 
+## Active Raid-Building Direction
+
+Start with [Design/Core_Game_Direction.md](Design/Core_Game_Direction.md) and [raid prototype contract](Design/Raid_Prototype.md). The [raid roadmap](Roadmap/Core-Gameplay-Loop.md) replaces management-sim priorities. Existing implementation documents remain factual references, not proof the new loop is implemented.
+
+
 This directory is the starting point for DungeonSim's game, architecture, and implementation documentation.
 
 ## I want to...

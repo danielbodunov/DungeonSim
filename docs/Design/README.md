@@ -1,5 +1,10 @@
 # Design Documents
 
+## Active Raid-Building Direction
+
+Start with [Core_Game_Direction.md](Core_Game_Direction.md) and [raid prototype contract](Raid_Prototype.md). The [raid roadmap](../Roadmap/Core-Gameplay-Loop.md) replaces management-sim priorities. Existing implementation documents remain factual references, not proof the new loop is implemented.
+
+
 Design documents explain how a system should behave and why. They may contain proposed approaches, implementation phases, acceptance criteria, and unresolved questions.
 
 ## Documents

@@ -1,5 +1,8 @@
 # Save System Architecture
 
+> **Implementation versus target:** This page describes the existing implementation. The [raid-building pivot](../Design/Core_Game_Direction.md) is planned, not implemented here. New mode ownership, resettable attempts, validation, immutable publishing and resource receipts are tracked in the [raid roadmap](../Roadmap/Core-Gameplay-Loop.md). Preserve existing owners while adapting them.
+
+
 ## Purpose
 
 `GameSaveManager` coordinates persistence across the major runtime systems. It is a cross-cutting integration point, not the owner of every piece of gameplay state.

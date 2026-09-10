@@ -1,5 +1,7 @@
 # CHAR-02 — Modular Character Appearance Assembly
 
+> **Raid pivot:** Deferred until after the prototype. Fixed class visuals do not require modular or procedural appearance. See [raid roadmap](../Roadmap/Core-Gameplay-Loop.md).
+
 ## Tracking
 - **ID:** CHAR-02
 - **Status:** Planned

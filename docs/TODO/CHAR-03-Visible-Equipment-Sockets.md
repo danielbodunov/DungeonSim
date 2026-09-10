@@ -1,8 +1,10 @@
 # CHAR-03 — Visible Equipment and Attachment Sockets
 
+> **Raid pivot:** Cancelled for the current direction: no broad equippable-item system. Fixed class weapon transforms remain allowed. Original scope below is historical. See [raid roadmap](../Roadmap/Core-Gameplay-Loop.md).
+
 ## Tracking
 - **ID:** CHAR-03
-- **Status:** Planned
+- **Status:** Cancelled
 - **Milestone:** Character Architecture / Equipment Presentation
 - **Depends on:** RENDER-02, CHAR-01; CHAR-02 recommended
 

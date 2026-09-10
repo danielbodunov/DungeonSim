@@ -1,105 +1,65 @@
 # Core Gameplay Loop Roadmap
 
-## Purpose
+Current milestone: **Playable Raid Prototype**.
+Authority: [core direction](../Design/Core_Game_Direction.md), [prototype contract](../Design/Raid_Prototype.md), [decision 0014](../Decisions/0014-raid-building-pivot.md).
 
-DungeonSim is a dungeon-management simulation in which the player acts as a sinister force cultivating a dungeon to attract and manipulate adventurers.
+This supersedes the management-sim roadmap. Completed t001–t027 work remains recorded; it is not scheduled for reimplementation. New tickets adapt existing owners.
 
-Core loop:
+## Implementation Sequence
 
-**Build & bait → Adventurers enter → Explore / suffer / steal → Escape or die → Harvest Dread / recover spoils / lose bait → Improve dungeon → Attract more valuable prey**
+| Phase | Tickets |
+| --- | --- |
+| Direction and mode ownership | t034 (documentation complete), t035 |
+| Construction and character foundations | t036–t039 |
+| Objective and trap framework | t040–t041 |
+| Prototype threats | t042–t045 |
+| Creator validation and authored persistence | t046–t047 |
+| Local publishing and raids | t048–t049 |
+| Results, then resources | t050 → t051 |
+| Full prototype playtest | t052 |
 
-See `docs/Design/Core_Game_Direction.md` for the standing game-direction principles.
+Ticket dependencies, not table position alone, control readiness. Save persistence follows the placed-content contracts; results precede resource receipts to avoid a dependency cycle. Darts and rolling rock are required by final integration even if creator validation is initially tested with spikes.
 
-Treasure is dungeon-owned bait, not an automatic player reward. Death is valuable but should not necessarily become the only desirable expedition outcome. Future survivor/reputation systems may make escapes useful even when they carry treasure away.
+## Ticket Map
 
-Tower-defense-style raids remain a possible future bonus mode and should not drive current core architecture.
+| Repository ticket | Preview alias | Scope |
+| --- | --- | --- |
+| [t034](../TODO/t034-Raid-Building-Game-Direction.md) | GAME-01 | Formalize the raid-building pivot |
+| [t035](../TODO/t035-Dungeon-Lifecycle-and-Modes.md) | GAME-02 | Separate authoring, validation and raid lifecycle |
+| [t036](../TODO/t036-Player-Authored-Dungeon-Construction.md) | BUILD-01 | Adapt existing grid construction |
+| [t037](../TODO/t037-Raid-Entrance-and-Treasure-Placement.md) | BUILD-02 | Adapt the entrance and treasure foundations |
+| [t038](../TODO/t038-Shared-Raider-Abilities.md) | CHAR-01 | Define shared raider gameplay abilities |
+| [t039](../TODO/t039-Prototype-Warrior-Controller.md) | CHAR-02 | Implement one fixed controllable Warrior |
+| [t040](../TODO/t040-Treasure-and-Escape-Objective.md) | RAID-01 | Implement the playable raid objective |
+| [t041](../TODO/t041-Raid-Trap-Framework.md) | TRAP-01 | Adapt traps for real-time raiding |
+| [t042](../TODO/t042-Prototype-Spike-Trap.md) | TRAP-02 | Implement a predictable spike hazard |
+| [t043](../TODO/t043-Prototype-Dart-Wall.md) | TRAP-03 | Implement the directional dart wall |
+| [t044](../TODO/t044-Prototype-Rolling-Rock.md) | TRAP-04 | Prove controlled physics hazards |
+| [t045](../TODO/t045-Prototype-Melee-Minion.md) | MINION-01 | Add one defensive minion |
+| [t046](../TODO/t046-Creator-Completion-Validation.md) | VALID-01 | Require a successful creator run |
+| [t047](../TODO/t047-Raid-Authoring-Persistence.md) | SAVE-01 | Persist authored dungeons safely |
+| [t048](../TODO/t048-Immutable-Local-Publishing.md) | PUB-01 | Publish a validated local version |
+| [t049](../TODO/t049-Local-Published-Dungeon-Raids.md) | RAID-02 | Raid as a separate local profile |
+| [t050](../TODO/t050-Raid-Result-Recording.md) | RESULT-01 | Record one authoritative result per attempt |
+| [t051](../TODO/t051-Prototype-Raid-Resources.md) | ECON-01 | Close the construction/reward loop |
+| [t052](../TODO/t052-Raid-Prototype-Playtest.md) | PROTO-01 | Validate the complete vertical slice |
 
-Ticket IDs are stable and are not renumbered when the roadmap changes.
+## Reuse and Existing Queue
 
----
+- Reuse completed entrance/treasure, construction-cost, trap-surface, footprint, rendering and save work.
+- Retain t029–t031 as supporting traversal construction, not mandatory prototype prerequisites.
+- Keep existing tooling/validation work available; it does not silently expand the raid milestone.
+- Retain CHAR-01/CHAR-04 skeleton and animation direction; fixed prototype visuals do not require their full acceptance scope.
+- Defer CHAR-02/CHAR-05 modular/procedural appearance. Cancel CHAR-03's broad equippable-item system under this direction; fixed weapon transforms remain allowed.
+- Keep RENDER-04's shader direction available, but its full recoloring pipeline and later rendering polish do not block gameplay prototyping.
+- Preserve completed management work as history; defer personalities, social parties, bait recovery, Dread growth and survivor reputation.
 
-## Slice A — Sinister Dungeon Expedition
+## Prototype Exit Gate
 
-### t001–t010
-**Status:** Complete
+Build a dungeon with entrance, treasure, all three traps and a minion; complete it as the Warrior; publish locally; raid from another profile; record success/death and award resources once; spend to improve. Test restart, abandon, persistence and working-copy isolation.
 
-Traversal memory, entrance/spawn contract, POIs, treasure discovery/custody, death recovery, successful escape loss, Dread harvesting, and authoritative expedition outcomes are implemented.
+## After the Prototype
 
-### t011 — Sinister Dungeon Vertical Slice Validation
-**Status:** Planned
+See the [post-prototype backlog](../Design/Raid_Prototype.md#post-prototype-backlog). Talismans and buildable trap attachments are explicitly excluded from prototype acceptance.
 
-Validate the complete bait → explore → steal → escape/die → harvest/recover loop and assess whether expeditions create understandable consequences and small emergent stories.
-
----
-
-## Slice B — Physical Consequences & Dungeon Economy
-
-**Status:** Planned after t011 validation
-
-Make expedition consequences materially visible and establish distinct supernatural and physical economies.
-
-### t012 — Visible Adventurer Carried Loot
-Show stolen treasure/loot on adventurers through a generic carried-loot representation.
-
-### t013 — Physical Death Loot Drops
-Materialize recoverable death loot at the death location as a persistent world object.
-
-### t014 — Adventurer Loot Rediscovery
-Allow later adventurers to discover and steal loot left by previous expeditions.
-
-### t015 — Player Recovery Phase
-Allow the player to deliberately recover remaining physical loot between expeditions.
-
-### t016 — Dread Spend & Dungeon Growth Foundation
-Use Dread for supernatural progression such as dungeon growth, unlocks, build depth, bait generation, traps/spawners, or similar powers. Keep Dread distinct from mundane construction materials. Treasure manifestation is the first proving purchase.
-
-### t017 — Adventurer Physical Resource Drops
-Prototype broad physical resources brought by adventurers, such as construction materials, trap components, and arcane components.
-
-### t018 — Build Cost Foundation
-Use physical resources to constrain selected construction actions and prove a spend/build logistics loop.
-
----
-
-## Slice C — Strategic Construction
-
-**Status:** Planned; details may be revised by t011 and Slice B findings
-
-Dungeon growth should be constrained by space, resources, and future intent. Corridors should be planned not only for traversal, but also for traps, bait, recovery, infrastructure, and future expansion.
-
-### t019 — External Trap Attachment Model
-Move trap mechanisms outside traversable dungeon space and require compatible floor/wall/ceiling service regions.
-
-### t020 — Rotatable Trap Placement
-Make trap orientation and hazard direction explicit placement decisions.
-
-### t021 — Modular Tile Construction Surfaces
-Evolve tile prefabs toward controlled floor/ceiling/wall/opening/service modules sufficient for physical trap installation without becoming voxel construction.
-
-### t022 — Trap Space & Compatibility Validation
-Reserve and validate complete trap mechanism/service footprints separately from their hazard volume.
-
-### t023 — Strategic Building Vertical Slice
-Validate whether spatial and resource constraints produce meaningful dungeon-planning tradeoffs instead of unconstrained creative tile painting.
-
----
-
-## Economy Direction
-
-Keep three concepts distinct unless later validation proves a better model:
-
-- **Dread:** supernatural growth, manifestation, progression, and unlocks.
-- **Physical resources:** construction, trap fabrication, upgrades, and other material logistics.
-- **Treasure:** dungeon-owned bait and risked wealth used to attract adventurers.
-
-Avoid prematurely expanding physical resources into a detailed crafting inventory. Begin with broad categories and add granularity only when gameplay requires it.
-
-## Later Gameplay Areas
-
-After these slices, likely areas include meaningful exploration, weighted junction selection, known-treasure/greed pressure, return-stamina estimation, fear/non-death Dread sources, personality, survivor reputation/notoriety, and story-facing expedition histories.
-
-## Deferred / Future Modes
-
-Defer party/social expansion, full inventory/itemization, broad combat expansion, sophisticated personalities, major polish, advanced trap disarming, and tower-defense-style organized raids until the management loop is proven.
-
-Tower-defense-style raids may later exist as a bonus/alternate mode using shared dungeon systems, but are not part of the core progression loop.
+No online deployment, implementation tickets marked complete, or gameplay asset changes are implied by this planning update.
