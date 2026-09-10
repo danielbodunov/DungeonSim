@@ -1558,8 +1558,8 @@ MonoBehaviour:
   placeholderPrefab: {fileID: 175052975836350859, guid: 7bd5947bc781b64459fbd3bfb956b422, type: 3}
   propGenerator: {fileID: 1410278425}
   buildObstacleGenerator: {fileID: 0}
-  width: 15
-  height: 15
+  width: 17
+  height: 100
   origin: {x: 0, y: 0}
   generationDirection: {x: 1, y: -1}
   localSearchNodeLimit: 25000
