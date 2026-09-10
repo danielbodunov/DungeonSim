@@ -27,7 +27,7 @@ None.
 
 ## Planned — Ground Rendering
 
-- [RENDER-09 — Exterior / Out-of-Bounds Ground Rendering](RENDER-09-Exterior-Ground-Rendering.md)
+None.
 
 ## Planned — Pixel Rendering Documentation
 
@@ -45,6 +45,7 @@ None.
 
 ## Completed / Existing Work
 
+- [RENDER-09 — Exterior / Out-of-Bounds Ground Rendering](RENDER-09-Exterior-Ground-Rendering.md)
 - [RENDER-08 — Consolidated Ground Surface Rendering](RENDER-08-Consolidated-Ground-Surface-Rendering.md)
 - [t032 — Horizontal Camera Navigation Bounds](t032-Horizontal-Camera-Navigation-Bounds.md)
 - [t028 — Save Deletion UI](t028-Save-Deletion-UI.md)

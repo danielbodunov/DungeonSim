@@ -19,6 +19,9 @@ public sealed class GeneratedBuildObstacleDefinition
     public string definitionId = "Obstacle";
     public bool blocksConstruction = true;
     public bool blocksServiceSpace = true;
+    [Tooltip("Hide ordinary ground beneath this footprint for terrain-replacing " +
+        "obstacles such as pits or chasms. Presentation only; does not affect blocking.")]
+    public bool suppressOrdinaryGround = false;
     public bool allowRotation = true;
     [Tooltip("Lowest world-space Y at which this definition may generate.")]
     public float minimumGenerationHeight = -1000f;

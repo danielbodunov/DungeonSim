@@ -17,6 +17,11 @@ This page describes the current implementation boundary for player-driven dungeo
 and the consolidated NPC-grounding collider. It reads occupancy from
 `TileGridGenerator`; it does not own gameplay state.
 
+`DungeonExteriorGroundSurface` owns a separate decorative mesh outside the
+authoritative grid. `TileGridGenerator` owns its serialized per-edge padding
+and optional material/family overrides, but exterior geometry creates no
+gameplay cells, colliders, occupancy, navigation nodes, or camera bounds.
+
 ## Runtime flow
 
 ```mermaid
@@ -100,6 +105,14 @@ build obstacles, and committed trap presentation suppressions invalidate that
 derived surface. Rebuild requests are coalesced until `LateUpdate`; the mesh is
 never a gameplay occupancy source. Pointer placement resolves against the
 world-Z grid plane instead of relying on ground colliders.
+
+Decorative exterior ground is a second consolidated renderer. Its quads are
+aligned to the grid lattice but use only coordinates outside the complete grid
+rectangle. With no appearance overrides it clones the normal ground material
+and family; optional exterior material and ground-family overrides affect only
+that renderer. Camera navigation continues to use `TryGetPlayableWorldRect`,
+and placement continues to require playable interior cells, so visual padding
+does not expand gameplay authority.
 
 ## Safe extension points
 

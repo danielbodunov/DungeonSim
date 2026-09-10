@@ -236,7 +236,7 @@ public sealed class DungeonConsolidatedGroundSurface : MonoBehaviour
         ReleaseRuntimeMeshes();
     }
 
-    static Vector3[] CreateVisualCorners(Bounds bounds)
+    public static Vector3[] CreateVisualCorners(Bounds bounds)
     {
         float minimumX = bounds.size.x > 0.0001f ? bounds.min.x : -0.5f;
         float maximumX = bounds.size.x > 0.0001f ? bounds.max.x : 0.5f;

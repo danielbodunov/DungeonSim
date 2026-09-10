@@ -2,7 +2,7 @@
 
 ## Tracking
 - **ID:** RENDER-09
-- **Status:** Planned
+- **Status:** Complete
 - **Milestone:** Rendering / World Presentation
 - **Depends on:** RENDER-08
 
@@ -93,3 +93,21 @@ Record:
 Suggested implementation branch: `render/render09-exterior-ground`
 
 Proceed according to `docs/AGENTS.md`.
+
+## Implementation Report
+
+- **Visual-extent owner:** `TileGridGenerator` owns serialized enablement, left/right/top/bottom padding (four cells per edge by default), and optional exterior material and `DungeonGroundSurfaceFamily` overrides.
+- **Renderer strategy:** `DungeonExteriorGroundSurface` clones the normal ground template into a separate derived presentation root and emits every decorative cell into one mesh and one renderer. It creates no exterior collider. For grid size `W x H` and padding `L/R/T/B`, the exterior contains `(W + L + R) * (H + T + B) - W * H` quads, with four vertices and two triangles per quad.
+- **Appearance selection:** With no overrides, the cloned template retains the playable ground material and family. A material override, family override, or both may be assigned without changing the playable consolidated renderer.
+- **Boundary representation:** Exterior centers are aligned to the grid lattice but are generated only for coordinates outside the authoritative `[0, W)` and `[0, H)` ranges. Padding names retain world left/right/top/bottom meaning even when grid generation directions are negative.
+- **Gameplay safeguards:** Exterior generation does not resize or mutate grid arrays, create playable cells, register occupancy, add path nodes, or create colliders. Pointer and construction validation continue through `TryWorldToPlayableCell`; generated obstacles continue to require `IsPlayableCell`.
+- **Camera compatibility:** t032 remains sourced exclusively from `TileGridGenerator.TryGetPlayableWorldRect`; exterior padding is not consulted by camera navigation.
+- **Validation:** Runtime and editor assemblies compile. `ExteriorGroundSurfaceTests` covers directional padding, exact exterior-cell count, consolidated mesh counts, exclusion from world-to-grid authority, unchanged playable bounds, distinct material/family assignment, the single-renderer contract, and zero active exterior colliders. Unity validation was completed in the project.
+- **Manual validation:** Completed in Unity, including the configured distinct exterior appearance and the decorative-only playable-grid boundary behavior.
+
+### Obstacle ground-suppression correction
+
+- `GeneratedBuildObstacleDefinition.suppressOrdinaryGround` defaults to `false`. Normal obstacles (including boulders, bones, crates, and pillars) retain consolidated ground underneath; terrain-replacing definitions such as pits, holes, chasms, or lava openings can explicitly enable it.
+- `TileGridGenerator.ShouldRenderOrdinaryGround` consults the resolved obstacle definition for each footprint cell. This is derived presentation only: construction/service-space blocking, obstacle occupancy, save records, navigation, and placement authority are unchanged. The validated `Boulder_01` prefab removes its former `Ground_Full_X` child so the consolidated surface supplies the ground beneath it.
+- Focused regression coverage in `ConsolidatedGroundSurfaceTests` checks the default, both suppression settings across a rotated two-cell footprint, all four construction/service-space blocking combinations, unchanged occupancy and cell state, and unaffected neighboring ground.
+- Correction validation: `dotnet build Assembly-CSharp-Editor.csproj` passed for runtime and editor assemblies (including tests), with one existing `CS0414` warning in `TileSocketBakerWindow`. The agent's Unity EditMode run targeting `ConsolidatedGroundSurfaceTests`, `GeneratedBuildObstacleTests`, and `ExteriorGroundSurfaceTests` aborted because this project was already open in another Unity instance; no automated test execution result was obtained from that run. The user subsequently confirmed Unity validation complete.
