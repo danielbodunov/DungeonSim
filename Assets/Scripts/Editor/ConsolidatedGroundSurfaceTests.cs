@@ -164,6 +164,78 @@ public sealed class ConsolidatedGroundSurfaceTests
     }
 
     [Test]
+    public void ObstacleDefinitionsKeepOrdinaryGroundByDefault()
+    {
+        Assert.That(new GeneratedBuildObstacleDefinition().suppressOrdinaryGround,
+            Is.False);
+    }
+
+    [Test]
+    public void ObstacleGroundSuppressionDoesNotChangeBlocking(
+        [Values(false, true)] bool suppressGround,
+        [Values(false, true)] bool blocksConstruction,
+        [Values(false, true)] bool blocksServiceSpace)
+    {
+        var root = new GameObject("Obstacle Ground Visibility Test");
+        try
+        {
+            TileGridGenerator grid = root.AddComponent<TileGridGenerator>();
+            var generator = root.AddComponent<GeneratedBuildObstacleGenerator>();
+            var cells = new List<int>[4, 4];
+            for (int x = 0; x < 4; x++)
+            for (int y = 0; y < 4; y++)
+                cells[x, y] = new List<int> { 0 };
+            SetField(grid, "width", 4);
+            SetField(grid, "height", 4);
+            SetField(grid, "groundTileIndex", 0);
+            SetField(grid, "cells", cells);
+            SetField(grid, "instantiated", new GameObject[4, 4]);
+            SetField(grid, "placed", new bool[4, 4]);
+            SetField(grid, "buildObstacleGenerator", generator);
+
+            var definition = new GeneratedBuildObstacleDefinition
+            {
+                suppressOrdinaryGround = suppressGround,
+                blocksConstruction = blocksConstruction,
+                blocksServiceSpace = blocksServiceSpace,
+                footprintOffsets = new List<Vector2Int>
+                {
+                    Vector2Int.zero, Vector2Int.right
+                }
+            };
+            var obstacle = new GeneratedBuildObstacleInstance(
+                definition, new Vector2Int(1, 1), 1, "Test");
+            var byCell = (Dictionary<Vector2Int, GeneratedBuildObstacleInstance>)
+                typeof(GeneratedBuildObstacleGenerator).GetField(
+                    "byCell", BindingFlags.Instance | BindingFlags.NonPublic)
+                    .GetValue(generator);
+            foreach (Vector2Int cell in obstacle.FootprintCells)
+                byCell.Add(cell, obstacle);
+
+            foreach (Vector2Int cell in obstacle.FootprintCells)
+            {
+                Assert.That(grid.ShouldRenderOrdinaryGround(cell.x, cell.y),
+                    Is.EqualTo(!suppressGround));
+                Assert.That(grid.IsBuildObstacleCell(cell),
+                    Is.EqualTo(blocksConstruction));
+                Assert.That(grid.IsBuildObstacleServiceCell(cell),
+                    Is.EqualTo(blocksServiceSpace));
+                Assert.That(generator.TryGetObstacle(cell, out var resolved), Is.True);
+                Assert.That(resolved, Is.SameAs(obstacle));
+                Assert.That(grid.IsPlacedCell(cell.x, cell.y), Is.False);
+                Assert.That(cells[cell.x, cell.y], Is.EqualTo(new[] { 0 }));
+            }
+            Assert.That(grid.ShouldRenderOrdinaryGround(2, 1), Is.True);
+            Assert.That(grid.IsBuildObstacleCell(new Vector2Int(2, 1)), Is.False);
+            Assert.That(grid.IsBuildObstacleServiceCell(new Vector2Int(2, 1)), Is.False);
+        }
+        finally
+        {
+            Object.DestroyImmediate(root);
+        }
+    }
+
+    [Test]
     public void PointerSelectionIntersectsConfiguredGridPlane()
     {
         var ray = new Ray(new Vector3(2f, 3f, 10f), Vector3.back);

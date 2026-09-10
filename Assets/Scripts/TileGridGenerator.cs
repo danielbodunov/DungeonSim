@@ -681,7 +681,8 @@ public class TileGridGenerator : MonoBehaviour
 
         var cell = new Vector2Int(x, y);
         if (buildObstacleGenerator != null &&
-            buildObstacleGenerator.TryGetObstacle(cell, out _))
+            buildObstacleGenerator.TryGetObstacle(cell, out var obstacle) &&
+            obstacle.Definition.suppressOrdinaryGround)
         {
             return false;
         }
