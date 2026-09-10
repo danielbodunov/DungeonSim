@@ -1,5 +1,8 @@
 # Gameplay Loop Architecture
 
+> **Implementation versus target:** This page describes the existing implementation. The [raid-building pivot](../Design/Core_Game_Direction.md) is planned, not implemented here. New mode ownership, resettable attempts, validation, immutable publishing and resource receipts are tracked in the [raid roadmap](../Roadmap/Core-Gameplay-Loop.md). Preserve existing owners while adapting them.
+
+
 ## Purpose
 
 `GameplayLoopController` is the high-level owner of the prototype dungeon loop. It coordinates phase state, simulation speed, dungeon progression, Dread, adventurer spawning/lifecycle, and persistent scenario state.

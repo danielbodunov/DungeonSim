@@ -1,5 +1,8 @@
 # DungeonSim Architecture Atlas
 
+> **Implementation versus target:** This page describes the existing implementation. The [raid-building pivot](../Design/Core_Game_Direction.md) is planned, not implemented here. New mode ownership, resettable attempts, validation, immutable publishing and resource receipts are tracked in the [raid roadmap](../Roadmap/Core-Gameplay-Loop.md). Preserve existing owners while adapting them.
+
+
 This section explains how the implemented Unity systems fit together. It complements the documents in [`../Design/`](../Design/README.md): Design describes intended behavior and rationale; Architecture describes the current implementation and the boundaries a developer should respect when changing it.
 
 ## Start here

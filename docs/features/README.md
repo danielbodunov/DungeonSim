@@ -1,5 +1,10 @@
 # Feature Catalog
 
+## Active Milestone — Planned, Not Implemented
+
+The [raid-building prototype](../Design/Raid_Prototype.md) is now the active target. [t034–t052](../Roadmap/Core-Gameplay-Loop.md) cover the documentation and implementation sequence. Only t034's documentation is complete. Existing feature statuses below describe prior work or legacy plans; they do not make management-era features current priorities. Talismans, trap modifiers, NPC raiders and online services remain post-prototype.
+
+
 This is a compact view of planned DungeonSim features. Detailed behavior and rationale remain in the linked design documents.
 
 | Feature | Status | Design |
@@ -12,10 +17,10 @@ This is a compact view of planned DungeonSim features. Detailed behavior and rat
 | Non-permanent NPC defeat and visit settlement | In Progress | [Visit Completion](../Design/NPC_Behavior.md#visit-completion-defeat-and-dread-settlement) |
 | NPC mingling and parties | Planning | [Social Encounters](../Design/NPC_Behavior.md#social-encounters-and-parties) |
 | Socket-based dungeon entrance placement | In Progress | [Dungeon Entrance Placement](../Design/World_Generation_and_Building.md#dungeon-entrance-placement) |
-| Cell-indexed point-of-interest foundation | Implemented | [t003 — Point-of-Interest Foundation](../TODO/t003-Point-of-Interest-Foundation.md) |
-| Authored treasure prop and socket | Implemented | [t004 — Treasure Prop + Treasure Socket](../TODO/t004-Treasure-Prop.md) |
-| NPC treasure discovery and investigation | Implemented | [t005 — NPC Treasure Discovery & Investigation](../TODO/t005-NPC-Treasure-Investigation.md) |
-| Adventurer treasure custody and ownership | Implemented | [t006 — Treasure Pickup & Ownership](../TODO/t006-NPC-Carried-Treasure.md) |
+| Cell-indexed point-of-interest foundation | Implemented | [t003 — Point-of-Interest Foundation](../TODO/Complete/t003-Point-of-Interest-Foundation.md) |
+| Authored treasure prop and socket | Implemented | [t004 — Treasure Prop + Treasure Socket](../TODO/Complete/t004-Treasure-Prop.md) |
+| NPC treasure discovery and investigation | Implemented | [t005 — NPC Treasure Discovery & Investigation](../TODO/Complete/t005-NPC-Treasure-Investigation.md) |
+| Adventurer treasure custody and ownership | Implemented | [t006 — Treasure Pickup & Ownership](../TODO/Complete/t006-NPC-Carried-Treasure.md) |
 | Manual ladder and platform placement | Planning | [Manual Traversal](../Design/World_Generation_and_Building.md#manual-traversal-placement) |
 | Auto, wide, and narrow cell construction | In Progress | [Cell Width Control](../Design/World_Generation_and_Building.md#wide-and-narrow-cell-control) |
 | Editable shared walls and local tile re-resolution | Implemented | [Connection Intent](../Design/World_Generation_and_Building.md#cell-connection-intent) |

@@ -1,5 +1,7 @@
 # CHAR-01 — Skeleton Family Contract
 
+> **Raid pivot:** Retained supporting work. The fixed-Warrior prototype does not depend on the full multi-character acceptance scope. See [raid roadmap](../Roadmap/Core-Gameplay-Loop.md).
+
 ## Tracking
 - **ID:** CHAR-01
 - **Status:** Planned

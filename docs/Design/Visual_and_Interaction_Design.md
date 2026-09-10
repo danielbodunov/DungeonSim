@@ -1,6 +1,9 @@
 VISUAL AND INTERACTION DESIGN
 =============================
 
+> **2026-09-10 direction change:** [Core game direction](Core_Game_Direction.md) and [raid prototype](Raid_Prototype.md) take precedence. Retain compatible building, visual and personal-knowledge principles below. Management economy, bait/recovery, social parties, equipment and old implementation-phase priorities are legacy/deferred, not prototype requirements. NPC raiders are post-prototype; a basic defensive minion is in scope.
+
+
 Purpose
 -------
 

@@ -1,5 +1,10 @@
 # Design Decisions
 
+## Current Scope Authority
+
+[0014 — Raid-building pivot](0014-raid-building-pivot.md) is accepted (2026-09-10). Earlier records below are preserved for history. In particular, 0005 and the Dread/tier portion of 0011 are superseded for the prototype; 0007 is deferred. See 0014 for the compatibility map.
+
+
 This directory records choices that materially constrain future design or implementation. Decision records should preserve the reason for a choice, not only its outcome.
 
 ## Accepted decisions
