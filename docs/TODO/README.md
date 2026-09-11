@@ -2,10 +2,6 @@
 
 Active milestone: [Playable Raid Prototype](../Roadmap/Core-Gameplay-Loop.md). The [core direction](../Design/Core_Game_Direction.md) and [prototype contract](../Design/Raid_Prototype.md) supersede management-era priorities. Ticket files are the status authority.
 
-## Ready
-
-- [t38 — Define shared raider gameplay abilities](t038-Shared-Raider-Abilities.md)
-
 ## Awaiting Unity Validation
 
 - [t035 — Separate authoring, validation and raid lifecycle](t035-Dungeon-Lifecycle-and-Modes.md)
@@ -52,6 +48,7 @@ Dependency ordering is in each ticket. t050 records outcomes before t051 awards 
 ## Completed / Existing Work
 
 - [t034 — Raid direction documentation](Complete/t034-Raid-Building-Game-Direction.md) — documentation only.
+- [t038 — Define shared raider gameplay abilities](Complete/t038-Shared-Raider-Abilities.md)
 - [RENDER-08-Consolidated-Ground-Surface-Rendering](Complete/RENDER-08-Consolidated-Ground-Surface-Rendering.md)
 - [RENDER-09-Exterior-Ground-Rendering](Complete/RENDER-09-Exterior-Ground-Rendering.md)
 - [t026-Generated-Build-Obstacles](Complete/t026-Generated-Build-Obstacles.md)
@@ -71,4 +68,4 @@ The previous index contained stale status locations and links to tickets moved i
 
 Use stable t### gameplay IDs, DEV### tooling IDs and established CHAR-/RENDER- IDs. Never reuse an assigned ID. Conversation aliases on t034–t052 are not additional repository IDs.
 
-Statuses: Planned, Ready, In Progress, Awaiting Unity Validation, Complete, Blocked, Cancelled. Deferred is a scheduling disposition, not a claim of implementation. No gameplay ticket was completed by this documentation update.
+Statuses: Planned, Ready, In Progress, Awaiting Unity Validation, Complete, Blocked, Cancelled. Deferred is a scheduling disposition, not a claim of implementation.
