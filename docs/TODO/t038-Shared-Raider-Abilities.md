@@ -74,6 +74,7 @@ death results.
 
 The first Unity run reported the grounded assertion failing in
 `MovementJumpFallAndLandResolveThroughSharedRequests`. The original sphere cast
-was sensitive to the cast shape beginning at direct collider contact. Grounding
-now uses three short downward rays from just above the collider bottom, filtering
-the raider's own hierarchy. The corrected test still requires a Unity rerun.
+was sensitive to casts beginning inside or directly beside the raider collider.
+A first ray-based correction remained unreliable in EditMode. Grounding now uses
+a thin overlap box immediately below the collider footprint and filters the
+raider's own hierarchy. The corrected test still requires a Unity rerun.

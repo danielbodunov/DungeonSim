@@ -83,7 +83,6 @@ public sealed class RaiderAbilities : MonoBehaviour
     [SerializeField, Min(0.01f)] float interactionRange = 1.5f;
 
     readonly Collider[] overlapResults = new Collider[24];
-    readonly RaycastHit[] groundHits = new RaycastHit[12];
     NPCCharacter character;
     Rigidbody body;
     float requestedMove;
@@ -303,24 +302,20 @@ public sealed class RaiderAbilities : MonoBehaviour
         for (int i = 0; i < colliders.Length; i++)
             if (colliders[i] != null && !colliders[i].isTrigger)
                 bottom = Mathf.Min(bottom, colliders[i].bounds.min.y);
-        Vector3 origin = new(
+        Vector3 center = new(
             body.worldCenterOfMass.x,
-            bottom + groundProbeDistance + 0.02f,
+            bottom - groundProbeDistance * 0.5f + 0.01f,
             body.worldCenterOfMass.z);
-        return HasGroundHit(origin) ||
-            HasGroundHit(origin + Vector3.right * groundProbeRadius) ||
-            HasGroundHit(origin + Vector3.left * groundProbeRadius);
-    }
-
-    bool HasGroundHit(Vector3 origin)
-    {
-        int count = Physics.RaycastNonAlloc(
-            origin, Vector3.down, groundHits,
-            groundProbeDistance * 2f + 0.04f, groundLayers,
+        Vector3 halfExtents = new(
+            groundProbeRadius,
+            groundProbeDistance * 0.5f + 0.02f,
+            groundProbeRadius);
+        int count = Physics.OverlapBoxNonAlloc(
+            center, halfExtents, overlapResults, Quaternion.identity, groundLayers,
             QueryTriggerInteraction.Ignore);
         for (int i = 0; i < count; i++)
-            if (groundHits[i].collider != null &&
-                groundHits[i].collider.transform.root != transform.root)
+            if (overlapResults[i] != null &&
+                overlapResults[i].transform.root != transform.root)
                 return true;
         return false;
     }
