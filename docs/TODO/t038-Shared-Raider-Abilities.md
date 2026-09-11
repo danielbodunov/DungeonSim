@@ -4,9 +4,9 @@
 
 - **ID:** t038
 - **Preview alias:** CHAR-01 (conversation label only; existing IDs are not reused)
-- **Status:** Complete
+- **Status:** Awaiting Unity Validation
 - **Milestone:** Playable Raid Prototype
-- **Depends on:** [t034](t034-Raid-Building-Game-Direction.md)
+- **Depends on:** [t034](Complete/t034-Raid-Building-Game-Direction.md)
 - **Branch:** `feature/t038-shared-raider-abilities`
 
 ## Goal and Scope
@@ -30,16 +30,15 @@ Online services, extra classes, talismans, trap modifier attachments, equipment 
 
 Exercise abilities through input and a small test driver; verify identical validity/damage outcomes.
 
-Implemented and Unity-validated. The generated runtime/editor projects compile,
-all five `RaiderAbilitiesTests` passed in EditMode, and the user completed the
-temporary input-driver Play Mode check.
+The original implementation was Unity-validated. The death/locomotion follow-up
+below compiles but awaits a new `RaiderAbilitiesTests` EditMode pass.
 
 ## Starting References
 
-- [Core direction](../../Design/Core_Game_Direction.md)
-- [Raid prototype contract](../../Design/Raid_Prototype.md)
-- [Architecture/NPC_Runtime.md](../../Architecture/NPC_Runtime.md)
-- [Ticket workflow](../../Reference/Codex_Workflow.md)
+- [Core direction](../Design/Core_Game_Direction.md)
+- [Raid prototype contract](../Design/Raid_Prototype.md)
+- [Architecture/NPC_Runtime.md](../Architecture/NPC_Runtime.md)
+- [Ticket workflow](../Reference/Codex_Workflow.md)
 
 ## Completion Report
 
@@ -68,7 +67,22 @@ tuning fields use code defaults until t039 attaches the component to the fixed
 Warrior. Concrete player input bindings, animation, a full NPC planner, and the
 treasure/escape objective adapter remain in later tickets.
 
-Remaining Unity checks: none for t038.
+Death/physics handoff follow-up: `OnCharacterDied()` clears the retained movement
+request and all live ability requests continue to reject through the existing
+dead-character guards. It deliberately leaves `Rigidbody.linearVelocity`
+unchanged. The read-only `CurrentVelocity` property and existing `Died` event let
+a future ragdoll or corpse-physics component capture momentum without adding that
+presentation responsibility to `RaiderAbilities`.
+
+The focused death test now verifies that controlled movement exists before
+death, the request is cleared synchronously, nonzero physical velocity survives
+death and a subsequent fixed update, later movement remains rejected, and the
+existing character death path raises `Died` exactly once.
+
+Follow-up validation performed: `dotnet build Assembly-CSharp-Editor.csproj`
+passed with the existing `TileSocketBakerWindow` `CS0414` warning. A Unity batch
+run was attempted but could not acquire the open project and produced no result
+XML. Remaining Unity check: rerun all five `RaiderAbilitiesTests` in EditMode.
 
 The original movement/jump EditMode test attempted to prove live collider
 grounding without advancing Unity's physics loop and produced repeated false

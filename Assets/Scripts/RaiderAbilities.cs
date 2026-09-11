@@ -100,6 +100,12 @@ public sealed class RaiderAbilities : MonoBehaviour
     public float MoveSpeed => moveSpeed;
     public float AttackRange => attackRange;
     public float InteractionRange => interactionRange;
+    /// <summary>
+    /// Current physical momentum for death presentation or physics handoff.
+    /// RaiderAbilities does not alter this velocity when the character dies.
+    /// </summary>
+    public Vector3 CurrentVelocity =>
+        body != null ? body.linearVelocity : Vector3.zero;
 
     public event Action<RaiderAbilityResult> AbilityResolved;
     public event Action<RaiderAbilities> Fell;
@@ -363,6 +369,8 @@ public sealed class RaiderAbilities : MonoBehaviour
 
     void OnCharacterDied(NPCCharacter _)
     {
+        // Stop ability-owned locomotion without consuming physical momentum.
+        // A future death/ragdoll owner can capture CurrentVelocity from Died.
         requestedMove = 0f;
         Died?.Invoke(this);
         AbilityResolved?.Invoke(new RaiderAbilityResult(

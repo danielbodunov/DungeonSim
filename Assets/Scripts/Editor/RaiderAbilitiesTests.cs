@@ -151,16 +151,24 @@ public sealed class RaiderAbilitiesTests
     }
 
     [Test]
-    public void DamageAndDeathReuseNpcCharacterAuthorityAndResolvedEvents()
+    public void DeathCancelsControlledMovementAndPreservesPhysicalMomentum()
     {
         GameObject actor = CreateRaider("Raider", Vector3.zero,
             out RaiderAbilities abilities, out NPCCharacter character);
         try
         {
+            Rigidbody body = actor.GetComponent<Rigidbody>();
+            body.isKinematic = false;
             int damageEvents = 0;
             int deathEvents = 0;
             abilities.Damaged += (_, amount) => damageEvents += amount;
             abilities.Died += _ => deathEvents++;
+
+            Assert.That(abilities.RequestMove(1f).Accepted, Is.True);
+            Invoke(abilities, "FixedUpdate");
+            var deathVelocity = new Vector3(
+                abilities.MoveSpeed, 3.25f, -0.5f);
+            body.linearVelocity = deathVelocity;
 
             RaiderAbilityResult first = abilities.ReceiveDamage(4, abilities, Vector3.zero);
             RaiderAbilityResult lethal = abilities.ReceiveDamage(20, abilities, Vector3.zero);
@@ -170,9 +178,27 @@ public sealed class RaiderAbilitiesTests
             Assert.That(character.IsDead, Is.True);
             Assert.That(damageEvents, Is.EqualTo(10));
             Assert.That(deathEvents, Is.EqualTo(1));
+            Assert.That(GetField<float>(abilities, "requestedMove"), Is.Zero);
+            Assert.That(abilities.CurrentVelocity, Is.EqualTo(deathVelocity));
             Assert.That(abilities.CanMove, Is.False);
             Assert.That(abilities.CanAttack, Is.False);
             Assert.That(abilities.CanInteract, Is.False);
+
+            RaiderAbilityResult rejectedMove = abilities.RequestMove(-1f);
+            Assert.That(rejectedMove.Accepted, Is.False);
+            Assert.That(rejectedMove.Rejection, Is.EqualTo(RaiderAbilityRejection.Dead));
+            Assert.That(abilities.RequestJump().Rejection,
+                Is.EqualTo(RaiderAbilityRejection.Dead));
+            Assert.That(abilities.RequestAttack().Rejection,
+                Is.EqualTo(RaiderAbilityRejection.Dead));
+            Assert.That(abilities.RequestInteract().Rejection,
+                Is.EqualTo(RaiderAbilityRejection.Dead));
+            Invoke(abilities, "FixedUpdate");
+            Assert.That(abilities.CurrentVelocity, Is.EqualTo(deathVelocity));
+
+            Assert.That(abilities.ReceiveDamage(1, abilities, Vector3.zero).Accepted,
+                Is.False);
+            Assert.That(deathEvents, Is.EqualTo(1));
         }
         finally
         {
@@ -219,6 +245,14 @@ public sealed class RaiderAbilitiesTests
             name, BindingFlags.Instance | BindingFlags.NonPublic);
         Assert.That(field, Is.Not.Null);
         field.SetValue(target, value);
+    }
+
+    static T GetField<T>(object target, string name)
+    {
+        FieldInfo field = target.GetType().GetField(
+            name, BindingFlags.Instance | BindingFlags.NonPublic);
+        Assert.That(field, Is.Not.Null);
+        return (T)field.GetValue(target);
     }
 
     static void Invoke(object target, string name)

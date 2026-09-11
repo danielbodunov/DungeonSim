@@ -60,6 +60,10 @@ publishes accepted and rejected `RaiderAbilityResult` events.
 
 Health and death remain owned by `NPCCharacter`. Damage continues through
 `NPCActionResolver`, so input and AI callers cannot apply separate damage rules.
+On death, `RaiderAbilities` clears only its requested locomotion input and stops
+applying controlled movement. It preserves `Rigidbody.linearVelocity`, exposes it
+through `CurrentVelocity`, and raises `Died` as the handoff point for a later
+ragdoll or corpse-physics owner.
 World content implements `IRaiderInteractable` to own interaction and objective
 validity; `RaiderAbilities` only finds an in-range target and requests resolution.
 The fixed Warrior input mapping and concrete treasure/escape objective adapters
