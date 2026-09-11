@@ -4,9 +4,9 @@
 
 - **ID:** t035
 - **Preview alias:** GAME-02 (conversation label only; existing IDs are not reused)
-- **Status:** Complete
+- **Status:** Awaiting Unity Validation
 - **Milestone:** Playable Raid Prototype
-- **Depends on:** [t034](t034-Raid-Building-Game-Direction.md)
+- **Depends on:** [t034](Complete/t034-Raid-Building-Game-Direction.md)
 - **Branch:** `feature/t035-dungeon-lifecycle-and-modes`
 
 ## Goal and Scope
@@ -30,15 +30,15 @@ Online services, extra classes, talismans, trap modifier attachments, equipment 
 
 Test edit after publish, failed/abandoned validation, stale proof and denied build commands.
 
-Implemented and Unity-validated. All 14 focused EditMode tests passed in the
-Unity Test Runner.
+The original implementation passed all 14 focused EditMode tests. The review
+fixes below are awaiting a new Unity Test Runner pass.
 
 ## Starting References
 
-- [Core direction](../../Design/Core_Game_Direction.md)
-- [Raid prototype contract](../../Design/Raid_Prototype.md)
-- [Architecture/Gameplay_Loop.md](../../Architecture/Gameplay_Loop.md)
-- [Ticket workflow](../../Reference/Codex_Workflow.md)
+- [Core direction](../Design/Core_Game_Direction.md)
+- [Raid prototype contract](../Design/Raid_Prototype.md)
+- [Architecture/Gameplay_Loop.md](../Architecture/Gameplay_Loop.md)
+- [Ticket workflow](../Reference/Codex_Workflow.md)
 
 ## Completion Report
 
@@ -75,3 +75,40 @@ Unity validation was completed by the user: all 14 tests in
 EditMode Test Runner. The integration case confirms build/debug/resource commands
 remain disabled from attempt start through its terminal state and return only
 after the explicit return-to-authoring transition.
+
+### Review fixes
+
+- Restore batching now coalesces authoring revisions without pretending to be a
+  rollback transaction. Once a scenario or save restore mutates live authored
+  state, disposing the outermost batch records exactly one edit even if a later
+  step fails. This invalidates prior proof for any retained mutation. Rejections
+  before the first mutation still leave the world, revision, proof, and published
+  snapshots unchanged. Nested batches propagate changes to their parent and
+  cannot discard them.
+- The NPC runtime debug harness now disables selection as soon as an attempt owns
+  the debug lock, unsubscribes its click callback, removes its highlight, and
+  releases camera focus only when the camera still follows the target selected by
+  that harness. The editor update, subscription resolver, selection toggle, and
+  click callback all enforce the lock, including terminal attempts awaiting an
+  explicit return to authoring.
+- Added restoration integration coverage for pre-mutation rejection, successful
+  restore, and retained mutation after a nested restore scope fails. These cases
+  verify live obstacle state, revision/proof behavior, and published snapshot
+  immutability. Added debug-harness coverage for click-time lock cleanup and
+  preservation of newer camera focus owned elsewhere.
+
+Review-fix validation performed: `dotnet build Assembly-CSharp-Editor.csproj`
+passes with one existing `CS0414` warning in `TileSocketBakerWindow`; the existing
+13-case standalone lifecycle suite passes. A Unity EditMode run of
+`DungeonLifecycleTests` and `DungeonLifecycleIntegrationTests` was attempted but
+could not start because the project is open in another Unity Editor instance.
+The four new integration tests have compiled but have not yet run in Unity, so
+this ticket returns to Awaiting Unity Validation.
+
+Remaining Unity checks: run both lifecycle test classes in EditMode and confirm
+all 18 tests pass. Manually validate the editor sequence: enable NPC debug
+selection, start an attempt, click in Game View and confirm no selection/focus is
+acquired, end the attempt, return to authoring, explicitly re-enable selection,
+and confirm one click selects/focuses once. Also confirm that if another system
+changes camera focus before the lock cleanup, the harness does not clear that
+newer focus.

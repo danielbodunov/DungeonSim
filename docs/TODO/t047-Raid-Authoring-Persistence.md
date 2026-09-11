@@ -6,7 +6,7 @@
 - **Preview alias:** SAVE-01 (conversation label only; existing IDs are not reused)
 - **Status:** Planned
 - **Milestone:** Playable Raid Prototype
-- **Depends on:** [t035](Complete/t035-Dungeon-Lifecycle-and-Modes.md), [t037](t037-Raid-Entrance-and-Treasure-Placement.md), [t041](t041-Raid-Trap-Framework.md), [t045](t045-Prototype-Melee-Minion.md)
+- **Depends on:** [t035](t035-Dungeon-Lifecycle-and-Modes.md), [t037](t037-Raid-Entrance-and-Treasure-Placement.md), [t041](t041-Raid-Trap-Framework.md), [t045](t045-Prototype-Melee-Minion.md)
 - **Branch:** `feature/t047-raid-authoring-persistence`
 
 ## Goal and Scope

@@ -6,6 +6,10 @@ Active milestone: [Playable Raid Prototype](../Roadmap/Core-Gameplay-Loop.md). T
 
 - [t38 — Define shared raider gameplay abilities](t038-Shared-Raider-Abilities.md)
 
+## Awaiting Unity Validation
+
+- [t035 — Separate authoring, validation and raid lifecycle](t035-Dungeon-Lifecycle-and-Modes.md)
+
 ## Planned — Raid Prototype
 
 - [t36 — Adapt existing grid construction](t036-Player-Authored-Dungeon-Construction.md)
@@ -47,7 +51,6 @@ Dependency ordering is in each ticket. t050 records outcomes before t051 awards 
 
 ## Completed / Existing Work
 
-- [t035 — Separate authoring, validation and raid lifecycle](Complete/t035-Dungeon-Lifecycle-and-Modes.md)
 - [t034 — Raid direction documentation](Complete/t034-Raid-Building-Game-Direction.md) — documentation only.
 - [RENDER-08-Consolidated-Ground-Surface-Rendering](Complete/RENDER-08-Consolidated-Ground-Surface-Rendering.md)
 - [RENDER-09-Exterior-Ground-Rendering](Complete/RENDER-09-Exterior-Ground-Rendering.md)

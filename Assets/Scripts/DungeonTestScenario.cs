@@ -344,7 +344,6 @@ public sealed class DungeonTestScenario : ScriptableObject
             traversal?.RestoreScenarioState(null);
         }
 
-        authoringBatch.Commit();
         report = $"Loaded '{scenarioName}': {tileCells.Count} cells, " +
             $"{buildObstacles.Count} build obstacles, " +
             $"{restoredTraps} traps, {restoredFloorProps} floor props, and " +

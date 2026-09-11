@@ -5,14 +5,14 @@ public class TileGridGenerator : MonoBehaviour
 {
     AuthoringEditBatch authoringBatch;
 
-    // Loading a whole authored layout is one edit. A rejected/rolled-back load
-    // disposes without committing, so its intermediate restores cannot stale proof.
+    // Coalesce a multi-step authoring operation into one revision. Once live
+    // state changes, disposing the outermost batch always records the edit,
+    // including when a later step fails and the changed world is retained.
     internal sealed class AuthoringEditBatch : System.IDisposable
     {
         readonly TileGridGenerator grid;
         readonly AuthoringEditBatch parent;
         bool changed;
-        bool committed;
         bool disposed;
 
         internal AuthoringEditBatch(TileGridGenerator grid)
@@ -23,14 +23,13 @@ public class TileGridGenerator : MonoBehaviour
         }
 
         internal void Record() => changed = true;
-        internal void Commit() => committed = true;
         public void Dispose()
         {
             if (disposed)
                 return;
             disposed = true;
             grid.authoringBatch = parent;
-            if (committed && changed)
+            if (changed)
                 grid.RecordAuthoringEdit();
         }
     }
@@ -2049,8 +2048,6 @@ public class TileGridGenerator : MonoBehaviour
         using var editBatch = BeginAuthoringBatch();
         Vector2Int coordinates = GetGridCoordinates(worldPosition);
         bool removed = RemoveEntranceAtCell(coordinates);
-        if (removed)
-            editBatch.Commit();
         return removed;
     }
 
@@ -2427,7 +2424,6 @@ public class TileGridGenerator : MonoBehaviour
 
         NotifyLayoutChanged();
         RecordAuthoringEdit();
-        editBatch.Commit();
         return true;
     }
 
@@ -2914,7 +2910,6 @@ public class TileGridGenerator : MonoBehaviour
             ClearEntrance();
         NotifyLayoutChanged();
         RecordAuthoringEdit();
-        editBatch.Commit();
         return true;
     }
 
@@ -2970,7 +2965,6 @@ public class TileGridGenerator : MonoBehaviour
             return false;
         }
         RecordAuthoringEdit();
-        editBatch.Commit();
         return true;
     }
 
@@ -3159,8 +3153,6 @@ public class TileGridGenerator : MonoBehaviour
             }
         }
         bool removed = targetCell.HasValue && RemoveTrapAtCell(targetCell.Value);
-        if (removed)
-            editBatch.Commit();
         return removed;
     }
 

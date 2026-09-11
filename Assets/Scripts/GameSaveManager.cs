@@ -330,7 +330,6 @@ public class GameSaveManager : MonoBehaviour
         string displayName = string.IsNullOrWhiteSpace(save.saveName)
             ? Path.GetFileNameWithoutExtension(savePath)
             : save.saveName;
-        authoringBatch.Commit();
         return ReportSuccess(
             $"Loaded '{displayName}': {save.tileCells.Count} cells, " +
             $"{save.buildObstacles?.Count ?? 0} build obstacles, " +

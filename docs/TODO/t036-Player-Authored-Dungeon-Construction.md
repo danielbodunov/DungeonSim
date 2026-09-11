@@ -6,7 +6,7 @@
 - **Preview alias:** BUILD-01 (conversation label only; existing IDs are not reused)
 - **Status:** Planned
 - **Milestone:** Playable Raid Prototype
-- **Depends on:** [t035](Complete/t035-Dungeon-Lifecycle-and-Modes.md)
+- **Depends on:** [t035](t035-Dungeon-Lifecycle-and-Modes.md)
 - **Branch:** `feature/t036-player-authored-dungeon-construction`
 
 ## Goal and Scope
