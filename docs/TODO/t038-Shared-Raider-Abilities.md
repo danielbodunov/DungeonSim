@@ -71,3 +71,9 @@ five tests pass. In a small Play Mode fixture, issue move, jump, attack, and
 interact requests from an input-facing driver and a simple test driver; confirm
 both receive the same attack availability, damage, cooldown, interaction, and
 death results.
+
+The first Unity run reported the grounded assertion failing in
+`MovementJumpFallAndLandResolveThroughSharedRequests`. The original sphere cast
+was sensitive to the cast shape beginning at direct collider contact. Grounding
+now uses three short downward rays from just above the collider bottom, filtering
+the raider's own hierarchy. The corrected test still requires a Unity rerun.

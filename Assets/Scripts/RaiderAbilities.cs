@@ -305,11 +305,18 @@ public sealed class RaiderAbilities : MonoBehaviour
                 bottom = Mathf.Min(bottom, colliders[i].bounds.min.y);
         Vector3 origin = new(
             body.worldCenterOfMass.x,
-            bottom + groundProbeRadius + 0.02f,
+            bottom + groundProbeDistance + 0.02f,
             body.worldCenterOfMass.z);
-        int count = Physics.SphereCastNonAlloc(
-            origin, groundProbeRadius, Vector3.down, groundHits,
-            groundProbeDistance + 0.02f, groundLayers,
+        return HasGroundHit(origin) ||
+            HasGroundHit(origin + Vector3.right * groundProbeRadius) ||
+            HasGroundHit(origin + Vector3.left * groundProbeRadius);
+    }
+
+    bool HasGroundHit(Vector3 origin)
+    {
+        int count = Physics.RaycastNonAlloc(
+            origin, Vector3.down, groundHits,
+            groundProbeDistance * 2f + 0.04f, groundLayers,
             QueryTriggerInteraction.Ignore);
         for (int i = 0; i < count; i++)
             if (groundHits[i].collider != null &&
