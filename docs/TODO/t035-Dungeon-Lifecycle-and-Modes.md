@@ -112,3 +112,12 @@ acquired, end the attempt, return to authoring, explicitly re-enable selection,
 and confirm one click selects/focuses once. Also confirm that if another system
 changes camera focus before the lock cleanup, the harness does not clear that
 newer focus.
+
+The first Unity run of the new review cases found three fixture failures:
+successful restore, retained mutation in a nested batch, and debug click lock.
+The tests were creating a controller while the open test scene could still own
+`GameplayLoopController.Instance`; production revision and debug-lock checks use
+that singleton, so those assertions observed the scene controller instead of the
+fixture controller. The integration fixture now temporarily installs its own
+controller and restores the prior scene owner during cleanup. A Unity rerun of
+the three corrected cases and the full 18-test set remains required.

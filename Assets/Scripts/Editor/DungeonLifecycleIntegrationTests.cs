@@ -46,7 +46,8 @@ public sealed class DungeonLifecycleIntegrationTests
     {
         CreateRestorationFixture(out GameObject owner, out GameplayLoopController loop,
             out TileGridGenerator grid, out GeneratedBuildObstacleGenerator generator,
-            out GeneratedBuildObstacleDefinition definition);
+            out GeneratedBuildObstacleDefinition definition,
+            out GameplayLoopController previousLoop);
         try
         {
             AddObstacle(generator, definition);
@@ -72,7 +73,7 @@ public sealed class DungeonLifecycleIntegrationTests
         }
         finally
         {
-            Object.DestroyImmediate(owner);
+            DestroyLifecycleOwner(owner, previousLoop);
         }
     }
 
@@ -81,7 +82,8 @@ public sealed class DungeonLifecycleIntegrationTests
     {
         CreateRestorationFixture(out GameObject owner, out GameplayLoopController loop,
             out TileGridGenerator grid, out GeneratedBuildObstacleGenerator generator,
-            out GeneratedBuildObstacleDefinition definition);
+            out GeneratedBuildObstacleDefinition definition,
+            out GameplayLoopController previousLoop);
         try
         {
             AddObstacle(generator, definition);
@@ -97,7 +99,7 @@ public sealed class DungeonLifecycleIntegrationTests
         }
         finally
         {
-            Object.DestroyImmediate(owner);
+            DestroyLifecycleOwner(owner, previousLoop);
         }
     }
 
@@ -106,7 +108,8 @@ public sealed class DungeonLifecycleIntegrationTests
     {
         CreateRestorationFixture(out GameObject owner, out GameplayLoopController loop,
             out TileGridGenerator grid, out GeneratedBuildObstacleGenerator generator,
-            out GeneratedBuildObstacleDefinition definition);
+            out GeneratedBuildObstacleDefinition definition,
+            out GameplayLoopController previousLoop);
         try
         {
             AddObstacle(generator, definition);
@@ -128,13 +131,15 @@ public sealed class DungeonLifecycleIntegrationTests
         }
         finally
         {
-            Object.DestroyImmediate(owner);
+            DestroyLifecycleOwner(owner, previousLoop);
         }
     }
 
     [Test]
     public void DebugClickLockDisablesSelectionAndOnlyReleasesHarnessFocus()
     {
+        GameplayLoopController previousLoop = GameplayLoopController.Instance;
+        SetGameplayLoopInstance(null);
         var owner = new GameObject("Debug Harness Lock Test");
         var target = new GameObject("Harness Focus Target");
         var foreignTarget = new GameObject("Foreign Focus Target");
@@ -177,7 +182,7 @@ public sealed class DungeonLifecycleIntegrationTests
                 Object.DestroyImmediate(window);
             Object.DestroyImmediate(target);
             Object.DestroyImmediate(foreignTarget);
-            Object.DestroyImmediate(owner);
+            DestroyLifecycleOwner(owner, previousLoop);
         }
     }
 
@@ -186,8 +191,11 @@ public sealed class DungeonLifecycleIntegrationTests
         out GameplayLoopController loop,
         out TileGridGenerator grid,
         out GeneratedBuildObstacleGenerator generator,
-        out GeneratedBuildObstacleDefinition definition)
+        out GeneratedBuildObstacleDefinition definition,
+        out GameplayLoopController previousLoop)
     {
+        previousLoop = GameplayLoopController.Instance;
+        SetGameplayLoopInstance(null);
         owner = new GameObject("Lifecycle Restore Integration Test");
         loop = owner.AddComponent<GameplayLoopController>();
         grid = owner.AddComponent<TileGridGenerator>();
@@ -200,6 +208,22 @@ public sealed class DungeonLifecycleIntegrationTests
         generator.ConfigureForTests(new[] { definition });
         generator.InitializeDefinitionsOnly(grid);
         SetField(grid, "buildObstacleGenerator", generator);
+    }
+
+    static void DestroyLifecycleOwner(
+        GameObject owner,
+        GameplayLoopController previousLoop)
+    {
+        Object.DestroyImmediate(owner);
+        SetGameplayLoopInstance(previousLoop);
+    }
+
+    static void SetGameplayLoopInstance(GameplayLoopController value)
+    {
+        PropertyInfo property = typeof(GameplayLoopController).GetProperty(
+            "Instance", BindingFlags.Static | BindingFlags.Public);
+        Assert.That(property, Is.Not.Null, "Missing GameplayLoopController.Instance");
+        property.SetValue(null, value);
     }
 
     static void AddObstacle(
