@@ -113,12 +113,22 @@ public class CameraFollow : MonoBehaviour
             mouseDelta = inputManager.MouseDelta;
         }
 
+        bool raidFollowActive = followTarget != null &&
+            GameplayLoopController.Instance?.Attempt != null;
+        if (raidFollowActive)
+        {
+            input = Vector2.zero;
+            middle = false;
+            mouseDelta = Vector2.zero;
+        }
+
         bool hasManualInput = input.sqrMagnitude > 0.0001f ||
             (middle && mouseDelta.sqrMagnitude > 0.0001f);
         if (HasFocus && manualPanCancelsFocus && hasManualInput)
             ClearFocus();
 
-        HandleZoomInput();
+        if (!raidFollowActive)
+            HandleZoomInput();
 
         Vector3 panDelta = Vector3.zero;
         bool isPanning = false;
@@ -276,7 +286,11 @@ public class CameraFollow : MonoBehaviour
             targetPosition.y = framingPoint.y;
         }
         else if (!isPanning && followTarget != null && followTarget != transform)
+        {
             targetPosition.x = followTarget.position.x;
+            if (GameplayLoopController.Instance?.Attempt != null)
+                targetPosition.y = followTarget.position.y;
+        }
 
         ClampOrthographicNavigationTarget();
 
@@ -300,7 +314,11 @@ public class CameraFollow : MonoBehaviour
         if (HasFocus)
             targetFocusPoint = focusTarget.position + focusOffset;
         else if (!isPanning && followTarget != null && followTarget != transform)
+        {
             targetFocusPoint.x = followTarget.position.x;
+            if (GameplayLoopController.Instance?.Attempt != null)
+                targetFocusPoint.y = followTarget.position.y;
+        }
 
         ClampPerspectiveNavigationTarget();
 

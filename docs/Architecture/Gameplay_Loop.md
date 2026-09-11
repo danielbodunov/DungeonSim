@@ -43,6 +43,14 @@ attempts disable build entry points, save/scenario loading, and debug controls.
 Attempt callbacks require the current attempt ID, preventing a restarted or
 abandoned runtime instance from completing the replacement attempt.
 
+`WarriorPlayerController` observes this lifecycle but does not own it. It forwards
+input to `RaiderAbilities` only while the current attempt is active. Character
+death requests `TryDieInAttempt` once for that attempt; restart remains a
+`GameplayLoopController` transition, after which the controller calls
+`RaiderAbilities.ResetForAttempt`. Future objective owners can use the same
+`StateChanged` transition rather than placing objective reset logic in the input
+controller.
+
 `DungeonLifecycle` currently stores snapshot payloads in session memory. The
 authored snapshot serializer, immutable local persistence, compatibility
 fingerprint construction, and fresh runtime-world restoration are owned by the

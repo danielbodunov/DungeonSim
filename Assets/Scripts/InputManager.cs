@@ -41,6 +41,9 @@ public class InputManager : MonoBehaviour
     public bool LeftClick { get; private set; }
     public bool EscapePressed { get; private set; }
     public bool TrapCandidateCyclePressed { get; private set; }
+    public bool JumpPressed { get; private set; }
+    public bool AttackPressed { get; private set; }
+    public bool InteractPressed { get; private set; }
     public bool PointerInputOwned { get; private set; } = true;
     public bool KeyboardInputOwned { get; private set; } = true;
 
@@ -52,6 +55,9 @@ public class InputManager : MonoBehaviour
     private InputAction middleButtonAction;
     private InputAction escapeAction;
     private InputAction trapCandidateCycleAction;
+    private InputAction jumpAction;
+    private InputAction attackAction;
+    private InputAction interactAction;
 
     void Awake()
     {
@@ -95,6 +101,12 @@ public class InputManager : MonoBehaviour
         escapeAction.AddBinding("<Keyboard>/escape");
         trapCandidateCycleAction = new InputAction(
             "CycleTrapCandidate", InputActionType.Button, "<Keyboard>/r");
+        jumpAction = new InputAction("Jump", InputActionType.Button, "<Keyboard>/space");
+        jumpAction.AddBinding("<Gamepad>/buttonSouth");
+        attackAction = new InputAction("Attack", InputActionType.Button, "<Keyboard>/f");
+        attackAction.AddBinding("<Gamepad>/buttonWest");
+        interactAction = new InputAction("Interact", InputActionType.Button, "<Keyboard>/e");
+        interactAction.AddBinding("<Gamepad>/buttonNorth");
     }
 
     void OnEnable()
@@ -107,6 +119,9 @@ public class InputManager : MonoBehaviour
         middleButtonAction?.Enable();
         escapeAction?.Enable();
         trapCandidateCycleAction?.Enable();
+        jumpAction?.Enable();
+        attackAction?.Enable();
+        interactAction?.Enable();
 
         clickLeftAction.performed += OnClickPerformed;
         clickRightAction.performed += OnRightClickPerformed;
@@ -123,6 +138,9 @@ public class InputManager : MonoBehaviour
         middleButtonAction?.Disable();
         escapeAction?.Disable();
         trapCandidateCycleAction?.Disable();
+        jumpAction?.Disable();
+        attackAction?.Disable();
+        interactAction?.Disable();
 
         clickLeftAction.performed -= OnClickPerformed;
         clickRightAction.performed -= OnRightClickPerformed;
@@ -155,6 +173,12 @@ public class InputManager : MonoBehaviour
         TrapCandidateCyclePressed = KeyboardInputOwned &&
             trapCandidateCycleAction != null &&
             trapCandidateCycleAction.WasPressedThisFrame();
+        JumpPressed = KeyboardInputOwned && jumpAction != null &&
+            jumpAction.WasPressedThisFrame();
+        AttackPressed = KeyboardInputOwned && attackAction != null &&
+            attackAction.WasPressedThisFrame();
+        InteractPressed = KeyboardInputOwned && interactAction != null &&
+            interactAction.WasPressedThisFrame();
     }
 
     void OnDestroy()
@@ -167,6 +191,9 @@ public class InputManager : MonoBehaviour
         middleButtonAction?.Dispose();
         escapeAction?.Dispose();
         trapCandidateCycleAction?.Dispose();
+        jumpAction?.Dispose();
+        attackAction?.Dispose();
+        interactAction?.Dispose();
     }
 
     public bool IsPointerOverUI()
@@ -221,6 +248,9 @@ public class InputManager : MonoBehaviour
         LeftClick = false;
         EscapePressed = false;
         TrapCandidateCyclePressed = false;
+        JumpPressed = false;
+        AttackPressed = false;
+        InteractPressed = false;
     }
 
     public Vector3 GetSelectedMapPosition()

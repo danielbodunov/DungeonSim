@@ -5,12 +5,12 @@ Active milestone: [Playable Raid Prototype](../Roadmap/Core-Gameplay-Loop.md). T
 ## Awaiting Unity Validation
 
 - [t035 — Separate authoring, validation and raid lifecycle](t035-Dungeon-Lifecycle-and-Modes.md)
+- [t39 — Implement one fixed controllable Warrior](t039-Prototype-Warrior-Controller.md)
 
 ## Planned — Raid Prototype
 
 - [t36 — Adapt existing grid construction](t036-Player-Authored-Dungeon-Construction.md)
 - [t37 — Adapt the entrance and treasure foundations](t037-Raid-Entrance-and-Treasure-Placement.md)
-- [t39 — Implement one fixed controllable Warrior](t039-Prototype-Warrior-Controller.md)
 - [t40 — Implement the playable raid objective](t040-Treasure-and-Escape-Objective.md)
 - [t41 — Adapt traps for real-time raiding](t041-Raid-Trap-Framework.md)
 - [t42 — Implement a predictable spike hazard](t042-Prototype-Spike-Trap.md)

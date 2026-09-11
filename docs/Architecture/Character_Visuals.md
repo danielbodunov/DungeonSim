@@ -109,6 +109,19 @@ Animation clips target skeleton families. Appearance modules and equipment shoul
 
 Initial shared categories may eventually include locomotion, work/tool use, combat, interaction, carrying, hit reactions, and death. The actual library and animator architecture are separate implementation work.
 
+## Prototype Warrior
+
+The fixed raid-prototype Warrior reuses `Resources/NPCS/Placeholder_NPC` through
+`PrototypeWarriorFactory`. The factory adds the required `Rigidbody`,
+`CapsuleCollider`, `RaiderAbilities`, and `WarriorPlayerController` composition
+and constrains physics to the side-view plane. This placeholder does not create a
+class-selection, equipment, or appearance-customization contract.
+
+`WarriorPlayerController` interprets input only. `RaiderAbilities` owns movement,
+jump, attack, interaction, damage, and death validity. During an active attempt,
+the existing `CameraFollow` follows the Warrior in both visible axes and ignores
+build-mode pan/zoom input; its existing dungeon bounds still clamp framing.
+
 ## Procedural and Player Customization
 NPC generation and player customization should resolve into the same appearance data contract. A random generator may choose values automatically while a character creator lets the player choose them explicitly; the renderer should not care which system supplied the values.
 
