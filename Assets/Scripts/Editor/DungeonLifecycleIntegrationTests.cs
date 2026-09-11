@@ -147,6 +147,7 @@ public sealed class DungeonLifecycleIntegrationTests
         try
         {
             GameplayLoopController loop = owner.AddComponent<GameplayLoopController>();
+            SetGameplayLoopInstance(loop);
             Camera camera = owner.AddComponent<Camera>();
             CameraFollow cameraFollow = owner.AddComponent<CameraFollow>();
             cameraFollow.camComponent = camera;
@@ -198,6 +199,7 @@ public sealed class DungeonLifecycleIntegrationTests
         SetGameplayLoopInstance(null);
         owner = new GameObject("Lifecycle Restore Integration Test");
         loop = owner.AddComponent<GameplayLoopController>();
+        SetGameplayLoopInstance(loop);
         grid = owner.AddComponent<TileGridGenerator>();
         generator = owner.AddComponent<GeneratedBuildObstacleGenerator>();
         definition = new GeneratedBuildObstacleDefinition

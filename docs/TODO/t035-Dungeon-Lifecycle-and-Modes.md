@@ -115,9 +115,10 @@ newer focus.
 
 The first Unity run of the new review cases found three fixture failures:
 successful restore, retained mutation in a nested batch, and debug click lock.
-The tests were creating a controller while the open test scene could still own
+The tests were creating a controller without explicitly installing it as
 `GameplayLoopController.Instance`; production revision and debug-lock checks use
-that singleton, so those assertions observed the scene controller instead of the
-fixture controller. The integration fixture now temporarily installs its own
-controller and restores the prior scene owner during cleanup. A Unity rerun of
-the three corrected cases and the full 18-test set remains required.
+that singleton. In EditMode, adding the component did not establish that runtime
+singleton, so the restore revisions stayed at zero and the debug callback saw no
+lock. The integration fixture now explicitly installs its controller and restores
+the prior scene owner during cleanup. A Unity rerun of the three corrected cases
+and the full 18-test set remains required.
