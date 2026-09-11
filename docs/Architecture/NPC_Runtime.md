@@ -50,10 +50,27 @@ Content can expose one or more `DungeonPointOfInterest` components. For example,
 
 Prefer POIs and focused interaction components over adding content-specific branching to `NPCTraversal` when possible.
 
+## Shared raider abilities
+
+`RaiderAbilities` is the controller-independent request boundary for the raid
+prototype. Player input and future NPC drivers call the same movement, jump,
+attack, interaction, and damage request methods. The component owns Rigidbody
+movement, grounded transitions, attack overlap/range and cooldown checks, and it
+publishes accepted and rejected `RaiderAbilityResult` events.
+
+Health and death remain owned by `NPCCharacter`. Damage continues through
+`NPCActionResolver`, so input and AI callers cannot apply separate damage rules.
+World content implements `IRaiderInteractable` to own interaction and objective
+validity; `RaiderAbilities` only finds an in-range target and requests resolution.
+The fixed Warrior input mapping and concrete treasure/escape objective adapters
+belong to their later prototype tickets.
+
 ## Safe extension points
 
 - New NPC presentation: `NPCCharacter` child/helper component.
 - New action outcome: focused resolver/helper in the NPC action layer.
+- New player or NPC raid driver: submit requests to `RaiderAbilities` rather than
+  applying movement, damage, or objective state directly.
 - New POI content: `DungeonPointOfInterest` plus a content component.
 - New cell trap: subclass `CellTrap`.
 - New traversal connector: requires route-graph integration and should be treated as architecture-level work.

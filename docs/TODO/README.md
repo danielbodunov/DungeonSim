@@ -2,13 +2,10 @@
 
 Active milestone: [Playable Raid Prototype](../Roadmap/Core-Gameplay-Loop.md). The [core direction](../Design/Core_Game_Direction.md) and [prototype contract](../Design/Raid_Prototype.md) supersede management-era priorities. Ticket files are the status authority.
 
-## Ready
-
-- [t38 — Define shared raider gameplay abilities](t038-Shared-Raider-Abilities.md)
-
 ## Awaiting Unity Validation
 
 - [t035 — Separate authoring, validation and raid lifecycle](t035-Dungeon-Lifecycle-and-Modes.md)
+- [t38 — Define shared raider gameplay abilities](t038-Shared-Raider-Abilities.md)
 
 ## Planned — Raid Prototype
 
