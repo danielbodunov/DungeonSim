@@ -72,9 +72,10 @@ interact requests from an input-facing driver and a simple test driver; confirm
 both receive the same attack availability, damage, cooldown, interaction, and
 death results.
 
-The first Unity run reported the grounded assertion failing in
-`MovementJumpFallAndLandResolveThroughSharedRequests`. The original sphere cast
-was sensitive to casts beginning inside or directly beside the raider collider.
-A first ray-based correction remained unreliable in EditMode. Grounding now uses
-a thin overlap box immediately below the collider footprint and filters the
-raider's own hierarchy. The corrected test still requires a Unity rerun.
+The original movement/jump EditMode test attempted to prove live collider
+grounding without advancing Unity's physics loop and produced repeated false
+failures. It was replaced with a focused request-contract test that controls the
+grounded precondition and verifies movement velocity, jump availability, fall,
+airborne rejection, and single landing notification. Collider grounding remains
+part of the Play Mode validation above. The corrected five-test suite still
+requires a Unity rerun.

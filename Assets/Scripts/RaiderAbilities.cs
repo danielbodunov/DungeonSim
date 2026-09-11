@@ -88,6 +88,7 @@ public sealed class RaiderAbilities : MonoBehaviour
     float requestedMove;
     float nextAttackTime;
     bool grounded;
+    [NonSerialized] internal Func<bool> groundProbeOverride = null;
 
     public NPCCharacter Character => character;
     public bool IsAlive => character != null && !character.IsDead;
@@ -295,6 +296,8 @@ public sealed class RaiderAbilities : MonoBehaviour
 
     bool ProbeGround()
     {
+        if (groundProbeOverride != null)
+            return groundProbeOverride.Invoke();
         if (body == null)
             return false;
         float bottom = transform.position.y;

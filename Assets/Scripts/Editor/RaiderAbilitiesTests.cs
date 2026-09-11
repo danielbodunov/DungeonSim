@@ -1,27 +1,21 @@
 #if UNITY_INCLUDE_TESTS
+using System;
 using System.Reflection;
 using NUnit.Framework;
 using UnityEngine;
+using Object = UnityEngine.Object;
 
 public sealed class RaiderAbilitiesTests
 {
     [Test]
-    public void MovementJumpFallAndLandResolveThroughSharedRequests()
+    public void MovementAndJumpStateTransitionsResolveThroughSharedRequests()
     {
         GameObject actor = CreateRaider("Raider", Vector3.zero,
             out RaiderAbilities abilities, out _);
-        var ground = GameObject.CreatePrimitive(PrimitiveType.Cube);
-        ground.name = "Ground";
-        ground.transform.position = new Vector3(0f, -1.5f, 0f);
-        ground.transform.localScale = new Vector3(10f, 1f, 2f);
         try
         {
             Rigidbody body = actor.GetComponent<Rigidbody>();
             body.isKinematic = false;
-            Physics.SyncTransforms();
-            Invoke(abilities, "FixedUpdate");
-            Assert.That(abilities.IsGrounded, Is.True);
-
             Assert.That(abilities.RequestMove(0.5f).Accepted, Is.True);
             Invoke(abilities, "FixedUpdate");
             Assert.That(body.linearVelocity.x,
@@ -29,29 +23,34 @@ public sealed class RaiderAbilitiesTests
 
             int falls = 0;
             int lands = 0;
+            bool hasGroundContact = true;
+            SetField(abilities, "groundProbeOverride",
+                new Func<bool>(() => hasGroundContact));
+            Invoke(abilities, "FixedUpdate");
+            Assert.That(abilities.CanJump, Is.True);
+
             abilities.Fell += _ => falls++;
             abilities.Landed += _ => lands++;
             Assert.That(abilities.RequestJump().Accepted, Is.True);
             Assert.That(abilities.IsGrounded, Is.False);
             Assert.That(falls, Is.EqualTo(1));
 
-            actor.transform.position = Vector3.up * 3f;
-            body.position = actor.transform.position;
-            Physics.SyncTransforms();
-            Invoke(abilities, "FixedUpdate");
-            Assert.That(abilities.IsGrounded, Is.False);
+            hasGroundContact = false;
+            RaiderAbilityResult airborneJump = abilities.RequestJump();
+            Assert.That(airborneJump.Accepted, Is.False);
+            Assert.That(airborneJump.Rejection,
+                Is.EqualTo(RaiderAbilityRejection.Airborne));
 
-            actor.transform.position = Vector3.zero;
-            body.position = actor.transform.position;
-            Physics.SyncTransforms();
+            hasGroundContact = true;
             Invoke(abilities, "FixedUpdate");
             Assert.That(abilities.IsGrounded, Is.True);
+            Assert.That(lands, Is.EqualTo(1));
+            Invoke(abilities, "FixedUpdate");
             Assert.That(lands, Is.EqualTo(1));
         }
         finally
         {
             Object.DestroyImmediate(actor);
-            Object.DestroyImmediate(ground);
         }
     }
 
