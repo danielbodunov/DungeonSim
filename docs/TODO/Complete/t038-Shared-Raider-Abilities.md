@@ -4,9 +4,9 @@
 
 - **ID:** t038
 - **Preview alias:** CHAR-01 (conversation label only; existing IDs are not reused)
-- **Status:** Awaiting Unity Validation
+- **Status:** Complete
 - **Milestone:** Playable Raid Prototype
-- **Depends on:** [t034](Complete/t034-Raid-Building-Game-Direction.md)
+- **Depends on:** [t034](t034-Raid-Building-Game-Direction.md)
 - **Branch:** `feature/t038-shared-raider-abilities`
 
 ## Goal and Scope
@@ -30,16 +30,16 @@ Online services, extra classes, talismans, trap modifier attachments, equipment 
 
 Exercise abilities through input and a small test driver; verify identical validity/damage outcomes.
 
-Implemented and awaiting Unity validation. The generated runtime/editor projects
-compile with the focused tests included. Run `RaiderAbilitiesTests` in the Unity
-EditMode Test Runner before completing this ticket.
+Implemented and Unity-validated. The generated runtime/editor projects compile,
+all five `RaiderAbilitiesTests` passed in EditMode, and the user completed the
+temporary input-driver Play Mode check.
 
 ## Starting References
 
-- [Core direction](../Design/Core_Game_Direction.md)
-- [Raid prototype contract](../Design/Raid_Prototype.md)
-- [Architecture/NPC_Runtime.md](../Architecture/NPC_Runtime.md)
-- [Ticket workflow](../Reference/Codex_Workflow.md)
+- [Core direction](../../Design/Core_Game_Direction.md)
+- [Raid prototype contract](../../Design/Raid_Prototype.md)
+- [Architecture/NPC_Runtime.md](../../Architecture/NPC_Runtime.md)
+- [Ticket workflow](../../Reference/Codex_Workflow.md)
 
 ## Completion Report
 
@@ -59,23 +59,21 @@ equivalent attack results through two independent request drivers, attack range
 and cooldown rejection, target-owned interaction validity, and shared
 damage/death events. A compiler pass using the generated Unity runtime/editor
 projects succeeded with one existing `CS0414` warning in
-`TileSocketBakerWindow`; the new Unity tests have not yet run.
+`TileSocketBakerWindow`. Unity validation was subsequently completed by the user:
+all five focused EditMode tests passed, followed by the temporary input-driver
+Play Mode check.
 
 No scene, prefab, or saved-data changes were made. The new serialized ability
 tuning fields use code defaults until t039 attaches the component to the fixed
 Warrior. Concrete player input bindings, animation, a full NPC planner, and the
 treasure/escape objective adapter remain in later tickets.
 
-Remaining Unity checks: run `RaiderAbilitiesTests` in EditMode and confirm all
-five tests pass. In a small Play Mode fixture, issue move, jump, attack, and
-interact requests from an input-facing driver and a simple test driver; confirm
-both receive the same attack availability, damage, cooldown, interaction, and
-death results.
+Remaining Unity checks: none for t038.
 
 The original movement/jump EditMode test attempted to prove live collider
 grounding without advancing Unity's physics loop and produced repeated false
 failures. It was replaced with a focused request-contract test that controls the
 grounded precondition and verifies movement velocity, jump availability, fall,
 airborne rejection, and single landing notification. Collider grounding remains
-part of the Play Mode validation above. The corrected five-test suite still
-requires a Unity rerun.
+part of the Play Mode validation above. The replacement test passed in the final
+Unity validation run.

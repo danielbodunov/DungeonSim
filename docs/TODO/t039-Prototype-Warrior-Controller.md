@@ -6,7 +6,7 @@
 - **Preview alias:** CHAR-02 (conversation label only; existing IDs are not reused)
 - **Status:** Planned
 - **Milestone:** Playable Raid Prototype
-- **Depends on:** [t038](t038-Shared-Raider-Abilities.md)
+- **Depends on:** [t038](Complete/t038-Shared-Raider-Abilities.md)
 - **Branch:** `feature/t039-prototype-warrior-controller`
 
 ## Goal and Scope

@@ -6,7 +6,7 @@
 - **Preview alias:** MINION-01 (conversation label only; existing IDs are not reused)
 - **Status:** Planned
 - **Milestone:** Playable Raid Prototype
-- **Depends on:** [t036](t036-Player-Authored-Dungeon-Construction.md), [t038](t038-Shared-Raider-Abilities.md)
+- **Depends on:** [t036](t036-Player-Authored-Dungeon-Construction.md), [t038](Complete/t038-Shared-Raider-Abilities.md)
 - **Branch:** `feature/t045-prototype-melee-minion`
 
 ## Goal and Scope
