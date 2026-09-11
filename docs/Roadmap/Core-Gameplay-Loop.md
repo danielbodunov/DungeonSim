@@ -24,8 +24,8 @@ Ticket dependencies, not table position alone, control readiness. Save persisten
 
 | Repository ticket | Preview alias | Scope |
 | --- | --- | --- |
-| [t034](../TODO/t034-Raid-Building-Game-Direction.md) | GAME-01 | Formalize the raid-building pivot |
-| [t035](../TODO/t035-Dungeon-Lifecycle-and-Modes.md) | GAME-02 | Separate authoring, validation and raid lifecycle |
+| [t034](../TODO/Complete/t034-Raid-Building-Game-Direction.md) | GAME-01 | Formalize the raid-building pivot |
+| [t035](../TODO/Complete/t035-Dungeon-Lifecycle-and-Modes.md) | GAME-02 | Separate authoring, validation and raid lifecycle |
 | [t036](../TODO/t036-Player-Authored-Dungeon-Construction.md) | BUILD-01 | Adapt existing grid construction |
 | [t037](../TODO/t037-Raid-Entrance-and-Treasure-Placement.md) | BUILD-02 | Adapt the entrance and treasure foundations |
 | [t038](../TODO/t038-Shared-Raider-Abilities.md) | CHAR-01 | Define shared raider gameplay abilities |

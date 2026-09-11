@@ -3,6 +3,48 @@ using System.Collections.Generic;
 
 public class TileGridGenerator : MonoBehaviour
 {
+    AuthoringEditBatch authoringBatch;
+
+    // Loading a whole authored layout is one edit. A rejected/rolled-back load
+    // disposes without committing, so its intermediate restores cannot stale proof.
+    internal sealed class AuthoringEditBatch : System.IDisposable
+    {
+        readonly TileGridGenerator grid;
+        readonly AuthoringEditBatch parent;
+        bool changed;
+        bool committed;
+        bool disposed;
+
+        internal AuthoringEditBatch(TileGridGenerator grid)
+        {
+            this.grid = grid;
+            parent = grid.authoringBatch;
+            grid.authoringBatch = this;
+        }
+
+        internal void Record() => changed = true;
+        internal void Commit() => committed = true;
+        public void Dispose()
+        {
+            if (disposed)
+                return;
+            disposed = true;
+            grid.authoringBatch = parent;
+            if (committed && changed)
+                grid.RecordAuthoringEdit();
+        }
+    }
+
+    internal AuthoringEditBatch BeginAuthoringBatch() => new(this);
+
+    void RecordAuthoringEdit()
+    {
+        if (authoringBatch != null)
+            authoringBatch.Record();
+        else
+            GameplayLoopController.Instance?.TryRecordAuthoringEdit(out _);
+    }
+
     const string GroundTileName = "Ground_Full_X";
     const string EntranceStructureId = "Entrance";
     static readonly Vector2Int[] CardinalOffsets =
@@ -803,14 +845,24 @@ public class TileGridGenerator : MonoBehaviour
 
     public void RegenerateProps(int generationSeed)
     {
+        if (!GameplayLoopController.AuthoringAllowed)
+            return;
+
         if (propGenerator != null)
+        {
             propGenerator.GenerateProps(generationSeed);
+            RecordAuthoringEdit();
+        }
     }
 
     public void RegenerateBuildObstacles(int generationSeed)
     {
+        if (!GameplayLoopController.AuthoringAllowed)
+            return;
+
         EnsureBuildObstacleGenerator();
         buildObstacleGenerator.Generate(generationSeed);
+        RecordAuthoringEdit();
     }
 
     public List<SavedGeneratedBuildObstacle> CaptureBuildObstacleLayout()
@@ -847,12 +899,28 @@ public class TileGridGenerator : MonoBehaviour
         IReadOnlyList<SavedGeneratedBuildObstacle> obstacles,
         out string failure)
     {
+        if (!GameplayLoopController.AuthoringAllowed)
+        {
+            failure = "Obstacle restoration is unavailable during an attempt.";
+            return false;
+        }
+
         EnsureBuildObstacleGenerator();
-        return buildObstacleGenerator.Restore(
+        bool restored = buildObstacleGenerator.Restore(
             obstacles, GetLivePlacementValidationContext(), out failure);
+        if (restored)
+            RecordAuthoringEdit();
+        return restored;
     }
 
-    public void ClearBuildObstacles() => buildObstacleGenerator?.Clear();
+    public void ClearBuildObstacles()
+    {
+        if (!GameplayLoopController.AuthoringAllowed || buildObstacleGenerator == null ||
+            buildObstacleGenerator.Instances.Count == 0)
+            return;
+        buildObstacleGenerator.Clear();
+        RecordAuthoringEdit();
+    }
 
     void EnsureBuildObstacleGenerator()
     {
@@ -939,6 +1007,9 @@ public class TileGridGenerator : MonoBehaviour
         List<SavedTileCell> savedCells,
         List<SavedConnectionEdge> savedConnections = null)
     {
+        if (!GameplayLoopController.AuthoringAllowed)
+            return false;
+
         if (!TryBuildValidatedTileLayout(
                 savedCells,
                 savedConnections,
@@ -981,6 +1052,7 @@ public class TileGridGenerator : MonoBehaviour
         InstantiateGrid();
         RequestGroundSurfaceRebuild();
         LayoutChanged?.Invoke();
+        RecordAuthoringEdit();
         return true;
     }
 
@@ -1725,6 +1797,9 @@ public class TileGridGenerator : MonoBehaviour
         int objectId = -1,
         bool resolvedForSave = false)
     {
+        if (!GameplayLoopController.AuthoringAllowed)
+            return false;
+
         var cell = new Vector2Int(x, y);
         if (!TryValidateFloorPropPlacement(
                 cell, floorPropPrefab, out string failure))
@@ -1775,6 +1850,7 @@ public class TileGridGenerator : MonoBehaviour
         placedFloorPropObjectIds[cell] = objectId;
         placedFloorPropPrefabNames[cell] = floorPropPrefab.name;
         LayoutChanged?.Invoke();
+        RecordAuthoringEdit();
         return true;
     }
 
@@ -1814,6 +1890,11 @@ public class TileGridGenerator : MonoBehaviour
 
     public void ClearFloorProps()
     {
+        bool hadContent = placedFloorProps.Count > 0;
+
+        if (!GameplayLoopController.AuthoringAllowed)
+            return;
+
         foreach (FloorProp floorProp in placedFloorProps.Values)
         {
             if (floorProp == null)
@@ -1824,6 +1905,8 @@ public class TileGridGenerator : MonoBehaviour
         placedFloorProps.Clear();
         placedFloorPropObjectIds.Clear();
         placedFloorPropPrefabNames.Clear();
+        if (hadContent)
+            RecordAuthoringEdit();
     }
 
     bool RemoveFloorPropAtCell(Vector2Int cell)
@@ -1960,8 +2043,15 @@ public class TileGridGenerator : MonoBehaviour
 
     public bool RemoveEntranceWorldPosition(Vector3 worldPosition)
     {
+        if (!GameplayLoopController.AuthoringAllowed)
+            return false;
+
+        using var editBatch = BeginAuthoringBatch();
         Vector2Int coordinates = GetGridCoordinates(worldPosition);
-        return RemoveEntranceAtCell(coordinates);
+        bool removed = RemoveEntranceAtCell(coordinates);
+        if (removed)
+            editBatch.Commit();
+        return removed;
     }
 
     public bool PlaceEntranceCell(
@@ -1970,6 +2060,9 @@ public class TileGridGenerator : MonoBehaviour
         GameObject entrancePrefab,
         int objectId = -1)
     {
+        if (!GameplayLoopController.AuthoringAllowed)
+            return false;
+
         var cell = new Vector2Int(x, y);
         if (!TryValidateEntrancePlacement(
                 GetLivePlacementValidationContext(),
@@ -2022,6 +2115,7 @@ public class TileGridGenerator : MonoBehaviour
         ApplyTopologyEntranceAuthority();
         placedEntrance.Bind(this, placedEntranceCell);
         LayoutChanged?.Invoke();
+        RecordAuthoringEdit();
         return true;
     }
 
@@ -2041,15 +2135,31 @@ public class TileGridGenerator : MonoBehaviour
 
     public void ClearEntrance()
     {
+        bool hadContent = placedEntrance != null;
+
+        if (!GameplayLoopController.AuthoringAllowed)
+            return;
+
         DestroyPlacedEntrance();
         ApplyTopologyEntranceAuthority();
+        if (hadContent)
+            RecordAuthoringEdit();
     }
 
     public void UseDefaultEntrance()
     {
-        if (placedEntrance != null && !placedEntranceIsFallback)
-            DestroyPlacedEntrance();
+        if (!GameplayLoopController.AuthoringAllowed)
+            return;
+
+        if (placedEntrance == null || placedEntranceIsFallback)
+        {
+            ApplyTopologyEntranceAuthority();
+            return;
+        }
+
+        DestroyPlacedEntrance();
         ApplyTopologyEntranceAuthority();
+        RecordAuthoringEdit();
     }
 
     void ResetEntranceState()
@@ -2202,6 +2312,7 @@ public class TileGridGenerator : MonoBehaviour
 
         ClearEntrance();
         LayoutChanged?.Invoke();
+        RecordAuthoringEdit();
         return true;
     }
 
@@ -2250,6 +2361,10 @@ public class TileGridGenerator : MonoBehaviour
         Vector2Int to,
         ConnectionIntent intent)
     {
+        if (!GameplayLoopController.AuthoringAllowed)
+            return false;
+
+        using var editBatch = BeginAuthoringBatch();
         if (!IsInitialized ||
             !System.Enum.IsDefined(typeof(ConnectionIntent), intent) ||
             !IsInteriorCell(from) || !IsInteriorCell(to) ||
@@ -2311,6 +2426,8 @@ public class TileGridGenerator : MonoBehaviour
         }
 
         NotifyLayoutChanged();
+        RecordAuthoringEdit();
+        editBatch.Commit();
         return true;
     }
 
@@ -2595,9 +2712,13 @@ public class TileGridGenerator : MonoBehaviour
 
     public void ApplyMaterialToPlacedTiles(Material material)
     {
+        if (!GameplayLoopController.AuthoringAllowed)
+            return;
+
         if (material == null || !IsInitialized)
             return;
 
+        bool changed = false;
         for (int x = 0; x < width; x++)
         for (int y = 0; y < height; y++)
         {
@@ -2607,9 +2728,14 @@ public class TileGridGenerator : MonoBehaviour
             foreach (Renderer tileRenderer in
                 instantiated[x, y].GetComponentsInChildren<Renderer>(true))
             {
+                if (tileRenderer.sharedMaterial == material)
+                    continue;
                 tileRenderer.sharedMaterial = material;
+                changed = true;
             }
         }
+        if (changed)
+            RecordAuthoringEdit();
     }
 
     Vector2Int GetGridCoordinates(Vector3 worldPosition)
@@ -2689,6 +2815,10 @@ public class TileGridGenerator : MonoBehaviour
 
     public bool PlaceGroundCell(int x, int y)
     {
+        if (!GameplayLoopController.AuthoringAllowed)
+            return false;
+
+        using var editBatch = BeginAuthoringBatch();
         if (x < 0 || x >= width || y < 0 || y >= height ||
             fixedGround[x, y] || !placed[x, y])
         {
@@ -2783,6 +2913,8 @@ public class TileGridGenerator : MonoBehaviour
         if (placedEntrance != null && placedEntranceCell == new Vector2Int(x, y))
             ClearEntrance();
         NotifyLayoutChanged();
+        RecordAuthoringEdit();
+        editBatch.Commit();
         return true;
     }
 
@@ -2791,6 +2923,10 @@ public class TileGridGenerator : MonoBehaviour
         int y,
         CellWidthIntent widthIntent = CellWidthIntent.Auto)
     {
+        if (!GameplayLoopController.AuthoringAllowed)
+            return false;
+
+        using var editBatch = BeginAuthoringBatch();
         if (x < 0 || x >= width || y < 0 || y >= height)
         {
             Debug.LogWarning($"Cell ({x},{y}) is outside the grid bounds [0-{width - 1}, 0-{height - 1}].");
@@ -2833,6 +2969,8 @@ public class TileGridGenerator : MonoBehaviour
             Debug.LogWarning($"No local tile combination can connect at ({x},{y}) without changing tiles farther away.");
             return false;
         }
+        RecordAuthoringEdit();
+        editBatch.Commit();
         return true;
     }
 
@@ -3007,6 +3145,10 @@ public class TileGridGenerator : MonoBehaviour
 
     public bool RemoveTrapServiceCell(Vector2Int serviceCell)
     {
+        if (!GameplayLoopController.AuthoringAllowed)
+            return false;
+
+        using var editBatch = BeginAuthoringBatch();
         Vector2Int? targetCell = null;
         foreach (KeyValuePair<Vector2Int, CellTrap> pair in placedTraps)
         {
@@ -3016,7 +3158,10 @@ public class TileGridGenerator : MonoBehaviour
                 break;
             }
         }
-        return targetCell.HasValue && RemoveTrapAtCell(targetCell.Value);
+        bool removed = targetCell.HasValue && RemoveTrapAtCell(targetCell.Value);
+        if (removed)
+            editBatch.Commit();
+        return removed;
     }
 
     public bool PlaceTrapCell(
@@ -3026,6 +3171,9 @@ public class TileGridGenerator : MonoBehaviour
         int objectId = -1,
         TrapAttachmentSurface? requestedSurface = null)
     {
+        if (!GameplayLoopController.AuthoringAllowed)
+            return false;
+
         var cell = new Vector2Int(x, y);
         if (!TryValidateTrapPlacement(
                 GetLivePlacementValidationContext(),
@@ -3078,6 +3226,7 @@ public class TileGridGenerator : MonoBehaviour
         placedTraps.Add(cell, trap);
         placedTrapObjectIds[cell] = objectId;
         placedTrapPrefabNames[cell] = trapPrefab.name;
+        RecordAuthoringEdit();
         return true;
     }
 
@@ -3117,6 +3266,11 @@ public class TileGridGenerator : MonoBehaviour
 
     public void ClearTraps()
     {
+        bool hadContent = placedTraps.Count > 0;
+
+        if (!GameplayLoopController.AuthoringAllowed)
+            return;
+
         foreach (CellTrap trap in placedTraps.Values)
         {
             if (trap == null)
@@ -3128,6 +3282,8 @@ public class TileGridGenerator : MonoBehaviour
         placedTraps.Clear();
         placedTrapObjectIds.Clear();
         placedTrapPrefabNames.Clear();
+        if (hadContent)
+            RecordAuthoringEdit();
     }
 
     public void NotifyNpcEnteredCell(NPCCharacter npc, Vector2Int cell)
@@ -3161,6 +3317,7 @@ public class TileGridGenerator : MonoBehaviour
             trap.GetComponent<TrapConstructionPresentation>()?.Restore();
             Destroy(trap.gameObject);
         }
+        RecordAuthoringEdit();
         return true;
     }
 

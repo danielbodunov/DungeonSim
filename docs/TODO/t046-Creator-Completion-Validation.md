@@ -6,7 +6,7 @@
 - **Preview alias:** VALID-01 (conversation label only; existing IDs are not reused)
 - **Status:** Planned
 - **Milestone:** Playable Raid Prototype
-- **Depends on:** [t035](t035-Dungeon-Lifecycle-and-Modes.md), [t040](t040-Treasure-and-Escape-Objective.md), [t042](t042-Prototype-Spike-Trap.md), [t045](t045-Prototype-Melee-Minion.md)
+- **Depends on:** [t035](Complete/t035-Dungeon-Lifecycle-and-Modes.md), [t040](t040-Treasure-and-Escape-Objective.md), [t042](t042-Prototype-Spike-Trap.md), [t045](t045-Prototype-Melee-Minion.md)
 - **Branch:** `feature/t046-creator-completion-validation`
 
 ## Goal and Scope

@@ -103,6 +103,11 @@ public sealed class NPCRuntimeDebugHarnessWindow : EditorWindow
 
     void OnGUI()
     {
+        if (!GameplayLoopController.DebugActionsAllowed)
+        {
+            EditorGUILayout.HelpBox("Debug actions are unavailable during validation and raids.", MessageType.Info);
+            return;
+        }
         EditorGUILayout.LabelField("NPC Runtime Debug Harness", EditorStyles.boldLabel);
         EditorGUILayout.HelpBox(
             "Play Mode only. Enable selection mode, then left-click an NPC in Game View. " +

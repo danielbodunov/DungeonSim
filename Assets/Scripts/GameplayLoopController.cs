@@ -270,7 +270,16 @@ public class GameplayLoopController : MonoBehaviour
     public float ExplorationTimeRemaining { get; private set; }
     public float SelectedSpeed => selectedSpeed;
     public bool IsPaused => DungeonSimulationState.IsPaused;
-    public bool CanBuild => Phase == DungeonPhase.Expansion;
+    readonly DungeonLifecycle lifecycle = new("raid-prototype-v1");
+    public long WorkingRevision => lifecycle.WorkingRevision;
+    public DungeonValidationProof ValidationProof => lifecycle.ValidationProof;
+    public DungeonAttempt Attempt => lifecycle.Attempt;
+    public IReadOnlyList<PublishedDungeonVersion> PublishedVersions => lifecycle.PublishedVersions;
+    public bool CanBuild => Phase == DungeonPhase.Expansion && lifecycle.CanAuthor &&
+        WorkingRevision < long.MaxValue;
+    public bool CanUseDebugActions => lifecycle.CanAuthor;
+    public static bool AuthoringAllowed => Instance == null || Instance.CanBuild;
+    public static bool DebugActionsAllowed => Instance == null || Instance.CanUseDebugActions;
     public int PlacedCellCount => tileGrid != null ? tileGrid.PlacedCellCount : 0;
     public int DungeonRating => Mathf.Clamp(
         Mathf.CeilToInt(PlacedCellCount / (float)placedCellsPerRating),
@@ -354,6 +363,94 @@ public class GameplayLoopController : MonoBehaviour
     public event Action<ExpeditionOutcomeRecord> ExpeditionCompleted;
     public event Action<PlayerLootRecoveryRecord> LootRecovered;
 
+    // Snapshot data is supplied by the authored-content owner. These transitions
+    // do not capture management saves or instantiate/reset the attempt world.
+    public bool TryBeginValidation(string authoredData, out string failure)
+    {
+        if (!CanBuild || ActiveAdventurers != 0)
+        {
+            failure = "Validation can only start from idle authoring.";
+            return false;
+        }
+        return ApplyLifecycleTransition(lifecycle.TryBeginValidation(authoredData, out failure));
+    }
+
+    public bool TryBeginRaid(Guid versionId, out string failure)
+    {
+        if (!CanBuild || ActiveAdventurers != 0)
+        {
+            failure = "A raid can only start from idle authoring.";
+            return false;
+        }
+        return ApplyLifecycleTransition(lifecycle.TryBeginRaid(versionId, out failure));
+    }
+
+    public bool TryPublishDungeon(out PublishedDungeonVersion version, out string failure)
+    {
+        version = null;
+        if (!CanBuild)
+        {
+            failure = "Publishing is only available while authoring.";
+            return false;
+        }
+        return ApplyLifecycleTransition(lifecycle.TryPublish(out version, out failure));
+    }
+
+    public bool TrySetGameplayCompatibility(string compatibilityId, out string failure)
+    {
+        if (!CanBuild)
+        {
+            failure = "Gameplay compatibility can only change while authoring.";
+            return false;
+        }
+        return ApplyLifecycleTransition(lifecycle.TrySetCompatibility(compatibilityId, out failure));
+    }
+
+    public bool TryAcquireAttemptTreasure(Guid attemptId, out string failure) =>
+        ApplyLifecycleTransition(lifecycle.TryAcquireTreasure(attemptId, out failure));
+    public bool TryEscapeAttempt(Guid attemptId, out string failure) =>
+        ApplyLifecycleTransition(lifecycle.TryEscape(attemptId, out failure));
+    public bool TryDieInAttempt(Guid attemptId, out string failure) =>
+        ApplyLifecycleTransition(lifecycle.TryDie(attemptId, out failure));
+    public bool TryAbandonAttempt(Guid attemptId, out string failure) =>
+        ApplyLifecycleTransition(lifecycle.TryAbandon(attemptId, out failure));
+    public bool TryRestartAttempt(Guid attemptId, out string failure) =>
+        ApplyLifecycleTransition(lifecycle.TryRestart(attemptId, out failure));
+    public bool TryReturnToAuthoring(out string failure) =>
+        ApplyLifecycleTransition(lifecycle.TryReturnToAuthoring(out failure));
+
+    public bool TryRecordAuthoringEdit(out string failure)
+    {
+        if (!CanBuild)
+        {
+            failure = "Authoring commands are unavailable in this mode.";
+            return false;
+        }
+        if (!lifecycle.TryRecordAuthoringEdit(out failure))
+            return false;
+        StateChanged?.Invoke();
+        return true;
+    }
+
+    bool ApplyLifecycleTransition(bool accepted)
+    {
+        if (!accepted)
+            return false;
+        tilePlacement?.SetBuildingEnabled(CanBuild);
+        if (Attempt != null)
+        {
+            DungeonSimulationState.SetPaused(false);
+            Time.timeScale = 1f;
+        }
+        else
+            Time.timeScale = IsPaused ? 0f : selectedSpeed;
+        ResolveDungeonLightingManager()?.SetPresentationMode(Attempt != null
+            ? DungeonLightingManager.PresentationMode.ExploringAtmospheric
+            : DungeonLightingManager.PresentationMode.ExpansionUniform);
+        StateChanged?.Invoke();
+        return true;
+    }
+
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     static void BootstrapGameplayLoop()
     {
@@ -409,7 +506,7 @@ public class GameplayLoopController : MonoBehaviour
 
     void TryRecoverClickedWorldObject()
     {
-        if (Phase != DungeonPhase.Expansion || inputManager == null ||
+        if (!CanBuild || inputManager == null ||
             inputManager.IsPointerOverUI() ||
             (tilePlacement != null && tilePlacement.IsPlacementActive) ||
             !inputManager.TryGetPointerRay(out Ray pointerRay))
@@ -496,6 +593,8 @@ public class GameplayLoopController : MonoBehaviour
 
     public void SetExpansion()
     {
+        if (!CanUseDebugActions)
+            return;
         Phase = DungeonPhase.Expansion;
         ResolveDungeonLightingManager()?.SetPresentationMode(
             DungeonLightingManager.PresentationMode.ExpansionUniform);
@@ -510,6 +609,8 @@ public class GameplayLoopController : MonoBehaviour
 
     public void SetExploring()
     {
+        if (!CanUseDebugActions)
+            return;
         bool isNewOpening = Phase != DungeonPhase.Exploring;
         Phase = DungeonPhase.Exploring;
         ResolveDungeonLightingManager()?.SetPresentationMode(
@@ -538,6 +639,8 @@ public class GameplayLoopController : MonoBehaviour
 
     public void ClearAdventurers()
     {
+        if (!CanUseDebugActions)
+            return;
         ReturnAllActiveAdventurersOutside();
         npcTraversal?.ClearAdventurers();
         activeRecords.Clear();
@@ -556,7 +659,7 @@ public class GameplayLoopController : MonoBehaviour
     {
         recovery = null;
         failure = string.Empty;
-        if (Phase != DungeonPhase.Expansion)
+        if (!CanBuild)
         {
             failure = "Physical loot can only be recovered between expeditions.";
             return false;
@@ -661,6 +764,8 @@ public class GameplayLoopController : MonoBehaviour
 
     public void SetGameplaySpeed(float speed)
     {
+        if (!CanUseDebugActions)
+            return;
         selectedSpeed = Mathf.Clamp(speed, 0.1f, 10f);
         if (!IsPaused)
             Time.timeScale = selectedSpeed;
@@ -674,6 +779,8 @@ public class GameplayLoopController : MonoBehaviour
 
     public void SetPaused(bool paused)
     {
+        if (!CanUseDebugActions)
+            return;
         if (!DungeonSimulationState.SetPaused(paused))
             StateChanged?.Invoke();
     }
@@ -681,7 +788,7 @@ public class GameplayLoopController : MonoBehaviour
     void OnSimulationPauseChanged(bool paused)
     {
         if (!paused)
-            Time.timeScale = selectedSpeed;
+            Time.timeScale = Attempt != null ? 1f : selectedSpeed;
         StateChanged?.Invoke();
     }
 
@@ -723,12 +830,16 @@ public class GameplayLoopController : MonoBehaviour
     /// </summary>
     public void PrepareForScenarioApply()
     {
+        if (!CanUseDebugActions)
+            return;
         SetPaused(false);
         SetExpansion();
     }
 
     public void RestoreScenarioState(GameplayLoopScenarioState snapshot)
     {
+        if (!CanUseDebugActions)
+            return;
         if (snapshot == null)
         {
             PrepareForScenarioApply();
@@ -981,6 +1092,8 @@ public class GameplayLoopController : MonoBehaviour
         int savedTrapComponents = 5,
         int savedArcaneComponents = 5)
     {
+        if (!CanUseDebugActions)
+            return;
         SetPaused(false);
         SetExpansion();
         dungeonOpenCount = Mathf.Max(0, savedDungeonOpenCount);
@@ -1033,6 +1146,11 @@ public class GameplayLoopController : MonoBehaviour
 
     public bool TrySpendBuildCost(BuildCost cost, out string failure)
     {
+        if (!CanBuild)
+        {
+            failure = "Build purchases are unavailable in this mode.";
+            return false;
+        }
         if (!CanAfford(cost, out failure))
             return false;
         AddPhysicalResource(cost.Category, -cost.Amount);
@@ -1043,6 +1161,8 @@ public class GameplayLoopController : MonoBehaviour
 
     public void RefundBuildCost(BuildCost cost)
     {
+        if (!CanBuild)
+            return;
         AddPhysicalResource(cost.Category, cost.Amount);
         LastBuildActionMessage = $"Removed build; refunded {cost}.";
         StateChanged?.Invoke();
@@ -1626,7 +1746,7 @@ public class GameplayLoopController : MonoBehaviour
 
     public bool BeginTreasureManifestation(int objectId)
     {
-        if (Phase != DungeonPhase.Expansion)
+        if (!CanBuild)
             return ReportDreadFailure("Treasure can only be manifested between expeditions.");
         int cost = TreasureManifestationDreadCost;
         if (dread < cost)

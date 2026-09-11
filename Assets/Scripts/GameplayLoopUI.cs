@@ -25,6 +25,7 @@ public class GameplayLoopUI : MonoBehaviour
     GameObject expansionPalette;
     GameObject openDungeonButton;
     GameObject explorationPanel;
+    CanvasGroup debugControls;
     Image phasePanelImage;
     TMP_Text phaseTitle;
     TMP_Text phaseDetails;
@@ -187,6 +188,7 @@ public class GameplayLoopUI : MonoBehaviour
         RectTransform panel = CreatePanel(
             "Debug", parent, Vector2.zero, Vector2.zero, Vector2.zero,
             new Vector2(210f, 436f), new Vector2(18f, 18f), Panel);
+        debugControls = panel.gameObject.AddComponent<CanvasGroup>();
         CreateLabel(panel, "DEBUG", 22, new Vector2(14f, -12f), new Vector2(182f, 30f));
 
         CreateButton(panel, "Set Day", new Vector2(14f, -52f), new Vector2(86f, 36f),
@@ -914,7 +916,13 @@ public class GameplayLoopUI : MonoBehaviour
         if (recoveryPanel == null || loop == null)
             return;
 
-        bool expansion = loop.Phase == DungeonPhase.Expansion;
+        bool expansion = loop.CanBuild;
+        if (debugControls != null)
+        {
+            debugControls.interactable = loop.CanUseDebugActions;
+            debugControls.blocksRaycasts = loop.CanUseDebugActions;
+            debugControls.alpha = loop.CanUseDebugActions ? 1f : 0.5f;
+        }
         recoveryPanel.SetActive(expansion);
         if (!expansion)
         {
@@ -1100,18 +1108,20 @@ public class GameplayLoopUI : MonoBehaviour
         openDungeonButton.SetActive(expansion);
         explorationPanel.SetActive(!expansion);
         phasePanelImage.color = expansion ? ExpansionColor : ExploringColor;
-        phaseTitle.text = expansion ? "EXPANSION" : "EXPLORING";
+        phaseTitle.text = loop.Attempt != null
+            ? (loop.Attempt.Kind == DungeonAttemptKind.CreatorValidation ? "VALIDATION" : "RAID")
+            : expansion ? "EXPANSION" : "EXPLORING";
         phaseTitle.color = expansion ? Ink : Color.white;
         phaseDetails.color = expansion ? Ink : new Color(0.87f, 0.89f, 1f, 1f);
         pauseButtonText.text = loop.IsPaused
             ? "Resume Simulation"
             : "Pause Simulation";
         if (loadLastSaveButton != null && saveManager != null)
-            loadLastSaveButton.interactable = saveManager.HasSave;
+            loadLastSaveButton.interactable = loop.CanUseDebugActions && saveManager.HasSave;
         if (saveStatusText != null && saveManager != null)
             saveStatusText.text = saveManager.LastStatus;
         if (namedSaveButton != null)
-            namedSaveButton.interactable = loop.Phase == DungeonPhase.Expansion;
+            namedSaveButton.interactable = loop.CanBuild;
 
         foreach (KeyValuePair<float, Image> pair in speedButtonImages)
             pair.Value.color = Mathf.Approximately(pair.Key, loop.SelectedSpeed)

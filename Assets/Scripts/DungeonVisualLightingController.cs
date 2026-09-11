@@ -118,6 +118,8 @@ public sealed class DungeonVisualLightingController : MonoBehaviour
 
     public void SetDebugOverride(bool enabled)
     {
+        if (!GameplayLoopController.DebugActionsAllowed)
+            return;
         if (debugOverride == enabled)
             return;
         debugOverride = enabled;
@@ -129,6 +131,8 @@ public sealed class DungeonVisualLightingController : MonoBehaviour
 
     public void SetDebugBrightness(float value)
     {
+        if (!GameplayLoopController.DebugActionsAllowed)
+            return;
         debugBrightness = ClampBrightness(value);
         if (debugOverride)
             ApplyResolvedBrightness(false);
@@ -158,11 +162,11 @@ public sealed class DungeonVisualLightingController : MonoBehaviour
 
     void ApplyResolvedBrightness(bool immediate)
     {
-        float resolved = debugOverride
+        float resolved = debugOverride && GameplayLoopController.DebugActionsAllowed
             ? debugBrightness
             : gameplayLoop == null
                 ? defaultBrightness
-                : gameplayLoop.Phase == DungeonPhase.Expansion
+                : gameplayLoop.CanBuild
                     ? expansionBrightness
                     : exploringBrightness;
 

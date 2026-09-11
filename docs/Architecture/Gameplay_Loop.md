@@ -1,6 +1,6 @@
 # Gameplay Loop Architecture
 
-> **Implementation versus target:** This page describes the existing implementation. The [raid-building pivot](../Design/Core_Game_Direction.md) is planned, not implemented here. New mode ownership, resettable attempts, validation, immutable publishing and resource receipts are tracked in the [raid roadmap](../Roadmap/Core-Gameplay-Loop.md). Preserve existing owners while adapting them.
+> **Implementation versus target:** This page describes the existing implementation. The [raid-building pivot](../Design/Core_Game_Direction.md) lifecycle ownership is now established, while playable Warrior attempts, world resets, objective validation, persistent immutable publishing, and resource receipts remain tracked in the [raid roadmap](../Roadmap/Core-Gameplay-Loop.md).
 
 
 ## Purpose
@@ -17,12 +17,36 @@
 
 ## Phase model
 
-Current phases:
+The legacy management loop retains these phases:
 
 - `Expansion` — player building/editing state.
 - `Exploring` — adventurer simulation state.
 
 The phase boundary matters because multiple systems assume the dungeon topology is stable while an adventurer run is active.
+
+The raid prototype lifecycle is coordinated by `GameplayLoopController` through
+the separate `DungeonLifecycle` model:
+
+- the working dungeon owns a monotonically increasing authoring revision;
+- creator validation proof is bound to one exact revision and gameplay
+  compatibility identity;
+- published versions retain immutable authored snapshot data and continue to
+  exist when later working-copy edits invalidate proof;
+- creator-validation and raid attempts own distinct IDs and runtime states:
+  seeking treasure, carrying treasure, escaped, dead, or abandoned.
+
+These are independent owners rather than additional values in `DungeonPhase`.
+Accepted grid, trap, prop, entrance, obstacle, edge, and material edits increment
+the working revision. Failed edits do not. Multi-step save and scenario restores
+batch their successful internal mutations into one revision. Validation and raid
+attempts disable build entry points, save/scenario loading, and debug controls.
+Attempt callbacks require the current attempt ID, preventing a restarted or
+abandoned runtime instance from completing the replacement attempt.
+
+`DungeonLifecycle` currently stores snapshot payloads in session memory. The
+authored snapshot serializer, immutable local persistence, compatibility
+fingerprint construction, and fresh runtime-world restoration are owned by the
+later publishing, persistence, and raid tickets.
 
 ```mermaid
 stateDiagram-v2

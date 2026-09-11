@@ -206,6 +206,11 @@ public sealed class DungeonTestScenario : ScriptableObject
 
     public bool TryApplyTo(TileGridGenerator grid, out string report)
     {
+        if (!GameplayLoopController.DebugActionsAllowed)
+        {
+            report = "Scenario loading is unavailable during validation and raids.";
+            return false;
+        }
         buildObstacles ??= new List<SavedGeneratedBuildObstacle>();
         if (grid == null || !grid.IsInitialized)
         {
@@ -247,6 +252,7 @@ public sealed class DungeonTestScenario : ScriptableObject
         else
             traversal?.ClearAdventurers();
 
+        using var authoringBatch = grid.BeginAuthoringBatch();
         if (!grid.RestoreTileLayout(
                 CopyTileCells(tileCells),
                 CopyConnectionEdges(connectionEdges)))
@@ -338,6 +344,7 @@ public sealed class DungeonTestScenario : ScriptableObject
             traversal?.RestoreScenarioState(null);
         }
 
+        authoringBatch.Commit();
         report = $"Loaded '{scenarioName}': {tileCells.Count} cells, " +
             $"{buildObstacles.Count} build obstacles, " +
             $"{restoredTraps} traps, {restoredFloorProps} floor props, and " +
