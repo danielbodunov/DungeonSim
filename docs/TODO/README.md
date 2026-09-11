@@ -68,4 +68,4 @@ The previous index contained stale status locations and links to tickets moved i
 
 Use stable t### gameplay IDs, DEV### tooling IDs and established CHAR-/RENDER- IDs. Never reuse an assigned ID. Conversation aliases on t034–t052 are not additional repository IDs.
 
-Statuses: Planned, Ready, In Progress, Awaiting Unity Validation, Complete, Blocked, Cancelled. Deferred is a scheduling disposition, not a claim of implementation. No gameplay ticket was completed by this documentation update.
+Statuses: Planned, Ready, In Progress, Awaiting Unity Validation, Complete, Blocked, Cancelled. Deferred is a scheduling disposition, not a claim of implementation.
