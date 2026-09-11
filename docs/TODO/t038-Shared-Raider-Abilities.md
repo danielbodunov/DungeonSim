@@ -6,7 +6,7 @@
 - **Preview alias:** CHAR-01 (conversation label only; existing IDs are not reused)
 - **Status:** Ready
 - **Milestone:** Playable Raid Prototype
-- **Depends on:** [t034](t034-Raid-Building-Game-Direction.md)
+- **Depends on:** [t034](Complete/t034-Raid-Building-Game-Direction.md)
 - **Branch:** `feature/t038-shared-raider-abilities`
 
 ## Goal and Scope

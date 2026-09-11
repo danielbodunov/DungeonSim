@@ -33,11 +33,11 @@ Completed: direction, migration disposition, dependency order and ticket links r
 
 ## Starting References
 
-- [Core direction](../Design/Core_Game_Direction.md)
-- [Raid prototype contract](../Design/Raid_Prototype.md)
-- [Design/Core_Game_Direction.md](../Design/Core_Game_Direction.md)
-- [Roadmap/Core-Gameplay-Loop.md](../Roadmap/Core-Gameplay-Loop.md)
-- [Ticket workflow](../Reference/Codex_Workflow.md)
+- [Core direction](../../Design/Core_Game_Direction.md)
+- [Raid prototype contract](../../Design/Raid_Prototype.md)
+- [Design/Core_Game_Direction.md](../../Design/Core_Game_Direction.md)
+- [Roadmap/Core-Gameplay-Loop.md](../../Roadmap/Core-Gameplay-Loop.md)
+- [Ticket workflow](../../Reference/Codex_Workflow.md)
 
 ## Completion Report
 

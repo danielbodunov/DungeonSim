@@ -64,7 +64,7 @@ public class TilePlacement : MonoBehaviour
     private static readonly Color InvalidPreviewColor =
         new(1f, 0.2f, 0.2f, 0.72f);
 
-    public bool BuildingEnabled => buildingEnabled;
+    public bool BuildingEnabled => buildingEnabled && GameplayLoopController.AuthoringAllowed;
     public bool IsRemovingTraps => removingTraps;
     public bool IsRemovingEntrance => removingEntrance;
     public bool IsEditingEdges => editingEdges;
@@ -129,7 +129,7 @@ public class TilePlacement : MonoBehaviour
         out string failure)
     {
         failure = string.Empty;
-        if (!buildingEnabled)
+        if (!BuildingEnabled)
         {
             failure = "Placement is disabled outside the dungeon expansion phase.";
             return false;
@@ -161,7 +161,7 @@ public class TilePlacement : MonoBehaviour
 
     public void StartTrapRemoval()
     {
-        if (!buildingEnabled)
+        if (!BuildingEnabled)
             return;
 
         StopPlacement();
@@ -174,7 +174,7 @@ public class TilePlacement : MonoBehaviour
 
     public void StartEntranceRemoval()
     {
-        if (!buildingEnabled)
+        if (!BuildingEnabled)
             return;
 
         StopPlacement();
@@ -187,7 +187,7 @@ public class TilePlacement : MonoBehaviour
 
     public void StartEdgeToggle()
     {
-        if (!buildingEnabled)
+        if (!BuildingEnabled)
             return;
 
         StopPlacement();
@@ -201,7 +201,7 @@ public class TilePlacement : MonoBehaviour
 
     private void PlaceStructure()
     {
-        if (!buildingEnabled)
+        if (!BuildingEnabled)
             return;
 
         if(inputManager.IsPointerOverUI())
@@ -225,7 +225,7 @@ public class TilePlacement : MonoBehaviour
 
     private void PlaceGround()
     {
-        if (!buildingEnabled)
+        if (!BuildingEnabled)
             return;
 
         if (inputManager.IsPointerOverUI())
@@ -246,7 +246,7 @@ public class TilePlacement : MonoBehaviour
 
     private void PlaceAtCell(Vector2Int logicalCell)
     {
-        if (!buildingEnabled)
+        if (!BuildingEnabled)
             return;
 
         if (!tileGridGenerator.IsPlayableCell(logicalCell) ||
@@ -371,7 +371,7 @@ public class TilePlacement : MonoBehaviour
 
     private void Update()
     {
-        if (!buildingEnabled ||
+        if (!BuildingEnabled ||
             (!removingTraps && !removingEntrance &&
              !editingEdges && selectedObjectIndex < 0))
         { 
@@ -421,7 +421,7 @@ public class TilePlacement : MonoBehaviour
     public void SetBuildingEnabled(bool enabled)
     {
         buildingEnabled = enabled;
-        if (!buildingEnabled)
+        if (!BuildingEnabled)
             StopPlacement();
     }
 

@@ -31,6 +31,7 @@ public sealed class NPCRuntimeDebugHarnessWindow : EditorWindow
     double nextRepaintTime;
     InputManager subscribedInputManager;
     CameraFollow focusedCamera;
+    Transform focusedTarget;
 
     GameObject highlightRoot;
     Material highlightMaterial;
@@ -84,6 +85,12 @@ public sealed class NPCRuntimeDebugHarnessWindow : EditorWindow
             return;
         }
 
+        if (!GameplayLoopController.DebugActionsAllowed)
+        {
+            DisableSelectionForDebugLock();
+            return;
+        }
+
         UpdateInputSubscription();
 
         if (selectedAgent == null && focusedCamera != null)
@@ -103,6 +110,12 @@ public sealed class NPCRuntimeDebugHarnessWindow : EditorWindow
 
     void OnGUI()
     {
+        if (!GameplayLoopController.DebugActionsAllowed)
+        {
+            DisableSelectionForDebugLock();
+            EditorGUILayout.HelpBox("Debug actions are unavailable during validation and raids.", MessageType.Info);
+            return;
+        }
         EditorGUILayout.LabelField("NPC Runtime Debug Harness", EditorStyles.boldLabel);
         EditorGUILayout.HelpBox(
             "Play Mode only. Enable selection mode, then left-click an NPC in Game View. " +
@@ -943,7 +956,8 @@ public sealed class NPCRuntimeDebugHarnessWindow : EditorWindow
 
     void SetSelectionMode(bool enabled)
     {
-        selectionMode = enabled && EditorApplication.isPlaying;
+        selectionMode = enabled && EditorApplication.isPlaying &&
+            GameplayLoopController.DebugActionsAllowed;
         lastActionMessage = selectionMode
             ? "Selection enabled. Click an NPC in Game View."
             : null;
@@ -954,7 +968,8 @@ public sealed class NPCRuntimeDebugHarnessWindow : EditorWindow
 
     void UpdateInputSubscription()
     {
-        InputManager desired = selectionMode && EditorApplication.isPlaying
+        InputManager desired = selectionMode && EditorApplication.isPlaying &&
+            GameplayLoopController.DebugActionsAllowed
             ? InputManager.Instance
             : null;
         if (subscribedInputManager == desired)
@@ -981,6 +996,11 @@ public sealed class NPCRuntimeDebugHarnessWindow : EditorWindow
 
     void OnGameViewClicked()
     {
+        if (!GameplayLoopController.DebugActionsAllowed)
+        {
+            DisableSelectionForDebugLock();
+            return;
+        }
         if (!selectionMode || Mouse.current == null)
             return;
         if (!IsGameView(mouseOverWindow) && !IsGameView(focusedWindow))
@@ -1056,16 +1076,31 @@ public sealed class NPCRuntimeDebugHarnessWindow : EditorWindow
 
         if (!focusedCamera.FocusTarget(target))
         {
+            focusedCamera = null;
+            focusedTarget = null;
             lastActionMessage =
                 "The selected NPC is highlighted, but the gameplay camera could not focus it.";
         }
+        else
+            focusedTarget = target;
     }
 
     void ReleaseCameraFocus()
     {
-        if (focusedCamera != null)
+        if (focusedCamera != null && focusedTarget != null &&
+            focusedCamera.FocusedTarget == focusedTarget)
             focusedCamera.ClearFocus();
         focusedCamera = null;
+        focusedTarget = null;
+    }
+
+    void DisableSelectionForDebugLock()
+    {
+        selectionMode = false;
+        selectedAgent = null;
+        ReleaseInputSubscription();
+        ReleaseCameraFocus();
+        DestroyHighlight();
     }
 
     void TrySelectAgentAt(Vector2 screenPosition)

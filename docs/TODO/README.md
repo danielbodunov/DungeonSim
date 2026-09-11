@@ -4,8 +4,11 @@ Active milestone: [Playable Raid Prototype](../Roadmap/Core-Gameplay-Loop.md). T
 
 ## Ready
 
-- [t35 — Separate authoring, validation and raid lifecycle](t035-Dungeon-Lifecycle-and-Modes.md)
 - [t38 — Define shared raider gameplay abilities](t038-Shared-Raider-Abilities.md)
+
+## Awaiting Unity Validation
+
+- [t035 — Separate authoring, validation and raid lifecycle](t035-Dungeon-Lifecycle-and-Modes.md)
 
 ## Planned — Raid Prototype
 
@@ -48,15 +51,15 @@ Dependency ordering is in each ticket. t050 records outcomes before t051 awards 
 
 ## Completed / Existing Work
 
-- [t034 — Raid direction documentation](t034-Raid-Building-Game-Direction.md) — documentation only.
-- [RENDER-08-Consolidated-Ground-Surface-Rendering](RENDER-08-Consolidated-Ground-Surface-Rendering.md)
-- [RENDER-09-Exterior-Ground-Rendering](RENDER-09-Exterior-Ground-Rendering.md)
-- [t026-Generated-Build-Obstacles](t026-Generated-Build-Obstacles.md)
-- [t028-Save-Deletion-UI](t028-Save-Deletion-UI.md)
-- [t032-Horizontal-Camera-Navigation-Bounds](t032-Horizontal-Camera-Navigation-Bounds.md)
-- [t033-Correct-Middle-Mouse-Camera-Pan-Direction](t033-Correct-Middle-Mouse-Camera-Pan-Direction.md)
+- [t034 — Raid direction documentation](Complete/t034-Raid-Building-Game-Direction.md) — documentation only.
+- [RENDER-08-Consolidated-Ground-Surface-Rendering](Complete/RENDER-08-Consolidated-Ground-Surface-Rendering.md)
+- [RENDER-09-Exterior-Ground-Rendering](Complete/RENDER-09-Exterior-Ground-Rendering.md)
+- [t026-Generated-Build-Obstacles](Complete/t026-Generated-Build-Obstacles.md)
+- [t028-Save-Deletion-UI](Complete/t028-Save-Deletion-UI.md)
+- [t032-Horizontal-Camera-Navigation-Bounds](Complete/t032-Horizontal-Camera-Navigation-Bounds.md)
+- [t033-Correct-Middle-Mouse-Camera-Pan-Direction](Complete/t033-Correct-Middle-Mouse-Camera-Pan-Direction.md)
 - [Completed ticket history](Complete/) — includes earlier building, trap, rendering and management work. Completed history does not imply the new raid contracts are implemented.
-- [Initial vertical slices](2026-08-09-initial-vertical-slices.md) — historical implementation/validation notes.
+- [Initial vertical slices](Complete/2026-08-09-initial-vertical-slices.md) — historical implementation/validation notes.
 
 The previous index contained stale status locations and links to tickets moved into Complete/. This queue follows the current ticket files and preserves completed history rather than reactivating it.
 

@@ -63,7 +63,7 @@ public class GameSaveManager : MonoBehaviour
         ResolveReferences();
         if (gameplayLoop == null || tileGrid == null || !tileGrid.IsInitialized)
             return ReportFailure("Save unavailable: the dungeon is still initializing.");
-        if (gameplayLoop.Phase != DungeonPhase.Expansion)
+        if (!gameplayLoop.CanBuild)
             return ReportFailure("Finish the current dungeon visit before saving.");
 
         saveName = NormalizeSaveName(saveName);
@@ -230,6 +230,8 @@ public class GameSaveManager : MonoBehaviour
     bool LoadGameFromPath(string savePath)
     {
         ResolveReferences();
+        if (!GameplayLoopController.DebugActionsAllowed)
+            return ReportFailure("Save loading is unavailable during validation and raids.");
         if (gameplayLoop == null || tileGrid == null || !tileGrid.IsInitialized)
             return ReportFailure("Load unavailable: the dungeon is still initializing.");
         if (!File.Exists(savePath))
@@ -262,6 +264,8 @@ public class GameSaveManager : MonoBehaviour
             return ReportFailure(spatialFailure);
 
         List<SavedTileCell> previousTiles = tileGrid.CaptureTileLayout();
+        using var authoringBatch = tileGrid.BeginAuthoringBatch();
+        gameplayLoop.PrepareForScenarioApply();
         List<SavedConnectionEdge> previousConnections =
             tileGrid.CaptureConnectionIntents();
         List<SavedTrapCell> previousTraps = tileGrid.CaptureTrapLayout();

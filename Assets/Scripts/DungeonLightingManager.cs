@@ -243,6 +243,8 @@ public class DungeonLightingManager : MonoBehaviour
 
     public void SetDebugOverride(bool enabled, bool immediate = false)
     {
+        if (!GameplayLoopController.DebugActionsAllowed)
+            return;
         if (debugPresentationOverride == enabled)
             return;
         debugPresentationOverride = enabled;
@@ -788,7 +790,7 @@ public class DungeonLightingManager : MonoBehaviour
 
     void ApplyPresentationMode(bool immediate)
     {
-        float resolved = !debugPresentationOverride &&
+        float resolved = (!debugPresentationOverride || !GameplayLoopController.DebugActionsAllowed) &&
             presentationMode == PresentationMode.ExploringAtmospheric
             ? 1f
             : 0f;
