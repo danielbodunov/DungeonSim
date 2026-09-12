@@ -183,6 +183,7 @@ public sealed class WarriorPlayerController : MonoBehaviour
 public static class PrototypeWarriorFactory
 {
     const string PlaceholderResourcePath = "NPCS/Placeholder_NPC";
+    const float PlaceholderVisualScale = 3f;
 
     public static GameObject Create(Vector3 position, Quaternion rotation)
     {
@@ -192,6 +193,9 @@ public static class PrototypeWarriorFactory
             : new GameObject("Prototype Warrior");
         warrior.name = "Prototype Warrior";
         warrior.transform.SetPositionAndRotation(position, rotation);
+        Transform placeholderVisual = warrior.transform.Find("Knight_0");
+        if (placeholderVisual != null)
+            placeholderVisual.localScale = Vector3.one * PlaceholderVisualScale;
 
         NPCCharacter character = warrior.GetComponent<NPCCharacter>();
         if (character == null)

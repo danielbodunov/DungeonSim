@@ -19,6 +19,9 @@ public sealed class WarriorPlayerControllerTests
             Assert.That(warrior.GetComponent<RaiderAbilities>(), Is.Not.Null);
             Assert.That(warrior.GetComponent<WarriorPlayerController>(), Is.Not.Null);
             Assert.That(warrior.GetComponent<CapsuleCollider>(), Is.Not.Null);
+            Transform visual = warrior.transform.Find("Knight_0");
+            Assert.That(visual, Is.Not.Null);
+            Assert.That(visual.localScale, Is.EqualTo(Vector3.one * 3f));
             Rigidbody body = warrior.GetComponent<Rigidbody>();
             Assert.That(body, Is.Not.Null);
             Assert.That(body.useGravity, Is.True);
