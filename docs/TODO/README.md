@@ -5,7 +5,6 @@ Active milestone: [Playable Raid Prototype](../Roadmap/Core-Gameplay-Loop.md). T
 ## Awaiting Unity Validation
 
 - [t035 — Separate authoring, validation and raid lifecycle](t035-Dungeon-Lifecycle-and-Modes.md)
-- [t39 — Implement one fixed controllable Warrior](t039-Prototype-Warrior-Controller.md)
 
 ## Planned — Raid Prototype
 
@@ -47,6 +46,7 @@ Dependency ordering is in each ticket. t050 records outcomes before t051 awards 
 
 ## Completed / Existing Work
 
+- [t39 — Implement one fixed controllable Warrior](Complete/t039-Prototype-Warrior-Controller.md)
 - [t034 — Raid direction documentation](Complete/t034-Raid-Building-Game-Direction.md) — documentation only.
 - [t038 — Define shared raider gameplay abilities](Complete/t038-Shared-Raider-Abilities.md)
 - [RENDER-08-Consolidated-Ground-Surface-Rendering](Complete/RENDER-08-Consolidated-Ground-Surface-Rendering.md)

@@ -4,9 +4,9 @@
 
 - **ID:** t039
 - **Preview alias:** CHAR-02 (conversation label only; existing IDs are not reused)
-- **Status:** Awaiting Unity Validation
+- **Status:** Complete
 - **Milestone:** Playable Raid Prototype
-- **Depends on:** [t038](Complete/t038-Shared-Raider-Abilities.md)
+- **Depends on:** [t038](t038-Shared-Raider-Abilities.md)
 - **Branch:** `feature/t039-prototype-warrior-controller`
 
 ## Goal and Scope
@@ -17,7 +17,7 @@ Inspect existing owners first; adapt reusable behavior rather than rebuilding co
 
 ## Acceptance Criteria
 
-- [ ] The fixed Warrior traverses a representative side-view dungeon without build-camera input conflicts.
+- [x] The fixed Warrior traverses a representative side-view dungeon without build-camera input conflicts.
 - [x] Attacks and incoming damage use shared abilities; death ends the attempt once.
 - [x] Restart restores health and objective state with no residual velocity or cooldown.
 - [x] Use fixed 3D visuals/placeholder rig; no character selection, equipment inventory or customization prerequisite.
@@ -30,16 +30,16 @@ Online services, extra classes, talismans, trap modifier attachments, equipment 
 
 Play movement, jumps, attack, death and repeated restart; test foreground/background collision boundaries.
 
-Implemented and awaiting Unity validation. Run `WarriorPlayerControllerTests` in
-EditMode, then complete the manual Play Mode sequence below.
+Implemented and Unity-validated. All four `WarriorPlayerControllerTests` passed
+in EditMode, and the user completed the manual Play Mode sequence.
 
 ## Starting References
 
-- [Core direction](../Design/Core_Game_Direction.md)
-- [Raid prototype contract](../Design/Raid_Prototype.md)
-- [Architecture/Gameplay_Loop.md](../Architecture/Gameplay_Loop.md)
-- [Architecture/Character_Visuals.md](../Architecture/Character_Visuals.md)
-- [Ticket workflow](../Reference/Codex_Workflow.md)
+- [Core direction](../../Design/Core_Game_Direction.md)
+- [Raid prototype contract](../../Design/Raid_Prototype.md)
+- [Architecture/Gameplay_Loop.md](../../Architecture/Gameplay_Loop.md)
+- [Architecture/Character_Visuals.md](../../Architecture/Character_Visuals.md)
+- [Ticket workflow](../../Reference/Codex_Workflow.md)
 
 ## Completion Report
 
@@ -71,28 +71,26 @@ Added four focused EditMode tests for fixed component composition and plane
 constraints; movement/jump/attack request forwarding; one-time death plus
 repeatable fresh restart; and active-attempt camera ownership. The runtime and
 editor sources compile through the generated Unity projects with one existing
-`CS0414` warning in `TileSocketBakerWindow`. Unity tests have not yet run.
+`CS0414` warning in `TileSocketBakerWindow`. All four focused EditMode tests
+subsequently passed in Unity.
 
 No committed scene or prefab assets are changed. The factory supplies the fixed
 placeholder at runtime. Known prototype limitations: no animation expansion,
 ragdoll, advanced traversal, concrete treasure/escape objective adapter, or
 automatic attempt spawner is included.
 
-Remaining Unity validation: run `WarriorPlayerControllerTests` in EditMode and
-confirm all four pass. In Play Mode, create the factory Warrior at the attempt
-spawn and verify left/right movement, repeated grounded jumps, walking off a
-ledge, landing, no Z drift, collision boundaries, attack and incoming damage,
-one death transition, disabled post-death controls, and several identical
-restart cycles with restored health/pose and no velocity/cooldown. Confirm the
-raid camera follows both visible axes within bounds and build pan/zoom controls
-do not move it during the attempt.
+Unity validation completed: the factory Warrior was exercised in Play Mode for
+left/right movement, jumping/falling/landing, plane constraints and collisions,
+attack and incoming damage, one death transition, disabled post-death controls,
+repeatable restart, and bounded raid-camera follow without build pan/zoom input.
+No t039 validation checks remain.
 
 The first Unity run caught `PrototypeWarriorFactory` configuring a missing
 Rigidbody. The factory used C# null-coalescing for Unity component references;
 that bypasses Unity's missing/destroyed-object null semantics. Required component
 resolution now uses explicit Unity-aware null checks before configuration. The
-factory composition test remains pending rerun because it guards the actual
-runtime spawn contract.
+factory composition test guards the actual runtime spawn contract and passed on
+rerun.
 
 The reused placeholder's `Knight_0` visual is authored much smaller than the
 prototype Warrior collider. The factory now scales that visual child to a fixed
