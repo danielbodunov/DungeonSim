@@ -6,7 +6,7 @@
 - **Preview alias:** RAID-01 (conversation label only; existing IDs are not reused)
 - **Status:** Planned
 - **Milestone:** Playable Raid Prototype
-- **Depends on:** [t037](t037-Raid-Entrance-and-Treasure-Placement.md), [t039](t039-Prototype-Warrior-Controller.md)
+- **Depends on:** [t037](t037-Raid-Entrance-and-Treasure-Placement.md), [t039](Complete/t039-Prototype-Warrior-Controller.md)
 - **Branch:** `feature/t040-treasure-and-escape-objective`
 
 ## Goal and Scope

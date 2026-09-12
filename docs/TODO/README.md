@@ -10,7 +10,6 @@ Active milestone: [Playable Raid Prototype](../Roadmap/Core-Gameplay-Loop.md). T
 
 - [t36 — Adapt existing grid construction](t036-Player-Authored-Dungeon-Construction.md)
 - [t37 — Adapt the entrance and treasure foundations](t037-Raid-Entrance-and-Treasure-Placement.md)
-- [t39 — Implement one fixed controllable Warrior](t039-Prototype-Warrior-Controller.md)
 - [t40 — Implement the playable raid objective](t040-Treasure-and-Escape-Objective.md)
 - [t41 — Adapt traps for real-time raiding](t041-Raid-Trap-Framework.md)
 - [t42 — Implement a predictable spike hazard](t042-Prototype-Spike-Trap.md)
@@ -47,6 +46,7 @@ Dependency ordering is in each ticket. t050 records outcomes before t051 awards 
 
 ## Completed / Existing Work
 
+- [t39 — Implement one fixed controllable Warrior](Complete/t039-Prototype-Warrior-Controller.md)
 - [t034 — Raid direction documentation](Complete/t034-Raid-Building-Game-Direction.md) — documentation only.
 - [t038 — Define shared raider gameplay abilities](Complete/t038-Shared-Raider-Abilities.md)
 - [RENDER-08-Consolidated-Ground-Surface-Rendering](Complete/RENDER-08-Consolidated-Ground-Surface-Rendering.md)

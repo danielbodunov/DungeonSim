@@ -29,7 +29,7 @@ Ticket dependencies, not table position alone, control readiness. Save persisten
 | [t036](../TODO/t036-Player-Authored-Dungeon-Construction.md) | BUILD-01 | Adapt existing grid construction |
 | [t037](../TODO/t037-Raid-Entrance-and-Treasure-Placement.md) | BUILD-02 | Adapt the entrance and treasure foundations |
 | [t038](../TODO/t038-Shared-Raider-Abilities.md) | CHAR-01 | Define shared raider gameplay abilities |
-| [t039](../TODO/t039-Prototype-Warrior-Controller.md) | CHAR-02 | Implement one fixed controllable Warrior |
+| [t039](../TODO/Complete/t039-Prototype-Warrior-Controller.md) | CHAR-02 | Implement one fixed controllable Warrior |
 | [t040](../TODO/t040-Treasure-and-Escape-Objective.md) | RAID-01 | Implement the playable raid objective |
 | [t041](../TODO/t041-Raid-Trap-Framework.md) | TRAP-01 | Adapt traps for real-time raiding |
 | [t042](../TODO/t042-Prototype-Spike-Trap.md) | TRAP-02 | Implement a predictable spike hazard |
