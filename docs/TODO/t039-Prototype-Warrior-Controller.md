@@ -86,3 +86,10 @@ one death transition, disabled post-death controls, and several identical
 restart cycles with restored health/pose and no velocity/cooldown. Confirm the
 raid camera follows both visible axes within bounds and build pan/zoom controls
 do not move it during the attempt.
+
+The first Unity run caught `PrototypeWarriorFactory` configuring a missing
+Rigidbody. The factory used C# null-coalescing for Unity component references;
+that bypasses Unity's missing/destroyed-object null semantics. Required component
+resolution now uses explicit Unity-aware null checks before configuration. The
+factory composition test remains pending rerun because it guards the actual
+runtime spawn contract.

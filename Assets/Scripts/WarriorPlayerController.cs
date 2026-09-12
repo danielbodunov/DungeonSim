@@ -193,24 +193,28 @@ public static class PrototypeWarriorFactory
         warrior.name = "Prototype Warrior";
         warrior.transform.SetPositionAndRotation(position, rotation);
 
-        NPCCharacter character = warrior.GetComponent<NPCCharacter>() ??
-            warrior.AddComponent<NPCCharacter>();
-        Rigidbody body = warrior.GetComponent<Rigidbody>() ??
-            warrior.AddComponent<Rigidbody>();
+        NPCCharacter character = warrior.GetComponent<NPCCharacter>();
+        if (character == null)
+            character = warrior.AddComponent<NPCCharacter>();
+        Rigidbody body = warrior.GetComponent<Rigidbody>();
+        if (body == null)
+            body = warrior.AddComponent<Rigidbody>();
         body.useGravity = true;
         body.constraints |= RigidbodyConstraints.FreezePositionZ |
             RigidbodyConstraints.FreezeRotation;
 
-        CapsuleCollider collider = warrior.GetComponent<CapsuleCollider>() ??
-            warrior.AddComponent<CapsuleCollider>();
+        CapsuleCollider collider = warrior.GetComponent<CapsuleCollider>();
+        if (collider == null)
+            collider = warrior.AddComponent<CapsuleCollider>();
         collider.direction = 1;
         if (collider.height <= 0.01f)
             collider.height = 1.8f;
         if (collider.radius <= 0.01f)
             collider.radius = 0.35f;
 
-        RaiderAbilities abilities = warrior.GetComponent<RaiderAbilities>() ??
-            warrior.AddComponent<RaiderAbilities>();
+        RaiderAbilities abilities = warrior.GetComponent<RaiderAbilities>();
+        if (abilities == null)
+            abilities = warrior.AddComponent<RaiderAbilities>();
         if (warrior.GetComponent<WarriorPlayerController>() == null)
             warrior.AddComponent<WarriorPlayerController>();
         abilities.ResetForAttempt(position, rotation);
