@@ -25,6 +25,8 @@ public sealed class WarriorPlayerControllerTests
             Rigidbody body = warrior.GetComponent<Rigidbody>();
             Assert.That(body, Is.Not.Null);
             Assert.That(body.useGravity, Is.True);
+            Assert.That(body.interpolation,
+                Is.EqualTo(RigidbodyInterpolation.Interpolate));
             Assert.That(body.constraints & RigidbodyConstraints.FreezePositionZ,
                 Is.Not.EqualTo(0));
         }

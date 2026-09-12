@@ -98,3 +98,6 @@ The reused placeholder's `Knight_0` visual is authored much smaller than the
 prototype Warrior collider. The factory now scales that visual child to a fixed
 human-readable size without scaling the Warrior root or changing collision and
 movement dimensions.
+
+The factory enables Rigidbody interpolation so fixed-step locomotion is smoothed
+for render-frame presentation and camera following.

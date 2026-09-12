@@ -204,6 +204,7 @@ public static class PrototypeWarriorFactory
         if (body == null)
             body = warrior.AddComponent<Rigidbody>();
         body.useGravity = true;
+        body.interpolation = RigidbodyInterpolation.Interpolate;
         body.constraints |= RigidbodyConstraints.FreezePositionZ |
             RigidbodyConstraints.FreezeRotation;
 
